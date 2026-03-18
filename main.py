@@ -214,6 +214,217 @@ def agents():
         console.print("  [dim]None enabled[/dim]")
 
 
+# ── diff ──────────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.argument("doc_id_a")
+@click.argument("doc_id_b")
+def diff(doc_id_a, doc_id_b):
+    """Compare two documents by their database IDs and show what changed.
+
+    Example: python main.py diff FR-2024-00123 FR-2025-00456
+    """
+    from agents.orchestrator import Orchestrator
+    from utils.reporter import print_banner
+    print_banner()
+
+    console.print(f"[dim]Comparing:[/dim] [bold]{doc_id_a}[/bold] → [bold]{doc_id_b}[/bold]\n")
+    orch   = Orchestrator()
+    result = orch.compare_two_documents(doc_id_a, doc_id_b)
+
+    if not result:
+        console.print("[yellow]No substantive differences found, or one/both documents not in database.[/yellow]")
+        return
+
+    _print_diff_result(result)
+
+
+@cli.command()
+@click.option("--days",     default=30,   show_default=True)
+@click.option("--severity", default=None,
+              type=click.Choice(["Low", "Medium", "High", "Critical"]))
+@click.option("--type",     "diff_type", default=None,
+              type=click.Choice(["version_update", "addendum"]))
+@click.option("--unreviewed", is_flag=True, default=False,
+              help="Show only diffs not yet marked as reviewed")
+def changes(days, severity, diff_type, unreviewed):
+    """Show detected regulatory changes — version updates and addenda."""
+    from utils.db import get_recent_diffs, get_unreviewed_diffs
+    from utils.reporter import print_banner
+    print_banner()
+
+    if unreviewed:
+        diffs = get_unreviewed_diffs(limit=100)
+        console.print(f"[bold]Unreviewed Changes[/bold] ({len(diffs)} pending)\n")
+    else:
+        diffs = get_recent_diffs(days=days, severity=severity, diff_type=diff_type)
+        console.print(f"[bold]Regulatory Changes[/bold] — last {days} days ({len(diffs)} found)\n")
+
+    if not diffs:
+        console.print("[dim]No changes found for the specified filters.[/dim]")
+        return
+
+    for d in diffs:
+        _print_diff_result(d)
+
+
+@cli.command()
+@click.argument("base_id")
+@click.argument("addendum_id")
+def link(base_id, addendum_id):
+    """Manually declare that ADDENDUM_ID amends or clarifies BASE_ID.
+
+    Runs the full addendum analysis and saves the result.
+
+    Example: python main.py link EU-CELEX-32024R1689 EU-AIOFFICE-guidelines-2025
+    """
+    from agents.orchestrator import Orchestrator
+    from utils.reporter import print_banner
+    print_banner()
+
+    console.print(f"[dim]Linking addendum:[/dim]\n"
+                  f"  Base:     [bold]{base_id}[/bold]\n"
+                  f"  Addendum: [bold]{addendum_id}[/bold]\n")
+
+    orch   = Orchestrator()
+    result = orch.link_addendum_manually(base_id, addendum_id)
+
+    if not result:
+        console.print("[yellow]Could not complete analysis. Check that both document IDs exist in the database.[/yellow]")
+        return
+
+    _print_diff_result(result)
+
+
+@cli.command()
+@click.argument("doc_id")
+def history(doc_id):
+    """Show the full change history for a specific document.
+
+    Example: python main.py history FR-2024-00123
+    """
+    from utils.db import get_diffs_for_document, get_links_for_document, get_document
+    from utils.reporter import print_banner
+    print_banner()
+
+    doc = get_document(doc_id)
+    if not doc:
+        console.print(f"[red]Document not found:[/red] {doc_id}")
+        return
+
+    console.print(f"\n[bold]{doc['title']}[/bold]")
+    console.print(f"[dim]{doc['jurisdiction']} | {doc['doc_type']} | {doc['status']}[/dim]")
+    console.print(f"[dim]{doc['url']}[/dim]\n")
+
+    links = get_links_for_document(doc_id)
+    if links:
+        console.print(f"[bold blue]Document Relationships[/bold blue] ({len(links)})")
+        for lnk in links:
+            direction = "← amends" if lnk["related_doc_id"] == doc_id else "→ amends"
+            other     = lnk["related_doc_id"] if lnk["base_doc_id"] == doc_id else lnk["base_doc_id"]
+            console.print(f"  {direction}  [dim]{other}[/dim]  [{lnk['link_type']}]")
+
+    diffs = get_diffs_for_document(doc_id)
+    if diffs:
+        console.print(f"\n[bold blue]Change History[/bold blue] ({len(diffs)} events)")
+        for d in diffs:
+            reviewed = "[green]✓ reviewed[/green]" if d["reviewed"] else "[yellow]⚠ unreviewed[/yellow]"
+            console.print(
+                f"\n  [{d['detected_at'][:10]}]  "
+                f"[bold]{d['severity']}[/bold]  {d['relationship_type'] or d['diff_type']}  {reviewed}"
+            )
+            console.print(f"  {d['change_summary']}")
+            for item in (d.get("new_action_items") or [])[:3]:
+                console.print(f"    → {item}")
+    else:
+        console.print("[dim]No change history found for this document.[/dim]")
+
+
+@cli.command()
+@click.argument("diff_id", type=int)
+def review(diff_id):
+    """Mark a diff as reviewed by your compliance team.
+
+    Example: python main.py review 42
+    """
+    from utils.db import mark_diff_reviewed
+    mark_diff_reviewed(diff_id)
+    console.print(f"[green]✓[/green] Diff ID {diff_id} marked as reviewed.")
+
+
+# ── Helper: print a diff result to console ────────────────────────────────────
+
+def _print_diff_result(d: dict):
+    """Render a single diff result dict to the terminal."""
+    severity_style = {
+        "Critical": "bold red",
+        "High":     "bold yellow",
+        "Medium":   "yellow",
+        "Low":      "dim green",
+    }.get(d.get("severity", "Low"), "")
+
+    diff_id   = d.get("id", "")
+    id_str    = f"  [dim]Diff ID: {diff_id}[/dim]" if diff_id else ""
+    reviewed  = "  [green]✓ reviewed[/green]" if d.get("reviewed") else "  [yellow]⚠ unreviewed[/yellow]"
+
+    console.print(
+        f"[{severity_style}]{d.get('severity','').upper()}[/{severity_style}]  "
+        f"[bold]{d.get('relationship_type') or d.get('diff_type','')}[/bold]"
+        f"{id_str}{reviewed}"
+    )
+    console.print(f"  Base:  [dim]{d.get('base_document_id','')[:70]}[/dim]")
+    console.print(f"  New:   [dim]{d.get('new_document_id','')[:70]}[/dim]")
+    console.print(f"\n  {d.get('change_summary','')}\n")
+
+    added = d.get("added_requirements") or []
+    if added:
+        console.print("  [bold red]New Requirements Added[/bold red]")
+        for r in added:
+            desc = r.get("description", r) if isinstance(r, dict) else r
+            section = f"  [{r.get('section')}]" if isinstance(r, dict) and r.get("section") else ""
+            console.print(f"    + {desc}{section}")
+
+    removed = d.get("removed_requirements") or []
+    if removed:
+        console.print("  [bold green]Requirements Removed / Relaxed[/bold green]")
+        for r in removed:
+            desc = r.get("description", r) if isinstance(r, dict) else r
+            console.print(f"    - {desc}")
+
+    modified = d.get("modified_requirements") or []
+    if modified:
+        console.print("  [bold yellow]Modified Requirements[/bold yellow]")
+        for r in modified:
+            desc      = r.get("description", r) if isinstance(r, dict) else r
+            direction = f"  [{r.get('direction')}]" if isinstance(r, dict) and r.get("direction") else ""
+            console.print(f"    ~ {desc}{direction}")
+
+    deadlines = d.get("deadline_changes") or []
+    if deadlines:
+        console.print("  [bold blue]Deadline Changes[/bold blue]")
+        for dl in deadlines:
+            old = dl.get("old_deadline") or "N/A"
+            new = dl.get("new_deadline") or "N/A"
+            console.print(f"    {dl.get('description','')}  [{old} → {new}]")
+
+    actions = d.get("new_action_items") or []
+    if actions:
+        console.print("  [bold]Action Items[/bold]")
+        for a in actions:
+            console.print(f"    → {a}")
+
+    obsolete = d.get("obsolete_action_items") or []
+    if obsolete:
+        console.print("  [dim]No Longer Required[/dim]")
+        for o in obsolete:
+            console.print(f"    ✗ {o}")
+
+    if d.get("overall_assessment"):
+        console.print(f"\n  [italic]{d['overall_assessment']}[/italic]")
+
+    console.print()
+
+
 # ── watch ─────────────────────────────────────────────────────────────────────
 
 @cli.command()

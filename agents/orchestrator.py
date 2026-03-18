@@ -1,12 +1,17 @@
 """
-ARIS — Orchestrator (updated)
+ARIS — Orchestrator (updated with diff pipeline)
 
-Coordinates the full pipeline across three independent tracks:
-  1. US Federal     — FederalAgent (Federal Register, Regulations.gov, Congress.gov)
-  2. US States      — StateAgentBase subclasses (PA, etc.)
-  3. International  — InternationalAgentBase subclasses (EU, GB, CA, JP, etc.)
+Three fetch tracks + automatic change detection:
 
-Each track can be run independently or together.
+  1. US Federal     — FederalAgent
+  2. US States      — StateAgentBase subclasses
+  3. International  — InternationalAgentBase subclasses
+
+Change detection (runs after every fetch):
+  - Version diffs: when a known document's content changes, the old and new
+    versions are automatically compared by DiffAgent
+  - Addendum scanning: new documents are scanned for signals that they
+    amend or clarify an existing document in the database
 """
 
 from __future__ import annotations
@@ -23,11 +28,18 @@ from sources.federal_agent import FederalAgent
 from sources.state_agent_base import StateAgentBase
 from sources.international.base import InternationalAgentBase
 from agents.interpreter import InterpreterAgent
-from utils.db import upsert_document, upsert_summary, get_unsummarized_documents, get_stats
+from agents.diff_agent import DiffAgent
+from utils.db import (
+    upsert_document, upsert_summary, get_unsummarized_documents,
+    get_stats, get_document, get_all_documents,
+    save_diff, save_link, diff_exists,
+)
 from utils.cache import get_logger
 
 log = get_logger("aris.orchestrator")
 
+
+# ── Agent loaders ─────────────────────────────────────────────────────────────
 
 def _load_state_agents() -> List[StateAgentBase]:
     agents = []
@@ -56,12 +68,12 @@ def _load_international_agents() -> List[InternationalAgentBase]:
     for code in ENABLED_INTERNATIONAL:
         module_path = INTERNATIONAL_MODULE_MAP.get(code)
         if not module_path:
-            log.warning("No module mapping for international jurisdiction %s — skipping", code)
+            log.warning("No module mapping for %s — skipping", code)
             continue
         try:
-            module = importlib.import_module(module_path)
+            module            = importlib.import_module(module_path)
             target_class_name = INTERNATIONAL_CLASS_MAP.get(code)
-            found = False
+            found             = False
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
                 if not (isinstance(attr, type)
@@ -77,28 +89,31 @@ def _load_international_agents() -> List[InternationalAgentBase]:
                 found = True
                 break
             if not found:
-                log.warning("No matching agent class found in %s for %s", module_path, code)
+                log.warning("No matching class in %s for %s", module_path, code)
         except ImportError as e:
             log.error("Could not load international agent for %s: %s", code, e)
     return agents
 
 
+# ── Orchestrator ──────────────────────────────────────────────────────────────
+
 class Orchestrator:
     """
-    Main pipeline controller — three independent fetch tracks.
+    Main pipeline controller — fetch, summarize, and detect changes.
 
     fetch(sources=["federal"])         → US Federal only
     fetch(sources=["states"])          → All enabled US states
-    fetch(sources=["international"])   → All enabled international
-    fetch(sources=["EU", "GB"])        → Specific jurisdictions
+    fetch(sources=["international"])   → All international
+    fetch(sources=["EU", "PA"])        → Specific jurisdictions
     fetch()                            → Everything
     """
 
     def __init__(self):
-        self.federal_agent        = FederalAgent()
-        self.state_agents         = _load_state_agents()
-        self.international_agents = _load_international_agents()
-        self._interpreter         = None
+        self.federal_agent         = FederalAgent()
+        self.state_agents          = _load_state_agents()
+        self.international_agents  = _load_international_agents()
+        self._interpreter          = None
+        self._diff_agent           = None
 
     @property
     def interpreter(self) -> InterpreterAgent:
@@ -106,9 +121,24 @@ class Orchestrator:
             self._interpreter = InterpreterAgent()
         return self._interpreter
 
+    @property
+    def diff_agent(self) -> DiffAgent:
+        if self._diff_agent is None:
+            self._diff_agent = DiffAgent()
+        return self._diff_agent
+
+    # ── Fetch ─────────────────────────────────────────────────────────────────
+
     def fetch(self, sources: Optional[List[str]] = None,
-              lookback_days: int = LOOKBACK_DAYS) -> int:
-        docs: List[Dict[str, Any]] = []
+              lookback_days: int = LOOKBACK_DAYS,
+              run_diff: bool = True) -> Dict[str, int]:
+        """
+        Fetch documents from selected sources and persist to DB.
+        If run_diff=True, automatically runs change detection after fetching.
+
+        Returns a dict with counts: fetched, version_diffs, addenda_found.
+        """
+        all_docs: List[Dict[str, Any]] = []
         sources_lower = [s.lower() for s in sources] if sources else []
         run_all     = not sources
         run_federal = run_all or "federal" in sources_lower
@@ -118,24 +148,174 @@ class Orchestrator:
             "FEDERAL", "STATES", "INTERNATIONAL"
         }
 
+        # ── Track 1: US Federal ───────────────────────────────────────────────
         if run_federal:
             log.info("═══ Track 1: US Federal ═══")
-            docs.extend(self.federal_agent.fetch_all(lookback_days))
+            all_docs.extend(self.federal_agent.fetch_all(lookback_days))
 
+        # ── Track 2: US States ────────────────────────────────────────────────
         for agent in self.state_agents:
             if run_states or agent.state_code in specific:
                 log.info("═══ Track 2 (State): %s ═══", agent.state_name)
-                docs.extend(agent.fetch_all(lookback_days))
+                all_docs.extend(agent.fetch_all(lookback_days))
 
+        # ── Track 3: International ────────────────────────────────────────────
         for agent in self.international_agents:
             if run_intl or agent.jurisdiction_code in specific:
                 log.info("═══ Track 3 (International): %s (%s) ═══",
                          agent.jurisdiction_name, agent.jurisdiction_code)
-                docs.extend(agent.fetch_all(lookback_days))
+                all_docs.extend(agent.fetch_all(lookback_days))
 
-        new_count = sum(1 for doc in docs if upsert_document(doc))
+        # ── Persist & detect version changes ─────────────────────────────────
+        new_count      = 0
+        changed_ids    = []   # docs that existed before and changed content
+
+        for doc in all_docs:
+            old_doc = get_document(doc["id"])      # snapshot before upsert
+            changed = upsert_document(doc)
+            if changed:
+                new_count += 1
+                if old_doc and old_doc.get("full_text"):
+                    # Document existed before — this is a content update
+                    changed_ids.append((old_doc, doc))
+
         log.info("Fetch complete — %d new/updated documents", new_count)
-        return new_count
+
+        version_diffs = 0
+        addenda_found = 0
+
+        if run_diff:
+            version_diffs, addenda_found = self._run_change_detection(
+                changed_ids, all_docs
+            )
+
+        return {
+            "fetched":        new_count,
+            "version_diffs":  version_diffs,
+            "addenda_found":  addenda_found,
+        }
+
+    # ── Change detection ──────────────────────────────────────────────────────
+
+    def _run_change_detection(self,
+                               changed_docs: List[tuple],
+                               new_docs: List[Dict]) -> tuple:
+        """
+        Run both version-diff and addendum detection.
+        Returns (version_diffs_count, addenda_count).
+        """
+        version_diffs = 0
+        addenda_found = 0
+
+        # 1. Version diffs — documents we already had that changed content
+        for old_doc, new_doc in changed_docs:
+            if diff_exists(old_doc["id"], new_doc["id"]):
+                continue
+            log.info("Running version diff for: %s", new_doc.get("title", "")[:60])
+            try:
+                result = self.diff_agent.compare_versions(old_doc, new_doc)
+                if result:
+                    diff_id = save_diff(result)
+                    save_link(old_doc["id"], new_doc["id"],
+                              link_type="version_of",
+                              notes=f"Auto-detected version update. Diff ID: {diff_id}")
+                    version_diffs += 1
+                    log.info("Version diff saved (ID %d, severity: %s)",
+                             diff_id, result.get("severity"))
+            except Exception as e:
+                log.error("Version diff failed for %s: %s", new_doc.get("id"), e)
+
+        # 2. Addendum scan — look for new documents that amend existing ones
+        if new_docs:
+            existing_docs = get_all_documents(limit=300)
+            try:
+                links = self.diff_agent.scan_for_addenda(new_docs, existing_docs)
+                for addendum_id, base_id in links:
+                    if diff_exists(base_id, addendum_id):
+                        continue
+                    addendum_doc = next(
+                        (d for d in new_docs if d["id"] == addendum_id), None
+                    )
+                    base_doc = get_document(base_id)
+                    if not addendum_doc or not base_doc:
+                        continue
+
+                    base_summary = None
+                    try:
+                        from utils.db import get_summary
+                        base_summary = get_summary(base_id)
+                    except Exception:
+                        pass
+
+                    log.info("Analysing addendum: '%s' → '%s'",
+                             addendum_doc.get("title", "")[:50],
+                             base_doc.get("title", "")[:50])
+                    try:
+                        result = self.diff_agent.analyse_addendum(
+                            base_doc, addendum_doc, base_summary
+                        )
+                        if result:
+                            diff_id = save_diff(result)
+                            save_link(base_id, addendum_id,
+                                      link_type="amends",
+                                      notes=f"Auto-detected addendum. Diff ID: {diff_id}")
+                            addenda_found += 1
+                            log.info("Addendum analysis saved (ID %d, severity: %s)",
+                                     diff_id, result.get("severity"))
+                    except Exception as e:
+                        log.error("Addendum analysis failed for %s: %s", addendum_id, e)
+            except Exception as e:
+                log.error("Addendum scan failed: %s", e)
+
+        return version_diffs, addenda_found
+
+    # ── Manual diff ───────────────────────────────────────────────────────────
+
+    def compare_two_documents(self, doc_id_a: str, doc_id_b: str) -> Optional[Dict]:
+        """
+        Manually compare two specific documents by their database IDs.
+        Useful for CLI-initiated comparisons.
+        """
+        doc_a = get_document(doc_id_a)
+        doc_b = get_document(doc_id_b)
+        if not doc_a:
+            log.error("Document not found: %s", doc_id_a)
+            return None
+        if not doc_b:
+            log.error("Document not found: %s", doc_id_b)
+            return None
+
+        result = self.diff_agent.compare_versions(doc_a, doc_b)
+        if result:
+            diff_id = save_diff(result)
+            save_link(doc_id_a, doc_id_b, link_type="version_of",
+                      notes="Manually triggered comparison", created_by="user")
+            log.info("Manual diff saved as ID %d", diff_id)
+        return result
+
+    def link_addendum_manually(self, base_id: str, addendum_id: str) -> Optional[Dict]:
+        """
+        Manually declare that addendum_id amends/clarifies base_id
+        and run the full addendum analysis.
+        """
+        base_doc    = get_document(base_id)
+        addendum_doc = get_document(addendum_id)
+        if not base_doc or not addendum_doc:
+            log.error("One or both documents not found: %s, %s", base_id, addendum_id)
+            return None
+
+        from utils.db import get_summary
+        base_summary = get_summary(base_id)
+
+        result = self.diff_agent.analyse_addendum(base_doc, addendum_doc, base_summary)
+        if result:
+            diff_id = save_diff(result)
+            save_link(base_id, addendum_id, link_type="amends",
+                      notes="Manually declared addendum relationship", created_by="user")
+            log.info("Addendum analysis saved as diff ID %d", diff_id)
+        return result
+
+    # ── Summarize ─────────────────────────────────────────────────────────────
 
     def summarize(self, limit: int = 50, progress_callback=None) -> int:
         pending = get_unsummarized_documents(limit=limit)
@@ -166,14 +346,20 @@ class Orchestrator:
         log.info("Summarization complete — %d summaries saved", saved)
         return saved
 
+    # ── Full run ──────────────────────────────────────────────────────────────
+
     def run_full(self, lookback_days: int = LOOKBACK_DAYS,
                  sources: Optional[List[str]] = None,
                  summarize_limit: int = 50,
-                 progress_callback=None) -> Dict[str, int]:
-        fetched    = self.fetch(sources=sources, lookback_days=lookback_days)
-        summarized = self.summarize(limit=summarize_limit,
-                                    progress_callback=progress_callback)
-        return {"fetched": fetched, "summarized": summarized, **get_stats()}
+                 run_diff: bool = True,
+                 progress_callback=None) -> Dict[str, Any]:
+        fetch_result = self.fetch(sources=sources, lookback_days=lookback_days,
+                                   run_diff=run_diff)
+        summarized   = self.summarize(limit=summarize_limit,
+                                       progress_callback=progress_callback)
+        return {**fetch_result, "summarized": summarized, **get_stats()}
+
+    # ── Introspection ─────────────────────────────────────────────────────────
 
     def list_active_agents(self) -> Dict[str, List[str]]:
         return {
