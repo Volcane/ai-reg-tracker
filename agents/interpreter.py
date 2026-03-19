@@ -12,9 +12,10 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional
 
-import anthropic
+import anthropic  # kept for backward compat; actual calls go through utils.llm
 
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, MAX_TOKENS
+from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger, keyword_score
 
 log = get_logger("aris.interpreter")
@@ -90,16 +91,16 @@ Rules:
 
 class InterpreterAgent:
     """
-    Sends document text to Claude and returns a structured summary dict.
+    Sends document text to the configured LLM and returns a structured summary dict.
     """
 
     def __init__(self):
-        if not ANTHROPIC_API_KEY:
+        if not is_configured():
+            from utils.llm import _provider
             raise ValueError(
-                "ANTHROPIC_API_KEY not set. "
-                "Get your key at https://console.anthropic.com/settings/keys"
+                f"LLM provider '{_provider()}' is not configured. "
+                "Set the appropriate API key in config/keys.env."
             )
-        self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     def analyse(self, doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
@@ -150,18 +151,12 @@ class InterpreterAgent:
         if prompt_additions:
             prompt = prompt_additions + "\n\n" + prompt
 
-        # ── Stage 3: Claude analysis ──────────────────────────────────────────
+        # ── Stage 3: LLM analysis ─────────────────────────────────────────────
         try:
-            message = self._client.messages.create(
-                model      = CLAUDE_MODEL,
-                max_tokens = MAX_TOKENS,
-                system     = SYSTEM_PROMPT,
-                messages   = [{"role": "user", "content": prompt}],
-            )
-            raw  = message.content[0].text.strip()
+            raw  = call_llm(prompt=prompt, system=SYSTEM_PROMPT, max_tokens=MAX_TOKENS)
             data = _safe_parse_json(raw)
-        except anthropic.APIError as e:
-            log.error("Anthropic API error for doc %s: %s", doc["id"], e)
+        except LLMError as e:
+            log.error("LLM error for doc %s: %s", doc["id"], e)
             return None
         except json.JSONDecodeError as e:
             log.error("JSON parse error for doc %s: %s", doc["id"], e)

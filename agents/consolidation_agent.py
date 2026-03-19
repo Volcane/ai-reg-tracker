@@ -50,9 +50,10 @@ import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import anthropic
+import anthropic  # kept for backward compat; actual calls go through utils.llm
 
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger
 
 log = get_logger("aris.consolidation")
@@ -122,15 +123,15 @@ class ConsolidationAgent:
     """
 
     def __init__(self):
-        self._client = None  # lazy-init — only for full mode
+        pass   # no client needed — calls go through utils.llm
 
-    @property
-    def client(self):
-        if self._client is None:
-            if not ANTHROPIC_API_KEY:
-                raise ValueError("ANTHROPIC_API_KEY not set")
-            self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        return self._client
+    def _ensure_configured(self):
+        if not is_configured():
+            from utils.llm import _provider
+            raise ValueError(
+                f"LLM provider '{_provider()}' is not configured. "
+                "Set the appropriate API key in config/keys.env."
+            )
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -400,12 +401,8 @@ Return a JSON array where each item has:
 Return only the JSON array, no other text."""
 
         try:
-            msg = self.client.messages.create(
-                model      = CLAUDE_MODEL,
-                max_tokens = 3000,
-                messages   = [{"role": "user", "content": prompt}],
-            )
-            raw  = msg.content[0].text.strip()
+            self._ensure_configured()
+            raw  = call_llm(prompt=prompt, max_tokens=3000)
             data = _safe_parse_json_array(raw)
             if not data:
                 return None
@@ -456,8 +453,11 @@ Return only the JSON array, no other text."""
 
             return result
 
+        except LLMError as e:
+            log.error("LLM consolidation error: %s", e)
+            return None
         except Exception as e:
-            log.error("Claude consolidation error: %s", e)
+            log.error("Consolidation error: %s", e)
             return None
 
 

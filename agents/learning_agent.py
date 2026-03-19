@@ -53,9 +53,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-import anthropic
+import anthropic  # kept for backward compat; actual calls go through utils.llm
 
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, AI_KEYWORDS
+from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger, keyword_score
 
 log = get_logger("aris.learning")
@@ -87,15 +88,16 @@ class LearningAgent:
     """
 
     def __init__(self):
-        self._client = None   # lazy-init — only needed for prompt adaptation
+        pass   # no client needed — calls go through utils.llm
 
-    @property
-    def client(self):
-        if self._client is None:
-            if not ANTHROPIC_API_KEY:
-                raise ValueError("ANTHROPIC_API_KEY not set")
-            self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        return self._client
+    def _ensure_configured(self):
+        """Raise if the LLM provider is not set up."""
+        if not is_configured():
+            from utils.llm import _provider
+            raise ValueError(
+                f"LLM provider '{_provider()}' is not configured. "
+                "Set the appropriate API key in config/keys.env."
+            )
 
     # ── 1. Feedback recording ─────────────────────────────────────────────────
 
@@ -431,12 +433,8 @@ Start the instruction with 'NOTE:'.
 Respond with only the instruction text, nothing else."""
 
         try:
-            msg = self.client.messages.create(
-                model=CLAUDE_MODEL,
-                max_tokens=200,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            instruction = msg.content[0].text.strip()
+            self._ensure_configured()
+            instruction = call_llm(prompt=prompt, max_tokens=200)
             if instruction.startswith("NOTE:"):
                 save_prompt_adaptation({
                     "match_keys":  {"source": source, "agency": agency[:80], "jurisdiction": jurisdiction},
@@ -445,6 +443,8 @@ Respond with only the instruction text, nothing else."""
                     "created_at":  datetime.utcnow().isoformat(),
                 })
                 log.info("Prompt adaptation saved for %s/%s", source, agency)
+        except LLMError as e:
+            log.error("Prompt adaptation LLM error: %s", e)
         except Exception as e:
             log.error("Prompt adaptation failed: %s", e)
 

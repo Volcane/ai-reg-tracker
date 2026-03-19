@@ -31,9 +31,10 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import anthropic
+import anthropic  # kept for backward compat; actual calls go through utils.llm
 
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, MAX_TOKENS
+from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger
 from agents.interpreter import _safe_parse_json, _truncate
 
@@ -227,12 +228,12 @@ class DiffAgent:
     """
 
     def __init__(self):
-        if not ANTHROPIC_API_KEY:
+        if not is_configured():
+            from utils.llm import _provider
             raise ValueError(
-                "ANTHROPIC_API_KEY not set. "
-                "Get your key at https://console.anthropic.com/settings/keys"
+                f"LLM provider '{_provider()}' is not configured. "
+                "Set the appropriate API key in config/keys.env."
             )
-        self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     # ── Version comparison ────────────────────────────────────────────────────
 
@@ -471,16 +472,10 @@ class DiffAgent:
 
     def _call_claude(self, prompt: str, system: str) -> Optional[Dict]:
         try:
-            message = self._client.messages.create(
-                model      = CLAUDE_MODEL,
-                max_tokens = MAX_TOKENS,
-                system     = system,
-                messages   = [{"role": "user", "content": prompt}],
-            )
-            raw  = message.content[0].text.strip()
+            raw = call_llm(prompt=prompt, system=system, max_tokens=MAX_TOKENS)
             return _safe_parse_json(raw)
-        except anthropic.APIError as e:
-            log.error("Anthropic API error in DiffAgent: %s", e)
+        except LLMError as e:
+            log.error("LLM error in DiffAgent: %s", e)
             return None
         except Exception as e:
             log.error("Unexpected DiffAgent error: %s", e)

@@ -149,9 +149,13 @@ def _match_watchlist(doc: Dict, watch_items: List[Dict]) -> List[str]:
 @app.get("/api/status")
 def get_status():
     """System health, API key status, and DB statistics."""
+    from utils.llm import provider_info, is_configured
     stats = get_stats()
+    llm   = provider_info()
     return {
         "stats": stats,
+        "api_key_set": is_configured(),   # kept for Dashboard compat
+        "llm": llm,
         "api_keys": {
             "anthropic":        bool(ANTHROPIC_API_KEY),
             "regulations_gov":  bool(REGULATIONS_GOV_KEY),
@@ -161,8 +165,8 @@ def get_status():
         "enabled_states":        ENABLED_US_STATES,
         "enabled_international": ENABLED_INTERNATIONAL,
         "job": {
-            "running":    _job_state["running"],
-            "last_run":   _job_state["last_run"],
+            "running":     _job_state["running"],
+            "last_run":    _job_state["last_run"],
             "last_result": _job_state["last_result"],
         },
     }
@@ -431,11 +435,11 @@ def generate_checklist(req: ChecklistRequest):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
-
-    import anthropic as _anthropic
-    client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    from utils.llm import call_llm, is_configured, LLMError
+    if not is_configured():
+        from utils.llm import _provider
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured")
 
     context = req.company_context or "a company that develops or deploys AI systems"
     reqs    = (summary or {}).get("requirements") or []
@@ -473,12 +477,10 @@ Each item should be a checkbox: `- [ ] Action description`
 Be specific and actionable. Include deadlines where known.
 Do not include generic advice — every item should be specific to this regulation."""
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    checklist_md = message.content[0].text
+    try:
+        checklist_md = call_llm(prompt=prompt, max_tokens=2048)
+    except LLMError as e:
+        raise HTTPException(status_code=503, detail=str(e))
     return {
         "document_id": req.document_id,
         "title":       doc.get("title"),
@@ -674,9 +676,10 @@ def get_register(
         from agents.consolidation_agent import ConsolidationAgent
         agent = ConsolidationAgent()
         if mode == "full":
-            if not ANTHROPIC_API_KEY:
+            from utils.llm import is_configured as _is_cfg
+            if not _is_cfg():
                 raise HTTPException(status_code=503,
-                                    detail="ANTHROPIC_API_KEY not set for full mode")
+                                    detail="LLM provider not configured for full mode")
             register = agent.consolidate_full(jurs, days=days, force=force)
         else:
             register = agent.consolidate_fast(jurs, force=force)
@@ -813,8 +816,9 @@ def get_analysis_endpoint(analysis_id: int):
 def run_gap_analysis_endpoint(req: GapAnalysisRequest,
                                background_tasks: BackgroundTasks):
     """Trigger a gap analysis run (background job)."""
-    if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    from utils.llm import is_configured as _is_cfg
+    if not _is_cfg():
+        raise HTTPException(status_code=503, detail="LLM provider not configured")
     if _job_state["running"]:
         raise HTTPException(status_code=409, detail="Another job is already running")
 
@@ -1082,8 +1086,9 @@ def list_syntheses(limit: int = 20):
 @app.get("/api/synthesis/topics")
 def suggested_topics():
     """Return topic suggestions based on what document clusters exist in the DB."""
-    if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    from utils.llm import is_configured as _is_cfg
+    if not _is_cfg():
+        raise HTTPException(status_code=503, detail="LLM provider not configured")
     from agents.synthesis_agent import SynthesisAgent
     return SynthesisAgent().list_suggested_topics()
 
@@ -1104,8 +1109,9 @@ def run_synthesis(req: SynthesisRequest, background_tasks: BackgroundTasks):
     Trigger a thematic synthesis + optional conflict detection run.
     Runs in the background — poll /api/run/status and /api/run/log.
     """
-    if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    from utils.llm import is_configured as _is_cfg
+    if not _is_cfg():
+        raise HTTPException(status_code=503, detail="LLM provider not configured")
     if _job_state["running"]:
         raise HTTPException(status_code=409, detail="Another job is already running")
 

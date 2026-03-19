@@ -42,9 +42,10 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import anthropic
+import anthropic  # kept for backward compat; actual calls go through utils.llm
 
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger
 
 log = get_logger("aris.gap")
@@ -200,12 +201,12 @@ class GapAnalysisAgent:
     """
 
     def __init__(self):
-        if not ANTHROPIC_API_KEY:
+        if not is_configured():
+            from utils.llm import _provider
             raise ValueError(
-                "ANTHROPIC_API_KEY not set. "
-                "Get your key at https://console.anthropic.com/settings/keys"
+                f"LLM provider '{_provider()}' is not configured. "
+                "Set the appropriate API key in config/keys.env."
             )
-        self._client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -386,19 +387,13 @@ class GapAnalysisAgent:
 
     def _call_claude(self, prompt: str, system: str, max_tokens: int) -> Optional[Dict]:
         try:
-            msg = self._client.messages.create(
-                model      = CLAUDE_MODEL,
-                max_tokens = max_tokens,
-                system     = system,
-                messages   = [{"role": "user", "content": prompt}],
-            )
-            raw  = msg.content[0].text.strip()
+            raw  = call_llm(prompt=prompt, system=system, max_tokens=max_tokens)
             data = _safe_parse_json(raw)
             if not data:
-                log.error("GapAnalysisAgent: Claude returned unparseable JSON")
+                log.error("GapAnalysisAgent: LLM returned unparseable JSON")
             return data
-        except anthropic.APIError as e:
-            log.error("GapAnalysisAgent Anthropic error: %s", e)
+        except LLMError as e:
+            log.error("GapAnalysisAgent LLM error: %s", e)
             return None
         except Exception as e:
             log.error("GapAnalysisAgent unexpected error: %s", e)

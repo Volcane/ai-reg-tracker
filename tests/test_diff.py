@@ -137,30 +137,27 @@ class TestDiffAgentHelpers(unittest.TestCase):
 
 
 class TestDiffAgentClaudeOutput(unittest.TestCase):
-    """Tests that verify correct handling of Claude's JSON response."""
+    """Tests that verify correct handling of LLM JSON response."""
 
-    def _make_agent(self, claude_response: dict):
-        import sys, types
-        for pkg in ['anthropic']:
-            m = types.ModuleType(pkg)
-            m.Anthropic  = type('Anthropic',  (), {'__init__': lambda s, **k: None})
-            m.APIError   = Exception
-            sys.modules[pkg] = m
-
+    def _make_agent_with_response(self, llm_response: dict):
+        """Return a DiffAgent whose call_llm is patched to return llm_response as JSON."""
+        import json
         from agents.diff_agent import DiffAgent
         agent = DiffAgent.__new__(DiffAgent)
-
-        mock_message           = MagicMock()
-        mock_message.content   = [MagicMock()]
-        mock_message.content[0].text = __import__('json').dumps(claude_response)
-
-        mock_client = MagicMock()
-        mock_client.messages.create.return_value = mock_message
-        agent._client = mock_client
+        # Patch the module-level call_llm used by _call_claude
+        self._patcher = patch(
+            'agents.diff_agent.call_llm',
+            return_value=json.dumps(llm_response)
+        )
+        self._patcher.start()
         return agent
 
+    def tearDown(self):
+        if hasattr(self, '_patcher'):
+            self._patcher.stop()
+
     def test_compare_versions_no_change_returns_none(self):
-        agent = self._make_agent({"change_type": "No Substantive Change"})
+        agent = self._make_agent_with_response({"change_type": "No Substantive Change"})
         old = {"id": "A", "title": "Rule", "full_text": "text A",
                "status": "", "published_date": "", "url": "", "jurisdiction": "Federal", "agency": ""}
         new = {"id": "B", "title": "Rule", "full_text": "text B",
@@ -184,7 +181,7 @@ class TestDiffAgentClaudeOutput(unittest.TestCase):
             "obsolete_action_items": ["Remove 30-day filing reminder from compliance checklist"],
             "overall_assessment":    "This is a material change requiring immediate compliance team action.",
         }
-        agent = self._make_agent(response)
+        agent = self._make_agent_with_response(response)
         old = {"id": "A", "title": "AI Rule", "full_text": "thirty day notice",
                "status": "Proposed", "published_date": "", "url": "", "jurisdiction": "Federal", "agency": ""}
         new = {"id": "B", "title": "AI Rule", "full_text": "ninety day notice",
@@ -219,7 +216,7 @@ class TestDiffAgentClaudeOutput(unittest.TestCase):
             "new_action_items":    ["Audit all systems for social scoring functionality"],
             "overall_assessment":  "This guidance materially expands the scope of prohibited practices.",
         }
-        agent = self._make_agent(response)
+        agent = self._make_agent_with_response(response)
 
         base_doc = {"id": "EU-CELEX-32024R1689", "title": "EU AI Act",
                     "full_text": "...", "status": "In Force",

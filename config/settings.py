@@ -17,6 +17,31 @@ REGULATIONS_GOV_KEY  = os.getenv("REGULATIONS_GOV_KEY", "")
 CONGRESS_GOV_KEY     = os.getenv("CONGRESS_GOV_KEY", "")
 LEGISCAN_KEY         = os.getenv("LEGISCAN_KEY", "")
 
+# LLM provider keys (set the one matching LLM_PROVIDER)
+OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY",  "")
+GEMINI_API_KEY  = os.getenv("GEMINI_API_KEY",  "")
+
+# ── LLM Provider ──────────────────────────────────────────────────────────────
+# Which LLM to use for all AI features.
+# Options: anthropic | openai | ollama | gemini
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
+
+# Model name. Leave blank to use the provider default:
+#   anthropic → claude-sonnet-4-20250514
+#   openai    → gpt-4o
+#   ollama    → llama3.1
+#   gemini    → gemini-1.5-pro
+LLM_MODEL    = os.getenv("LLM_MODEL", "")
+
+# Base URL for OpenAI-compatible endpoints (Ollama, Groq, Together AI, LM Studio…)
+# Leave blank for official provider endpoints.
+# Examples:
+#   Groq:        https://api.groq.com/openai/v1
+#   Together AI: https://api.together.xyz/v1
+#   Ollama:      http://localhost:11434/v1
+#   LM Studio:   http://localhost:1234/v1
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "")
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 OUTPUT_DIR  = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -64,8 +89,11 @@ LEGISCAN_BASE = "https://api.legiscan.com/"
 # ── PA General Assembly native XML feed ──────────────────────────────────────
 PA_LEGIS_FEED = "https://www.legis.state.pa.us/cfdocs/legis/home/xml/hbHistXML.cfm"
 
-# ── Anthropic model for interpretation ───────────────────────────────────────
-CLAUDE_MODEL  = "claude-sonnet-4-20250514"
+# ── Model / token settings (kept for backward compatibility) ─────────────────
+# Agents now use utils.llm.call_llm() which reads LLM_PROVIDER / LLM_MODEL
+# directly. CLAUDE_MODEL and MAX_TOKENS remain here so any external code
+# that imports them still works.
+CLAUDE_MODEL  = LLM_MODEL or "claude-sonnet-4-20250514"
 MAX_TOKENS    = 2048
 
 # ── HTTP request settings ─────────────────────────────────────────────────────
