@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, FileText, GitCompare, Play,
   Eye, Network, Settings, Loader2, AlertCircle,
-  CheckSquare, Bell
+  CheckSquare, Bell, Brain
 } from 'lucide-react'
 import { api } from './api.js'
 import Dashboard   from './views/Dashboard.jsx'
@@ -13,6 +13,7 @@ import RunAgents   from './views/RunAgents.jsx'
 import Watchlist   from './views/Watchlist.jsx'
 import Graph       from './views/Graph.jsx'
 import SettingsView from './views/Settings.jsx'
+import Learning    from './views/Learning.jsx'
 
 const NAV = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard'  },
@@ -21,6 +22,7 @@ const NAV = [
   { to: '/run',       icon: Play,            label: 'Run Agents' },
   { to: '/watchlist', icon: Bell,            label: 'Watchlist'  },
   { to: '/graph',     icon: Network,         label: 'Graph'      },
+  { to: '/learning',  icon: Brain,           label: 'Learning'   },
   { to: '/settings',  icon: Settings,        label: 'Settings'   },
 ]
 
@@ -141,6 +143,7 @@ export default function App() {
           <Route path="/run"       element={<RunAgents onJobStart={() => setJobRunning(true)} />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/graph"     element={<Graph />} />
+          <Route path="/learning"  element={<Learning />} />
           <Route path="/settings"  element={<SettingsView status={status} />} />
         </Routes>
       </main>
