@@ -1,0 +1,149 @@
+{
+  "id": "eu_ai_act",
+  "jurisdiction": "EU",
+  "title": "EU Artificial Intelligence Act",
+  "official_title": "Regulation (EU) 2024/1689 of the European Parliament and of the Council laying down harmonised rules on artificial intelligence",
+  "short_name": "EU AI Act",
+  "celex": "32024R1689",
+  "oj_reference": "OJ L 2024/1689",
+  "status": "In Force",
+  "last_reviewed": "2025-03-01",
+  "overview": "The EU AI Act is the world's first comprehensive horizontal legal framework for artificial intelligence. It establishes a risk-based classification system for AI systems and imposes obligations on providers, deployers, importers, and distributors placing AI systems on the EU market or using AI to serve EU users. The Act also governs general-purpose AI (GPAI) models. Non-compliance carries penalties of up to EUR 35 million or 7% of global annual turnover, whichever is higher.",
+  "timeline": [
+    { "date": "2024-08-01", "milestone": "Regulation enters into force" },
+    { "date": "2025-02-02", "milestone": "Chapter I (General Provisions) and Chapter II (Prohibited Practices) apply" },
+    { "date": "2025-08-02", "milestone": "Chapter III Section 4 (Notified Bodies), Chapter V (GPAI Models), Chapter VII (Governance), Chapter XII (Penalties) apply" },
+    { "date": "2026-08-02", "milestone": "Annex I (High-Risk AI in Safety Components) and Annex III (High-Risk AI) obligations fully apply; EU AI database operational" },
+    { "date": "2027-08-02", "milestone": "Full application including embedded AI in regulated products (Annex I Part I)" },
+    { "date": "2030-08-02", "milestone": "Obligations for high-risk AI systems already in service before 2026 apply" }
+  ],
+  "key_definitions": [
+    {
+      "term": "AI system",
+      "definition": "A machine-based system designed to operate with varying levels of autonomy that may exhibit adaptiveness after deployment, and that, for explicit or implicit objectives, infers from the input it receives how to generate outputs such as predictions, content, recommendations, or decisions that can influence physical or virtual environments.",
+      "significance": "The definition is deliberately broad and covers most modern ML systems. Traditional software with fully deterministic, rule-based logic is generally excluded."
+    },
+    {
+      "term": "Provider",
+      "definition": "A natural or legal person who develops an AI system or GPAI model or has it developed with a view to placing it on the market or putting it into service under its own name or trademark.",
+      "significance": "Providers bear the heaviest obligations — conformity assessments, CE marking, registration, and technical documentation for high-risk AI."
+    },
+    {
+      "term": "Deployer",
+      "definition": "A natural or legal person who uses an AI system under its own authority for a professional purpose.",
+      "significance": "Deployers of high-risk AI systems have substantial obligations: fundamental rights impact assessments, human oversight, transparency to affected persons, and monitoring."
+    },
+    {
+      "term": "High-risk AI system",
+      "definition": "AI systems listed in Annex III — including AI in critical infrastructure, education, employment, essential services, law enforcement, migration, justice, and democratic processes — plus AI embedded in regulated products listed in Annex I (machinery, medical devices, vehicles, etc.).",
+      "significance": "High-risk classification triggers the most onerous obligations. The 2023 NACE classification update expanded the list significantly."
+    },
+    {
+      "term": "GPAI model",
+      "definition": "An AI model trained on large amounts of data using self-supervision at scale, that displays significant generality and is capable of performing a range of distinct tasks, and which can be integrated into various downstream systems. Includes large language models and multimodal foundation models.",
+      "significance": "GPAI providers must produce technical documentation, comply with copyright law, and publish training data summaries. Systemic-risk GPAI (>10^25 FLOPs training compute) face additional adversarial testing and incident reporting requirements."
+    },
+    {
+      "term": "Systemic risk",
+      "definition": "Risk specific to GPAI models with high-impact capabilities due to their reach, their capabilities, or a combination thereof, including capabilities that could have a significant negative impact on public health, safety, public security, fundamental rights, or society as a whole.",
+      "significance": "Systemic-risk GPAI providers must perform model evaluations, adversarial testing, report serious incidents to the AI Office, and ensure adequate cybersecurity protection."
+    }
+  ],
+  "prohibited_practices": [
+    {
+      "id": "eu-aia-prohibited-subliminal",
+      "title": "Subliminal manipulation",
+      "description": "AI systems that deploy subliminal techniques beyond a person's consciousness or purposefully manipulative or deceptive techniques to materially distort behaviour in a way that causes or is likely to cause significant harm.",
+      "applies_to": "All providers and deployers",
+      "in_force_from": "2025-02-02"
+    },
+    {
+      "id": "eu-aia-prohibited-exploitation",
+      "title": "Exploitation of vulnerabilities",
+      "description": "AI systems that exploit any of the vulnerabilities of a natural person or a specific group of persons due to their age, disability, or social or economic situation.",
+      "applies_to": "All providers and deployers",
+      "in_force_from": "2025-02-02"
+    },
+    {
+      "id": "eu-aia-prohibited-social-scoring",
+      "title": "Social scoring by public authorities",
+      "description": "AI systems used for the evaluation or classification of natural persons based on their social behaviour or inferred personal characteristics over a period of time, leading to detrimental or unfavourable treatment of those persons.",
+      "applies_to": "Public authorities",
+      "in_force_from": "2025-02-02"
+    },
+    {
+      "id": "eu-aia-prohibited-real-time-biometric",
+      "title": "Real-time remote biometric identification in public spaces",
+      "description": "Use of real-time remote biometric identification systems in publicly accessible spaces for law enforcement purposes, subject to narrow exceptions.",
+      "applies_to": "Law enforcement deployers",
+      "in_force_from": "2025-02-02"
+    },
+    {
+      "id": "eu-aia-prohibited-emotion-recognition",
+      "title": "Emotion recognition in workplace/education",
+      "description": "AI systems used for emotion recognition in the workplace and educational institutions, except for medical or safety reasons.",
+      "applies_to": "All deployers",
+      "in_force_from": "2025-02-02"
+    },
+    {
+      "id": "eu-aia-prohibited-biometric-categorisation",
+      "title": "Biometric categorisation inferring sensitive attributes",
+      "description": "AI systems that categorise natural persons based on their biometric data to infer race, political opinions, trade union membership, religious beliefs, sex life, or sexual orientation.",
+      "applies_to": "All providers and deployers",
+      "in_force_from": "2025-02-02"
+    }
+  ],
+  "obligations_by_actor": {
+    "providers_high_risk": [
+      { "id": "eu-aia-prov-qms",         "title": "Quality management system",       "description": "Establish, implement, and maintain a quality management system covering the full AI system lifecycle.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-tech-doc",     "title": "Technical documentation",         "description": "Draw up technical documentation demonstrating conformity with all mandatory requirements before placing the system on the market.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-conformity",   "title": "Conformity assessment",           "description": "Conduct a conformity assessment procedure before market placement. Many high-risk AI systems require third-party notified body assessment.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-register",     "title": "EU database registration",        "description": "Register the high-risk AI system in the EU database before placing it on the market or putting it into service.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-marking",      "title": "CE marking",                      "description": "Affix CE marking to the AI system before placing it on the EU market.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-transparency", "title": "Transparency and instructions",   "description": "Provide clear instructions for use, including information on capabilities, limitations, and human oversight requirements.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-logging",      "title": "Logging capabilities",            "description": "Ensure AI systems automatically generate logs at the level of detail appropriate to the purpose, retained for at least 6 months.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-prov-monitoring",   "title": "Post-market monitoring",          "description": "Establish a post-market monitoring plan and report serious incidents to market surveillance authorities within 15 days.", "deadline": "2026-08-02" }
+    ],
+    "deployers_high_risk": [
+      { "id": "eu-aia-dep-oversight",     "title": "Human oversight",                 "description": "Ensure that natural persons assigned to human oversight are competent and have the authority to stop or override the AI system.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-dep-fria",          "title": "Fundamental rights impact assessment", "description": "Public-body deployers and private deployers providing public services must conduct a fundamental rights impact assessment before deployment.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-dep-monitoring",    "title": "Monitor in operation",            "description": "Monitor the operation of the AI system, report serious incidents or malfunctions to the provider and national authority.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-dep-transparency",  "title": "Inform affected persons",         "description": "Inform natural persons who interact with, or are subject to, decisions made by a high-risk AI system that it uses AI.", "deadline": "2026-08-02" },
+      { "id": "eu-aia-dep-data-govern",   "title": "Data governance",                 "description": "Ensure that input data used is relevant and sufficiently representative for the system's intended purpose.", "deadline": "2026-08-02" }
+    ],
+    "gpai_providers": [
+      { "id": "eu-aia-gpai-tech-doc",     "title": "Technical documentation",         "description": "Prepare and maintain technical documentation including training and testing information, compute used, and safety evaluation results.", "deadline": "2025-08-02" },
+      { "id": "eu-aia-gpai-copyright",    "title": "Copyright compliance",            "description": "Implement a policy to comply with EU copyright law, including opt-outs from text and data mining.", "deadline": "2025-08-02" },
+      { "id": "eu-aia-gpai-summary",      "title": "Training data summary",           "description": "Publish a sufficiently detailed summary of the training data used.", "deadline": "2025-08-02" },
+      { "id": "eu-aia-gpai-systemic",     "title": "Systemic-risk model obligations", "description": "Perform model evaluations, adversarial testing (red-teaming), report serious incidents to the AI Office, ensure adequate cybersecurity.", "deadline": "2025-08-02" }
+    ]
+  },
+  "high_risk_categories": [
+    { "annex": "III.1", "category": "Biometric identification and categorisation of natural persons" },
+    { "annex": "III.2", "category": "Critical infrastructure management (energy, water, transport)" },
+    { "annex": "III.3", "category": "Education and vocational training (access, assessment)" },
+    { "annex": "III.4", "category": "Employment, workforce management, self-employment (recruitment, performance evaluation, termination, task allocation)" },
+    { "annex": "III.5", "category": "Essential private and public services (credit scoring, insurance risk, emergency dispatch, benefit eligibility)" },
+    { "annex": "III.6", "category": "Law enforcement (risk assessment of natural persons, lie detection, evidence reliability)" },
+    { "annex": "III.7", "category": "Migration, asylum, border control" },
+    { "annex": "III.8", "category": "Administration of justice and democratic processes" }
+  ],
+  "penalty_structure": {
+    "prohibited_practices":    { "max_eur": 35000000, "max_pct_turnover": 7,   "note": "Whichever is higher" },
+    "high_risk_violations":    { "max_eur": 15000000, "max_pct_turnover": 3,   "note": "Whichever is higher" },
+    "incorrect_information":   { "max_eur":  7500000, "max_pct_turnover": 1.5, "note": "Whichever is higher" },
+    "sme_cap":                 { "note": "SMEs and startups: lower of the two caps applies" }
+  },
+  "implementing_acts_status": [
+    { "title": "Guidelines on prohibited AI practices (Article 5)",     "status": "Published Feb 2025" },
+    { "title": "GPAI Code of Practice",                                 "status": "Draft published Nov 2024; final expected 2025" },
+    { "title": "Harmonised standards for high-risk AI",                 "status": "CEN/CENELEC work ongoing" },
+    { "title": "EU AI Database technical specifications",               "status": "Commission Implementing Regulation expected 2025" },
+    { "title": "Conformity assessment procedures",                      "status": "Delegated acts expected 2025" }
+  ],
+  "cross_references": [
+    { "regulation": "EU GDPR", "relevance": "Data protection requirements apply to AI systems processing personal data. Article 22 (automated decisions) interacts directly with high-risk AI deployer obligations." },
+    { "regulation": "EU Product Liability Directive", "relevance": "Amended to cover AI-caused harm; strict liability applies to AI systems in safety-critical contexts." },
+    { "regulation": "EU AI Liability Directive", "relevance": "Proposed directive on fault-based liability for AI damage; pending Council and Parliament adoption." }
+  ]
+}

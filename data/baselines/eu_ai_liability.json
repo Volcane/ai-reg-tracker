@@ -1,0 +1,84 @@
+{
+  "id": "eu_ai_liability",
+  "jurisdiction": "EU",
+  "title": "EU AI Liability Directive and Amended Product Liability Directive",
+  "official_title": "Proposal for an AI Liability Directive (COM/2022/496) and Directive (EU) 2024/2853 on Liability for Defective Products",
+  "short_name": "EU AI Liability",
+  "status": "Mixed — Product Liability Directive enacted Dec 2024; AI Liability Directive pending",
+  "last_reviewed": "2025-03-01",
+  "overview": "The EU has enacted two interconnected liability frameworks for AI-caused harm. The revised Product Liability Directive (2024) now expressly covers AI systems and software as 'products', enabling strict liability claims for defective AI. The proposed AI Liability Directive (not yet adopted) would create a rebuttable presumption of fault for non-compliant AI systems and a disclosure mechanism for evidence in AI harm litigation. Together with the EU AI Act, these create a three-layer legal framework: safety requirements (AI Act) + strict product liability (PLD) + fault-based liability (AILD).",
+  "product_liability_directive": {
+    "directive": "Directive (EU) 2024/2853",
+    "adopted": "2024-12-23",
+    "transposition_deadline": "2026-12-09",
+    "status": "Adopted — member states must transpose by Dec 2026",
+    "key_provisions": [
+      {
+        "id": "eu-pld-ai-product",
+        "title": "AI systems covered as products",
+        "description": "Software, including AI systems and AI models, is expressly included within the definition of 'product'. This closes the previous gap where software was arguably excluded from the prior 1985 PLD.",
+        "implications": [
+          "Developers of AI systems that cause harm face strict liability (no need to prove fault)",
+          "Claimants need only prove the AI system was defective and caused damage",
+          "A 'defective' AI system includes one that fails to provide expected safety for which it was placed on the market"
+        ]
+      },
+      {
+        "id": "eu-pld-continuous-learning",
+        "title": "Liability for updated AI systems",
+        "description": "Where an AI system is substantially modified through software updates or continued learning after placement on the market, the modification may constitute a new product placement triggering fresh liability exposure.",
+        "implications": [
+          "AI system operators who substantially modify AI systems after deployment may become liable as 'producers'",
+          "Continuous learning systems require careful monitoring — significant performance changes may constitute re-placement on market",
+          "Update logs and change management records become legally significant"
+        ]
+      },
+      {
+        "id": "eu-pld-disclosure",
+        "title": "Disclosure of technical documentation",
+        "description": "Courts can order defendants to disclose technical documentation, including AI model documentation and training data information, where the claimant has made a plausible case of harm.",
+        "implications": [
+          "AI system technical documentation must be complete and retained",
+          "Training data provenance, model validation records, and post-market monitoring data may be subject to disclosure orders",
+          "Inadequate technical documentation creates both regulatory (AI Act) and litigation risk"
+        ]
+      }
+    ],
+    "damage_categories": ["Death and personal injury", "Property damage", "Psychological harm", "Data loss or corruption if used for non-professional purposes"],
+    "limitation_period": "3 years from discovery of damage; 10-year long-stop from product placing on market (30 years for latent damage from personal injury)"
+  },
+  "ai_liability_directive_proposal": {
+    "status": "Commission proposal — pending Council and Parliament adoption; timeline uncertain",
+    "scope": "Civil fault-based liability claims for harm caused by AI systems, complementing the AI Act and PLD",
+    "key_proposed_provisions": [
+      {
+        "id": "eu-aild-presumption",
+        "title": "Rebuttable presumption of causal link",
+        "description": "Where a defendant has breached an AI Act obligation and the breach is reasonably linked to the harm, a causal link between the breach and the harm is presumed. Defendant must rebut this presumption.",
+        "significance": "Makes it significantly easier for claimants to establish causation in AI harm cases without technical expertise"
+      },
+      {
+        "id": "eu-aild-disclosure",
+        "title": "Right to access evidence",
+        "description": "Claimants who can make a plausible case of harm by a high-risk AI system can request courts to order disclosure of technical documentation from AI Act-regulated entities.",
+        "significance": "Creates litigation discovery mechanism linked to AI Act technical documentation obligations"
+      },
+      {
+        "id": "eu-aild-non-compliance",
+        "title": "Non-compliance with AI Act as fault",
+        "description": "Failure to comply with EU AI Act requirements constitutes fault for the purposes of national fault-based liability claims.",
+        "significance": "Directly links AI Act compliance to tort liability — non-compliant AI that causes harm creates liability exposure"
+      }
+    ]
+  },
+  "interaction_with_eu_ai_act": [
+    "Technical documentation required by AI Act becomes disclosable in product liability and fault liability proceedings",
+    "AI Act conformity assessment records directly affect both liability presumptions",
+    "Post-market monitoring obligations under AI Act serve to document performance — records are evidence in litigation",
+    "Non-compliance with AI Act creates fault under proposed AILD — multiplying the cost of regulatory non-compliance"
+  ],
+  "cross_references": [
+    { "regulation": "EU AI Act",  "relevance": "The three instruments form an integrated liability ecosystem: AI Act (obligations) + PLD (strict liability) + AILD proposed (fault liability with evidence disclosure)." },
+    { "regulation": "EU GDPR",   "relevance": "GDPR liability provisions (Article 82) apply to harm from AI processing personal data — a fourth layer of liability for personal data AI harms." }
+  ]
+}

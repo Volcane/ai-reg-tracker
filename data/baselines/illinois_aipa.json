@@ -1,0 +1,55 @@
+{
+  "id": "illinois_aipa",
+  "jurisdiction": "IL",
+  "title": "Illinois Artificial Intelligence Policy Act",
+  "official_title": "Illinois Public Act 103-0928 — Artificial Intelligence Policy Act",
+  "short_name": "Illinois AIPA",
+  "citation": "820 ILCS 42",
+  "effective_date": "2025-01-01",
+  "status": "In Force",
+  "last_reviewed": "2025-03-01",
+  "overview": "Illinois AIPA is the first comprehensive US state AI law. It applies to employers who use AI to make consequential employment decisions — covering hiring, promotion, demotion, discipline, and termination. The Act requires notice to employees and applicants when AI is used in these decisions, prohibits using AI in ways that violate existing anti-discrimination law, and creates audit and reporting obligations for employers using AI in employment contexts.",
+  "scope": {
+    "applies_to": "Employers with employees in Illinois who use AI in consequential employment decisions",
+    "definition_ai": "A machine-based system that, for a given set of objectives, makes predictions, recommendations, or decisions influencing real and virtual environments.",
+    "consequential_decisions": "Decisions about hiring, firing, promotion, demotion, pay, benefits, performance evaluation, assignment of tasks, and discipline"
+  },
+  "key_obligations": [
+    {
+      "id": "il-aipa-notice",
+      "title": "Notice requirement",
+      "description": "Employers must notify employees and job applicants when AI is used in a consequential employment decision. Notice must describe the type of AI system, the data used, and how the AI factored into the decision.",
+      "deadline": "2025-01-01",
+      "applies_to": "All employers using AI in employment decisions in Illinois"
+    },
+    {
+      "id": "il-aipa-nondiscrim",
+      "title": "Non-discrimination",
+      "description": "Employers must not use AI systems that discriminate on the basis of any characteristic protected under the Illinois Human Rights Act (race, sex, national origin, ancestry, citizenship, disability, religion, sexual orientation, age, military status, etc.).",
+      "deadline": "2025-01-01",
+      "applies_to": "All employers using AI in employment decisions"
+    },
+    {
+      "id": "il-aipa-audit",
+      "title": "Bias audit",
+      "description": "Employers must conduct annual bias audits of AI systems used in consequential employment decisions. Audits must be conducted by independent third parties. Results must be published on the employer's website.",
+      "deadline": "Annual",
+      "applies_to": "Employers using AI in employment decisions"
+    },
+    {
+      "id": "il-aipa-report",
+      "title": "Employer reporting",
+      "description": "Employers must report to the Illinois Department of Labor on their use of AI in employment decisions, including a summary of bias audit results and any adverse action appeals.",
+      "deadline": "Annual",
+      "applies_to": "Employers with 15 or more employees using AI in employment decisions"
+    }
+  ],
+  "penalties": {
+    "civil_penalty_per_violation": 5000,
+    "enforcement": "Illinois Department of Labor; private right of action for affected employees"
+  },
+  "cross_references": [
+    { "regulation": "Illinois Human Rights Act",  "relevance": "AIPA obligations supplement IHRA anti-discrimination requirements; IHRA violations remain separately actionable" },
+    { "regulation": "NYC Local Law 144",          "relevance": "NYC enacted a similar automated employment decision tool (AEDT) law in 2021; companies with IL and NYC employees face dual compliance obligations" }
+  ]
+}

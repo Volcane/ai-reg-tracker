@@ -1,0 +1,92 @@
+{
+  "id": "canada_aida",
+  "jurisdiction": "CA",
+  "title": "Artificial Intelligence and Data Act (AIDA) — Bill C-27",
+  "official_title": "Part 3 of Bill C-27: Digital Charter Implementation Act, 2022 — Artificial Intelligence and Data Act",
+  "short_name": "Canada AIDA",
+  "status": "Proposed — Bill C-27 passed second reading; AIDA subject to parliamentary study",
+  "last_reviewed": "2025-03-01",
+  "overview": "AIDA is Canada's proposed federal AI law, forming Part 3 of Bill C-27 which also includes the Consumer Privacy Protection Act (CPPA) to replace PIPEDA. AIDA focuses on 'high-impact AI systems' — those that have a significant effect on the lives of individuals or that present a risk of significant harm. It creates obligations for persons who design, develop, make available, or manage high-impact AI systems. Note: Bill C-27 died on the Order Paper when Parliament prorogued in January 2025; the legislation will need to be reintroduced by the new government. Monitoring for reintroduction is recommended.",
+  "legislative_status": {
+    "bill": "Bill C-27",
+    "introduced": "2022-06-16",
+    "parliament_status": "Died on Order Paper — Parliament prorogued January 2025",
+    "reintroduction_expected": "To be determined by incoming government",
+    "note": "Despite lapse, AIDA reflects Canadian government policy direction. Organisations should monitor closely and prepare as if AIDA will be enacted in substantially similar form."
+  },
+  "key_definitions": [
+    {
+      "term": "High-impact AI system",
+      "definition": "An AI system that meets criteria established by regulation — likely covering AI used in employment decisions, credit/insurance decisions, criminal justice, health decisions, and critical infrastructure. Final regulatory criteria not yet published.",
+      "significance": "The definition is not yet finalized; the government will define high-impact through subordinate regulation, creating uncertainty."
+    },
+    {
+      "term": "Regulated person",
+      "description": "A person who, in the course of international or interprovincial trade and commerce, (a) designs, develops, or makes available for use a high-impact AI system; or (b) manages the operations of a high-impact AI system."
+    }
+  ],
+  "proposed_obligations": [
+    {
+      "id": "ca-aida-assess",
+      "title": "Risk assessment",
+      "description": "Regulated persons must assess whether their AI system is high-impact and document that assessment.",
+      "applies_to": "All persons handling AI systems"
+    },
+    {
+      "id": "ca-aida-measures",
+      "title": "Risk mitigation measures",
+      "description": "Regulated persons must establish and implement measures to identify, assess, and mitigate risks of harm or biased output.",
+      "applies_to": "Persons responsible for high-impact AI systems"
+    },
+    {
+      "id": "ca-aida-monitor",
+      "title": "Ongoing monitoring",
+      "description": "Regulated persons must monitor high-impact AI systems and collect records of monitoring activities.",
+      "applies_to": "Persons managing high-impact AI systems in operation"
+    },
+    {
+      "id": "ca-aida-transparency",
+      "title": "Transparency publication",
+      "description": "Persons making high-impact AI systems available must publish a plain-language description of the system and how it mitigates risks.",
+      "applies_to": "Persons making high-impact AI systems available for use"
+    },
+    {
+      "id": "ca-aida-notification",
+      "title": "Incident notification",
+      "description": "Regulated persons must notify the Minister of Innovation if the system causes or risks causing serious harm or produces outputs that are biased in a way that causes serious harm.",
+      "applies_to": "All regulated persons"
+    },
+    {
+      "id": "ca-aida-records",
+      "title": "Record keeping",
+      "description": "Regulated persons must establish and maintain records of their AI system's design, development, operation, and risk management activities.",
+      "applies_to": "All regulated persons"
+    }
+  ],
+  "prohibited_conduct": [
+    "Making available a high-impact AI system that is likely to cause serious harm without implementing appropriate mitigation measures",
+    "Deliberately providing false or misleading information to the Minister or an auditor",
+    "Knowingly or recklessly processing data obtained by an unlawful act to train an AI system intended to cause harm"
+  ],
+  "existing_ai_relevant_law": [
+    {
+      "law": "PIPEDA (Personal Information Protection and Electronic Documents Act)",
+      "relevance": "Currently governs collection and use of personal data for AI training and deployment. Automated decision-making disclosure obligations apply. Being replaced by CPPA (Bill C-27 Part 1) if enacted.",
+      "status": "In Force"
+    },
+    {
+      "law": "Canada Human Rights Act",
+      "relevance": "AI systems used in employment, services, or accommodation that produce discriminatory effects on prohibited grounds violate the CHRA.",
+      "status": "In Force"
+    },
+    {
+      "law": "Competition Act — Misleading Advertising",
+      "relevance": "Deceptive AI claims or AI used to facilitate deceptive marketing practices violate the Competition Act.",
+      "status": "In Force"
+    }
+  ],
+  "cross_references": [
+    { "regulation": "EU AI Act",  "relevance": "Canada-EU companies face dual compliance; AIDA and EU AI Act have different high-risk criteria and obligation structures, creating potential double obligations" },
+    { "regulation": "PIPEDA/CPPA", "relevance": "All AI systems processing personal information about Canadians remain subject to federal privacy law regardless of AIDA status" }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "id": "uk_ai_framework",
+  "jurisdiction": "GB",
+  "title": "UK AI Regulatory Framework and Pro-Innovation Approach",
+  "official_title": "UK Government AI Regulation: A Pro-Innovation Approach — plus ICO AI Guidance and Sector Regulator Frameworks",
+  "short_name": "UK AI Framework",
+  "status": "Active — framework in operation; AI legislation pending",
+  "last_reviewed": "2025-03-01",
+  "overview": "The UK has adopted a context-specific, pro-innovation approach to AI regulation rather than a single horizontal AI law. Existing sector regulators (FCA, CMA, ICO, MHRA, etc.) apply existing powers to AI within their domains, guided by five cross-cutting principles issued by the government. The Data (Use and Access) Act 2025 and an AI Opportunities Action Plan are reshaping the landscape. The UK explicitly chose not to mirror the EU AI Act, creating divergence risks for companies operating in both markets.",
+  "five_cross_sector_principles": [
+    {
+      "principle": "Safety, security, and robustness",
+      "description": "AI systems should function securely, safely, and robustly throughout the lifecycle. Risks should be identified, assessed, mitigated, and monitored. Applies across all sectors."
+    },
+    {
+      "principle": "Appropriate transparency and explainability",
+      "description": "AI systems should be as transparent and explainable as appropriate for their context. Relevant persons should be able to understand how and why AI outputs are produced."
+    },
+    {
+      "principle": "Fairness",
+      "description": "AI systems should not produce unfair outcomes, particularly for individuals sharing protected characteristics under the Equality Act 2010."
+    },
+    {
+      "principle": "Accountability and governance",
+      "description": "Clear lines of accountability should exist for AI systems throughout the lifecycle. Governance frameworks should be proportionate to risk."
+    },
+    {
+      "principle": "Contestability and redress",
+      "description": "Individuals should be able to contest AI-based decisions that affect them, and obtain redress where appropriate."
+    }
+  ],
+  "sector_specific_frameworks": [
+    {
+      "sector": "Financial services",
+      "regulator": "FCA / PRA",
+      "key_guidance": "DP5/22: AI and Machine Learning. Firms must explain AI model decisions, maintain model risk management frameworks, and demonstrate model validation. Senior Manager & Certification Regime (SM&CR) personal accountability applies to AI deployment decisions.",
+      "binding": true
+    },
+    {
+      "sector": "Healthcare and medical devices",
+      "regulator": "MHRA",
+      "key_guidance": "Software and AI as Medical Device (SaMD) guidance. AI used for diagnosis, prognosis, or treatment is regulated as a medical device. UK MHRA diverging from EU MDR post-Brexit.",
+      "binding": true
+    },
+    {
+      "sector": "Data protection and privacy",
+      "regulator": "ICO",
+      "key_guidance": "UK GDPR retained Article 22 on automated decision-making; ICO Guidance on AI and Data Protection (2020, updated 2023). DPIAs required for AI systems involving systematic profiling or high-risk processing.",
+      "binding": true
+    },
+    {
+      "sector": "Competition",
+      "regulator": "CMA",
+      "key_guidance": "AI Foundation Models: Initial Report (2023). CMA scrutinising AI market concentration, merger activity involving AI assets, and algorithmic collusion. Digital Markets, Competition and Consumers Act 2024 creates new SMS regime.",
+      "binding": "Enforcement risk"
+    },
+    {
+      "sector": "Employment",
+      "regulator": "EHRC",
+      "key_guidance": "Equality Act 2010 applies to AI used in recruitment, performance assessment, and termination. Automated decisions that disproportionately disadvantage protected groups may constitute indirect discrimination.",
+      "binding": true
+    }
+  ],
+  "ico_ai_obligations": [
+    {
+      "obligation": "Lawful basis for AI processing",
+      "description": "All AI systems processing personal data require a lawful basis under UK GDPR. Legitimate interests requires a documented balancing test.",
+      "applies_to": "All AI systems processing UK personal data"
+    },
+    {
+      "obligation": "Article 22 equivalent — automated decisions",
+      "description": "Retained UK GDPR Article 22 gives data subjects the right not to be subject to solely automated decisions with legal or similarly significant effects. Safeguards must be implemented.",
+      "applies_to": "AI systems making significant automated decisions about UK data subjects"
+    },
+    {
+      "obligation": "Data Protection Impact Assessment",
+      "description": "DPIAs required for AI systems involving systematic evaluation of natural persons, large-scale processing of special category data, or innovative technologies with high residual risks.",
+      "applies_to": "Higher-risk AI systems processing personal data"
+    },
+    {
+      "obligation": "Bias and fairness testing",
+      "description": "ICO expects organisations to test AI systems for bias in training data and outputs, document findings, and implement mitigations. Failure to address foreseeable bias may constitute a breach of fairness principle.",
+      "applies_to": "AI systems producing outputs affecting individuals"
+    },
+    {
+      "obligation": "Transparency about AI use",
+      "description": "Privacy notices must disclose meaningful information about AI processing including the logic of automated decisions and the consequences for data subjects.",
+      "applies_to": "All AI systems processing personal data"
+    }
+  ],
+  "divergence_from_eu_ai_act": [
+    "No mandatory conformity assessment for high-risk AI",
+    "No EU-style AI database registration",
+    "No explicit prohibition list (UK relies on existing laws for equivalent prohibitions)",
+    "Context-specific rather than horizontal approach means sector-specific requirements vary significantly",
+    "No CE marking equivalent for AI",
+    "GPAI model obligations do not exist in UK law"
+  ],
+  "data_use_and_access_act_2025": {
+    "status": "Royal Assent 2025",
+    "ai_relevance": [
+      "Creates new regime for smart data schemes enabling AI-powered financial and energy products",
+      "Establishes Information Commission replacing ICO with broader digital remit",
+      "Reforms DPIA and prior consultation requirements",
+      "Creates new lawful basis for scientific research including AI research"
+    ]
+  },
+  "cross_references": [
+    { "regulation": "EU AI Act",    "relevance": "UK companies serving EU customers or established in EU are subject to EU AI Act even if UK-based. Post-Brexit divergence creates dual compliance obligations for many companies." },
+    { "regulation": "UK GDPR",     "relevance": "All AI processing personal data is subject to UK GDPR in addition to sector-specific frameworks." },
+    { "regulation": "Equality Act 2010", "relevance": "AI systems used in employment, services, or public functions that produce discriminatory outcomes may violate the Equality Act regardless of intent." }
+  ]
+}

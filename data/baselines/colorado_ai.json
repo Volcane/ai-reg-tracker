@@ -1,0 +1,94 @@
+{
+  "id": "colorado_ai",
+  "jurisdiction": "CO",
+  "title": "Colorado Artificial Intelligence Act — High-Risk Artificial Intelligence Systems",
+  "official_title": "Colorado Senate Bill 24-205 — Concerning Protections for Interactions with Artificial Intelligence Systems",
+  "short_name": "Colorado AI Act",
+  "citation": "CRS 6-1-1701 et seq.",
+  "effective_date": "2026-02-01",
+  "status": "In Force — effective Feb 2026",
+  "last_reviewed": "2025-03-01",
+  "overview": "Colorado SB 205 is the first US state law creating comprehensive obligations for developers and deployers of high-risk AI systems. It covers AI systems that make or materially influence consequential decisions about Colorado residents — including education, employment, financial services, healthcare, housing, insurance, and legal services. The Act requires algorithmic impact assessments, transparency to affected consumers, human review rights, and prohibition of unlawful discrimination. Amended version signed May 2024; took effect February 2026.",
+  "scope": {
+    "applies_to": "Developers and deployers of high-risk AI systems that affect Colorado residents",
+    "consequential_decisions": [
+      "Education enrollment or education opportunity",
+      "Employment or employment opportunity",
+      "Financial or lending service",
+      "Essential government service",
+      "Healthcare service",
+      "Housing",
+      "Insurance",
+      "Legal service"
+    ],
+    "high_risk_ai_definition": "An AI system that, when deployed, makes or is a substantial factor in making a consequential decision"
+  },
+  "developer_obligations": [
+    {
+      "id": "co-ai-dev-assessment",
+      "title": "Algorithmic impact assessment",
+      "description": "Developers must complete algorithmic impact assessments evaluating known and reasonably foreseeable risks of algorithmic discrimination arising from development and known uses of the AI system.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dev-statement",
+      "title": "High-risk AI statement",
+      "description": "Developers must publish a high-risk AI system statement summarising the types of high-risk AI systems the developer offers, data types used, and how to contact the developer.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dev-deployer-info",
+      "title": "Information to deployers",
+      "description": "Developers must disclose to deployers: documentation of the system's purpose and known limitations, details on training data, known risks of algorithmic discrimination, and how to conduct impact assessments.",
+      "deadline": "2026-02-01"
+    }
+  ],
+  "deployer_obligations": [
+    {
+      "id": "co-ai-dep-impact-assess",
+      "title": "Deployer impact assessment",
+      "description": "Deployers must complete an impact assessment evaluating the reasonably foreseeable risks of algorithmic discrimination from the AI system in the deployer's specific use context.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dep-governance",
+      "title": "AI governance program",
+      "description": "Deployers must establish, implement, and maintain an AI governance program with policies and procedures to manage reasonably foreseeable risks of algorithmic discrimination.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dep-notice",
+      "title": "Consumer notice",
+      "description": "Deployers must disclose to affected consumers that a high-risk AI system was used to make or influence a consequential decision, provide the principal reason(s) for the decision, and inform the consumer of their right to human review.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dep-human-review",
+      "title": "Right to human review",
+      "description": "Deployers must provide consumers the opportunity to appeal AI-influenced consequential decisions and have the decision reviewed by a human who has the authority to reverse or modify it.",
+      "deadline": "2026-02-01"
+    },
+    {
+      "id": "co-ai-dep-correction",
+      "title": "Right to correct data",
+      "description": "Deployers must provide consumers a process to correct inaccurate personal data used in the AI system's decision-making.",
+      "deadline": "2026-02-01"
+    }
+  ],
+  "prohibited_conduct": [
+    "Using a high-risk AI system that results in algorithmic discrimination against a Colorado resident based on a protected characteristic under Colorado anti-discrimination law"
+  ],
+  "penalties": {
+    "enforcement": "Colorado Attorney General only — no private right of action",
+    "cure_period": "60 days after notice before enforcement action",
+    "civil_penalty": "Existing consumer protection penalty structure; up to $20,000 per violation under CCPA"
+  },
+  "interaction_with_other_laws": [
+    { "law": "Colorado Anti-Discrimination Act (CADA)", "relevance": "Algorithmic discrimination violating CADA remains separately actionable with a private right of action" },
+    { "law": "EU AI Act",                              "relevance": "Colorado's high-risk categories overlap significantly with EU AI Act Annex III; dual compliance obligations for companies operating in both markets" }
+  ],
+  "cross_references": [
+    { "regulation": "Illinois AIPA",    "relevance": "Both laws cover employment AI; companies with employees in both states face overlapping but distinct obligations" },
+    { "regulation": "NYC Local Law 144","relevance": "NYC AEDT law preceded both; companies with operations in all three jurisdictions should treat NYC LL 144 as the most operationally specific requirement" }
+  ]
+}

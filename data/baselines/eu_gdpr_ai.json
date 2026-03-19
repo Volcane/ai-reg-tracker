@@ -1,0 +1,105 @@
+{
+  "id": "eu_gdpr_ai",
+  "jurisdiction": "EU",
+  "title": "EU General Data Protection Regulation — AI-Relevant Provisions",
+  "official_title": "Regulation (EU) 2016/679 — Selected provisions directly relevant to AI systems",
+  "short_name": "EU GDPR (AI)",
+  "celex": "32016R0679",
+  "status": "In Force",
+  "last_reviewed": "2025-03-01",
+  "overview": "The GDPR does not specifically regulate AI, but multiple provisions directly govern how AI systems that process personal data must operate. Key provisions include automated decision-making rights (Article 22), transparency obligations, purpose limitation, and data minimisation. The EU AI Act explicitly states it applies in addition to GDPR, not instead of it. GDPR compliance is therefore a floor requirement for any AI system processing personal data about EU data subjects.",
+  "ai_relevant_provisions": [
+    {
+      "article": "Article 5",
+      "title": "Principles relating to processing of personal data",
+      "ai_relevance": "All AI systems processing personal data must observe lawfulness, fairness, transparency, purpose limitation, data minimisation, accuracy, storage limitation, and integrity/confidentiality. Purpose limitation is particularly relevant — training data cannot be reused for incompatible purposes.",
+      "obligations": [
+        "Personal data used to train AI models must have a lawful basis",
+        "AI systems may only use personal data for purposes compatible with those for which it was collected",
+        "Data minimisation requires using only data that is adequate and relevant to the AI system's purpose",
+        "AI outputs based on inaccurate data must be correctable"
+      ]
+    },
+    {
+      "article": "Article 6",
+      "title": "Lawfulness of processing",
+      "ai_relevance": "AI systems processing personal data require a valid legal basis. Legitimate interest (Article 6(1)(f)) is frequently claimed for AI analytics but requires a documented balancing test.",
+      "obligations": [
+        "Document the legal basis for each personal data processing activity in the AI system",
+        "Conduct and document a legitimate interest assessment when relying on Article 6(1)(f)",
+        "Consent must be freely given, specific, informed, and unambiguous — pre-ticked boxes or bundled consent are invalid"
+      ]
+    },
+    {
+      "article": "Article 9",
+      "title": "Processing of special categories of personal data",
+      "ai_relevance": "AI systems that process or infer health data, biometric data, racial/ethnic origin, political opinions, religious beliefs, trade union membership, sex life, or sexual orientation require explicit consent or another Article 9(2) basis. The EU AI Act prohibits AI that infers some of these from biometric data entirely.",
+      "obligations": [
+        "Identify whether the AI system processes or infers special category data",
+        "Obtain explicit consent or establish another Article 9(2) legal basis before processing",
+        "Biometric data used for identification or verification of natural persons is special category data requiring explicit consent or legal obligation"
+      ]
+    },
+    {
+      "article": "Article 13/14",
+      "title": "Transparency information",
+      "ai_relevance": "Data subjects must be informed about automated processing, including profiling, and meaningful information about the logic involved.",
+      "obligations": [
+        "Privacy notices must disclose when AI or automated processing is used",
+        "Provide 'meaningful information about the logic involved' in automated decisions affecting data subjects",
+        "Disclose the significance and envisaged consequences of AI-based profiling"
+      ]
+    },
+    {
+      "article": "Article 17",
+      "title": "Right to erasure ('right to be forgotten')",
+      "ai_relevance": "If a data subject exercises erasure rights, the obligation extends to removing their data from AI training sets and potentially retraining models where technically feasible.",
+      "obligations": [
+        "Establish processes to identify and delete personal data from AI training datasets upon valid erasure request",
+        "Document technical measures for data removal from trained models where feasible",
+        "Third parties to whom data was disclosed for AI training must also be notified"
+      ]
+    },
+    {
+      "article": "Article 22",
+      "title": "Automated individual decision-making, including profiling",
+      "ai_relevance": "This is the most directly relevant GDPR provision for AI. Data subjects have the right not to be subject to solely automated decisions (including AI-based decisions) that produce legal or similarly significant effects, unless specific conditions are met.",
+      "obligations": [
+        "Identify all AI-based decisions that produce legal or similarly significant effects on natural persons",
+        "Either obtain explicit consent, demonstrate necessity for a contract, or establish a Union/Member State law basis",
+        "Implement suitable safeguards including the right to obtain human intervention, express one's point of view, and contest the decision",
+        "Do not make solely automated decisions based on special category data unless explicit consent or substantial public interest"
+      ],
+      "exceptions": "Exceptions apply when processing is necessary for a contract, authorised by law, or based on explicit consent — but suitable safeguards must still be in place in all cases."
+    },
+    {
+      "article": "Article 25",
+      "title": "Data protection by design and by default",
+      "ai_relevance": "AI systems must be designed to process minimum personal data, implement appropriate technical measures, and default to the most privacy-protective configuration.",
+      "obligations": [
+        "Implement privacy-by-design principles at the AI system architecture stage",
+        "Default configurations must minimise personal data processing",
+        "Document data protection design choices made during AI system development"
+      ]
+    },
+    {
+      "article": "Article 35",
+      "title": "Data protection impact assessment (DPIA)",
+      "ai_relevance": "DPIAs are mandatory for AI systems involving systematic and extensive profiling, large-scale processing of special category data, or systematic monitoring of publicly accessible areas. Most high-risk AI systems under the EU AI Act will also require a DPIA.",
+      "obligations": [
+        "Conduct a DPIA before deploying AI systems that involve systematic profiling of natural persons",
+        "DPIA must include a description of processing, assessment of necessity and proportionality, risks to rights, and mitigation measures",
+        "Consult the supervisory authority if residual risk remains high after mitigation",
+        "Review and update DPIAs when the nature of processing changes significantly"
+      ]
+    }
+  ],
+  "penalty_structure": {
+    "serious_violations":  { "max_eur": 20000000, "max_pct_turnover": 4, "note": "Violations of core principles, lawful basis, special category data, data subject rights" },
+    "other_violations":    { "max_eur": 10000000, "max_pct_turnover": 2, "note": "Violations of processor obligations, DPIAs, data breach notification" }
+  },
+  "cross_references": [
+    { "regulation": "EU AI Act",         "relevance": "The AI Act explicitly states it applies in addition to GDPR. High-risk AI deployers must comply with both Article 22 GDPR rights and AI Act transparency obligations simultaneously." },
+    { "regulation": "EU ePrivacy Directive", "relevance": "Applies to AI systems that involve tracking, cookies, or electronic communications processing." }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "id": "us_sector_ai",
+  "jurisdiction": "Federal",
+  "title": "US Federal Sector-Specific AI Rules and Guidance",
+  "official_title": "Sector-specific federal agency guidance and rules on artificial intelligence: CFPB, EEOC, FDA, OCC, HHS",
+  "short_name": "US Sector AI Rules",
+  "status": "Active — multiple agency guidance documents",
+  "last_reviewed": "2025-03-01",
+  "overview": "Beyond the FTC, multiple US federal agencies with sector-specific jurisdiction have issued binding rules, guidance, and enforcement statements on AI within their domains. These obligations apply in addition to horizontal frameworks like EO 14110 and the NIST AI RMF. Companies in regulated industries face layered obligations from their sector regulator on top of cross-sector AI rules. This baseline covers CFPB (financial services), EEOC (employment), FDA (healthcare/medical devices), OCC (banking/model risk), and HHS (healthcare generally).",
+  "sector_frameworks": [
+    {
+      "agency": "Consumer Financial Protection Bureau (CFPB)",
+      "sector": "Consumer financial services — credit, lending, debt collection",
+      "key_rules": [
+        {
+          "id": "cfpb-ecoa-adverse-action",
+          "title": "ECOA / Regulation B — AI Adverse Action Notices",
+          "description": "When AI or algorithmic systems deny credit, increase cost, or take other adverse actions against consumers, creditors must provide specific and accurate reasons — not generic statements. The CFPB has stated that 'model output' is not an acceptable reason. Each actual reason the model used must be disclosed in plain language.",
+          "obligations": [
+            "Identify and disclose the specific factors the AI model used in making the adverse decision",
+            "Reasons must be accurate and reflect the actual model logic — not just the top output factors from a post-hoc explainability tool",
+            "Generic reasons such as 'credit score' or 'model output' are insufficient if a more specific reason is identifiable",
+            "Adverse action notices must be provided within 30 days of the decision"
+          ],
+          "enforcement_risk": "High — CFPB actively supervises AI-based credit decisions"
+        },
+        {
+          "id": "cfpb-fcra-consumer-reports",
+          "title": "FCRA — AI as Consumer Report",
+          "description": "AI systems that compile consumer information and provide assessments to creditors, employers, or others may constitute consumer reporting agencies (CRAs) subject to FCRA. This triggers accuracy, dispute, and adverse action requirements.",
+          "obligations": [
+            "Determine whether the AI system meets the FCRA definition of a consumer report",
+            "If so: implement FCRA accuracy obligations, dispute processes, and consumer consent requirements",
+            "Sellers of AI scoring products used in credit/employment/insurance decisions must register as CRAs",
+            "Provide adverse action notices under both ECOA and FCRA when applicable"
+          ]
+        },
+        {
+          "id": "cfpb-udaap-ai",
+          "title": "UDAAP — AI Discriminatory Practices",
+          "description": "The CFPB has stated that discrimination in consumer financial products can constitute an Unfair, Deceptive, or Abusive Act or Practice (UDAAP) under the Consumer Financial Protection Act, regardless of whether it also violates ECOA. AI-driven disparate impact on protected classes can trigger UDAAP enforcement.",
+          "obligations": [
+            "Test AI-based financial products for discriminatory impact on protected classes",
+            "Document testing methodology and results",
+            "Remediate products producing significant disparate impact"
+          ]
+        }
+      ]
+    },
+    {
+      "agency": "Equal Employment Opportunity Commission (EEOC)",
+      "sector": "Employment — hiring, promotion, compensation, termination",
+      "key_rules": [
+        {
+          "id": "eeoc-ai-technical-assistance",
+          "title": "EEOC Technical Assistance on AI in Employment",
+          "description": "The EEOC has issued technical assistance documents clarifying that Title VII of the Civil Rights Act, the ADA, the ADEA, and the EPA apply fully to AI-assisted employment decisions. Employers cannot rely on vendor representations that an AI tool is bias-free.",
+          "obligations": [
+            "Employers are liable for discriminatory AI tools even when purchased from third-party vendors",
+            "Conduct adverse impact analysis before deploying AI selection tools",
+            "Use the 4/5ths rule (80% threshold) as a baseline for identifying potential disparate impact",
+            "Job-relatedness and business necessity must be demonstrated if the tool produces adverse impact",
+            "ADA requires reasonable accommodation in AI-based screening — e.g. alternative testing for candidates with disabilities"
+          ]
+        },
+        {
+          "id": "eeoc-ada-ai",
+          "title": "ADA and AI — Disability Discrimination",
+          "description": "AI tools used in hiring may screen out candidates with disabilities through inaccessible interfaces, questions about medical history, or assessments that penalise disability-related traits. The EEOC has specifically warned about video interview AI, personality assessments, and cognitive ability tests.",
+          "obligations": [
+            "Provide notice that accommodation is available for AI-based assessments",
+            "Offer alternative assessment methods for candidates who cannot complete the AI-based process",
+            "Do not use AI tools that measure traits correlated with protected disabilities as proxies for job performance"
+          ]
+        }
+      ]
+    },
+    {
+      "agency": "Food and Drug Administration (FDA)",
+      "sector": "Healthcare — medical devices, diagnostics, clinical decision support",
+      "key_rules": [
+        {
+          "id": "fda-ai-samd",
+          "title": "AI/ML-Based Software as a Medical Device (SaMD)",
+          "description": "FDA regulates AI systems that are intended to diagnose, treat, prevent, or monitor medical conditions as Software as a Medical Device (SaMD). Risk-based classification determines the approval pathway: Class I (510(k) exempt), Class II (510(k) clearance), or Class III (PMA approval).",
+          "obligations": [
+            "Determine whether the AI system meets the definition of a medical device or SaMD",
+            "If yes: register with FDA and select appropriate regulatory pathway based on risk classification",
+            "AI/ML-based SaMD that continuously learns and adapts must comply with the FDA's predetermined change control plan (PCCP) framework",
+            "Post-market surveillance required — report adverse events and device malfunctions",
+            "Labeling must describe the AI/ML model's intended use, performance, and limitations"
+          ]
+        },
+        {
+          "id": "fda-aiml-action-plan",
+          "title": "FDA AI/ML-Based SaMD Action Plan",
+          "description": "FDA's 2021 action plan and subsequent guidance documents establish the framework for overseeing AI systems that adapt over time through continued learning.",
+          "obligations": [
+            "Submit a Predetermined Change Control Plan (PCCP) for adaptive AI that specifies anticipated modifications",
+            "Algorithm change protocols must be approved before implementing model updates that could affect device performance",
+            "Real-world performance monitoring required for deployed AI medical devices",
+            "Report performance degradation events within 30 days"
+          ]
+        }
+      ]
+    },
+    {
+      "agency": "Office of the Comptroller of the Currency (OCC) / Federal Reserve / FDIC",
+      "sector": "Banking — credit, operations, model risk",
+      "key_rules": [
+        {
+          "id": "occ-sr11-7",
+          "title": "SR 11-7 — Model Risk Management",
+          "description": "The Federal Reserve's SR 11-7 guidance (adopted by OCC and FDIC) establishes model risk management (MRM) requirements for bank models, including AI models used in credit decisions, fraud detection, AML, and operations. AI systems are models subject to MRM governance.",
+          "obligations": [
+            "Maintain a model inventory including all AI systems used in material business decisions",
+            "Conduct independent model validation before deployment and periodically thereafter",
+            "Document model development, including training data, assumptions, limitations, and validation results",
+            "Establish model governance framework with board-level oversight",
+            "Assess model risk regularly — at least annually for high-risk models",
+            "Maintain model risk appetite and report material model risk to senior management"
+          ]
+        }
+      ]
+    },
+    {
+      "agency": "Department of Health and Human Services (HHS)",
+      "sector": "Healthcare generally — HIPAA, algorithmic bias",
+      "key_rules": [
+        {
+          "id": "hhs-section-1557",
+          "title": "Section 1557 — Non-Discrimination in Health Programs Using AI",
+          "description": "HHS regulations under Section 1557 of the ACA require health programs receiving federal funding (virtually all US hospitals and health insurers) to not discriminate on the basis of race, color, national origin, sex, age, or disability. HHS has clarified that algorithmic tools that produce discriminatory clinical recommendations violate Section 1557.",
+          "obligations": [
+            "Assess AI-based clinical decision support tools for discriminatory outputs before deployment",
+            "Establish oversight mechanisms for AI tools used in patient care decisions",
+            "Provide reasonable modifications to standard AI-based procedures for patients with disabilities",
+            "Document algorithmic bias assessments and corrective actions"
+          ]
+        }
+      ]
+    }
+  ],
+  "cross_references": [
+    { "regulation": "FTC Act Section 5", "relevance": "CFPB UDAAP enforcement overlaps with FTC deception and unfairness authority; both agencies can pursue AI discrimination in consumer products." },
+    { "regulation": "EU AI Act", "relevance": "US companies with EU operations face dual obligations: sector-specific US rules plus EU AI Act high-risk classifications for healthcare, credit, and employment AI." },
+    { "regulation": "EO 14110",         "relevance": "Federal agency AI use obligations in EO 14110 reinforce sector-specific regulator requirements; NIST AI RMF aligns with SR 11-7 model risk management approach." }
+  ]
+}

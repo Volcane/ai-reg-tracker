@@ -53,7 +53,7 @@ deadlines, definitions, penalties, or scope. Ignore purely cosmetic or formattin
 Always respond with valid JSON only — no markdown, no extra commentary."""
 
 
-DIFF_PROMPT_TEMPLATE = """Compare these two versions of an AI regulation document.
+DIFF_PROMPT_TEMPLATE = """Compare these two versions of an AI regulation document.{baseline_context}
 
 DOCUMENT: {title}
 JURISDICTION: {jurisdiction}
@@ -259,7 +259,19 @@ class DiffAgent:
         # Generate a line-level diff as additional context for Claude
         line_diff = _make_line_diff(old_text, new_text, max_lines=60)
 
+        # Load baseline context if available for this document
+        baseline_context = ""
+        try:
+            from agents.baseline_agent import BaselineAgent
+            ba = BaselineAgent()
+            ctx = ba.format_for_diff_context(new_doc)
+            if ctx:
+                baseline_context = f"\n\n{ctx}\n\nUse the baseline above to identify which specific baseline obligations this version change affects, adds to, or contradicts.\n"
+        except Exception as e:
+            log.debug("Baseline context unavailable: %s", e)
+
         prompt = DIFF_PROMPT_TEMPLATE.format(
+            baseline_context = baseline_context,
             title        = new_doc.get("title", ""),
             jurisdiction = new_doc.get("jurisdiction", ""),
             agency       = new_doc.get("agency", ""),

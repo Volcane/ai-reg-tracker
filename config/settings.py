@@ -18,9 +18,17 @@ CONGRESS_GOV_KEY     = os.getenv("CONGRESS_GOV_KEY", "")
 LEGISCAN_KEY         = os.getenv("LEGISCAN_KEY", "")
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-OUTPUT_DIR = PROJECT_ROOT / "output"
+OUTPUT_DIR  = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
-DB_PATH    = os.getenv("DB_PATH", str(OUTPUT_DIR / "aris.db"))
+DB_PATH     = os.getenv("DB_PATH", str(OUTPUT_DIR / "aris.db"))
+
+# PDF drop folder — place PDFs here for manual ingestion
+PDF_DROP_DIR = OUTPUT_DIR / "pdf_inbox"
+PDF_DROP_DIR.mkdir(exist_ok=True)
+
+# PDF storage — extracted text and downloaded PDFs
+PDF_STORE_DIR = OUTPUT_DIR / "pdfs"
+PDF_STORE_DIR.mkdir(exist_ok=True)
 
 # ── Behaviour ─────────────────────────────────────────────────────────────────
 LOOKBACK_DAYS       = int(os.getenv("LOOKBACK_DAYS", "30"))

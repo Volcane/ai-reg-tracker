@@ -1,0 +1,86 @@
+{
+  "id": "us_ftc_ai",
+  "jurisdiction": "Federal",
+  "title": "FTC AI Guidance and Enforcement Framework",
+  "official_title": "Federal Trade Commission guidance and enforcement actions on artificial intelligence, algorithmic systems, and automated decision-making",
+  "short_name": "FTC AI Guidance",
+  "status": "Active — guidance documents plus active enforcement",
+  "last_reviewed": "2025-03-01",
+  "overview": "The FTC regulates AI under its existing authority to prohibit unfair or deceptive acts or practices (Section 5 FTC Act), the Fair Credit Reporting Act (FCRA), the Equal Credit Opportunity Act (ECOA), and other statutes. The FTC has issued multiple guidance documents and has brought enforcement actions against companies for deceptive AI claims and harmful algorithmic systems. Companies should treat FTC guidance as quasi-regulatory — the FTC has demonstrated willingness to pursue significant actions against AI-related harms.",
+  "key_guidance_documents": [
+    {
+      "title": "Luring Consumers with AI Claims",
+      "date": "2023",
+      "key_points": [
+        "Claims about AI capabilities must be truthful and substantiated",
+        "Overstating AI accuracy or effectiveness is deceptive under Section 5",
+        "AI products cannot be marketed as providing results they cannot deliver"
+      ]
+    },
+    {
+      "title": "AI Claim Substantiation",
+      "date": "2023",
+      "key_points": [
+        "Objective AI performance claims require competent and reliable scientific evidence",
+        "Endorsements of AI products must reflect genuine, verified experience",
+        "Disclosures of AI limitations must be clear and conspicuous"
+      ]
+    },
+    {
+      "title": "Dealing with AI Hype: Practical Tips for Business",
+      "date": "2024",
+      "key_points": [
+        "Do not claim AI can do something it cannot",
+        "Ensure third-party AI tools used in products meet FTC truthfulness standards",
+        "Test AI systems for discriminatory outputs before deployment"
+      ]
+    },
+    {
+      "title": "Using AI Tools to Assess Employee Work",
+      "date": "2024",
+      "key_points": [
+        "Employees surveilled or evaluated by AI must be informed",
+        "AI-based performance assessments that trigger adverse employment decisions must comply with existing anti-discrimination law",
+        "Automated systems that disproportionately disadvantage protected classes raise ECOA/Title VII concerns"
+      ]
+    }
+  ],
+  "enforcement_principles": [
+    {
+      "principle": "No deceptive AI claims",
+      "description": "Any statement about AI capabilities — accuracy, speed, neutrality, objectivity — must be truthful and substantiated. The FTC specifically targets 'AI washing': marketing ordinary software as AI or overstating AI capabilities to gain consumer trust.",
+      "risk_level": "High"
+    },
+    {
+      "principle": "Algorithmic discrimination",
+      "description": "AI systems that produce discriminatory outcomes in credit, employment, housing, education, or healthcare violate existing anti-discrimination laws enforced by the FTC. Disparate impact does not require discriminatory intent.",
+      "risk_level": "High"
+    },
+    {
+      "principle": "Unfair data practices feeding AI",
+      "description": "Using data collected through deceptive means to train AI systems, or using AI to facilitate unlawful data collection, violates Section 5. The FTC's Rite Aid and Rite Aid facial recognition action set precedent.",
+      "risk_level": "High"
+    },
+    {
+      "principle": "Consent for AI analysis",
+      "description": "Using AI to analyse sensitive personal information — health, financial, biometric — without appropriate disclosure and consent raises both Section 5 and FCRA concerns.",
+      "risk_level": "Medium-High"
+    }
+  ],
+  "fcra_obligations_for_ai": [
+    "If an AI system constitutes a consumer reporting agency (CRA) or produces consumer reports, FCRA obligations apply",
+    "AI used for employment, credit, insurance, or housing decisions may trigger FCRA adverse action notice requirements",
+    "Employers using AI background check or screening tools must provide FCRA disclosures and obtain consent",
+    "AI scoring or risk assessment products sold to businesses for consumer-related decisions are likely consumer reports subject to FCRA accuracy and dispute obligations"
+  ],
+  "notable_enforcement_actions": [
+    { "company": "Rite Aid",   "year": 2023, "issue": "Deployed facial recognition AI that falsely flagged customers as shoplifters; disproportionate impact on minorities. FTC banned use of facial recognition AI for 5 years." },
+    { "company": "Amazon",    "year": 2023, "issue": "Alexa voice data retained and used to train AI despite parents' deletion requests; $25M civil penalty." },
+    { "company": "IntelliCheck", "year": 2022, "issue": "ID verification AI produced inaccurate consumer reports without FCRA safeguards." }
+  ],
+  "cross_references": [
+    { "regulation": "Fair Credit Reporting Act (FCRA)", "relevance": "AI systems producing consumer reports or used in credit/employment/housing decisions are subject to FCRA; adverse action notices required when AI-based decisions harm consumers" },
+    { "regulation": "Equal Credit Opportunity Act (ECOA)", "relevance": "AI systems used in credit decisions must not discriminate on the basis of race, sex, religion, national origin, age, marital status, or receipt of public assistance" },
+    { "regulation": "EU AI Act", "relevance": "Companies operating in both US and EU face both FTC scrutiny (deceptive claims, discrimination) and EU AI Act obligations (high-risk classification, conformity assessment)" }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "id": "singapore_ai",
+  "jurisdiction": "SG",
+  "title": "Singapore AI Governance Framework and Advisory Guidelines",
+  "official_title": "Model AI Governance Framework (2nd Edition) and Advisory Guidelines on the Use of Personal Data in AI Recommendation and Decision Systems",
+  "short_name": "Singapore AI Framework",
+  "status": "Active — voluntary framework with binding PDPA underpinning",
+  "last_reviewed": "2025-03-01",
+  "overview": "Singapore has adopted a pro-innovation, voluntary-first approach to AI regulation. The Model AI Governance Framework (MAIGF) provides detailed implementation guidance across 11 governance areas. It is voluntary but widely adopted as industry standard and referenced in government contracts. The Personal Data Protection Act (PDPA) underpins AI data obligations and is binding. The AI Verify Foundation provides a testing and certification toolkit. Singapore's approach emphasises international alignment and is increasingly referenced by other ASEAN jurisdictions.",
+  "model_ai_governance_framework": {
+    "version": "2nd Edition (2020); updates ongoing",
+    "published_by": "Infocomm Media Development Authority (IMDA) and Personal Data Protection Commission (PDPC)",
+    "scope": "Organisations that deploy or develop AI systems for use in Singapore",
+    "governance_areas": [
+      {
+        "area": "1. Internal Governance Structures and Measures",
+        "description": "Establish clear roles and accountability for AI decisions. Board-level oversight of material AI risks recommended.",
+        "key_practices": [
+          "Designate an accountable person for each AI system deployment",
+          "Document decision-making authority for AI-related choices",
+          "Establish escalation paths for AI incidents and edge cases"
+        ]
+      },
+      {
+        "area": "2. Determining AI Decision Types",
+        "description": "Classify AI decisions by their impact on individuals: augmentation (human remains final decision-maker) vs automation (AI makes the decision).",
+        "key_practices": [
+          "Document whether each AI system augments human decisions or automates them",
+          "Apply stricter governance to fully automated high-impact decisions",
+          "Maintain human override capability for consequential automated decisions"
+        ]
+      },
+      {
+        "area": "3. Operations Management",
+        "description": "Manage AI system operations to maintain performance, detect degradation, and respond to incidents.",
+        "key_practices": [
+          "Monitor AI system performance continuously against defined KPIs",
+          "Establish thresholds for triggering human review of AI performance",
+          "Maintain incident log and post-incident review process"
+        ]
+      },
+      {
+        "area": "4. Stakeholder Interaction and Communication",
+        "description": "Communicate AI use to affected stakeholders in a manner appropriate to the context and impact.",
+        "key_practices": [
+          "Disclose to customers when AI is used in decisions materially affecting them",
+          "Provide meaningful explanation of AI decisions upon request",
+          "Offer opt-out or alternative process where feasible"
+        ]
+      }
+    ]
+  },
+  "pdpa_ai_obligations": [
+    {
+      "id": "sg-pdpa-purpose-limitation",
+      "title": "Purpose limitation for AI training data",
+      "description": "Personal data collected for one purpose cannot be used to train AI for a materially different purpose without re-consent under Singapore's PDPA. The PDPC has issued advisory guidelines specifically addressing AI training data use.",
+      "obligations": [
+        "Document the purpose for which personal data was collected",
+        "Obtain new consent before using that data for AI training if the purpose is materially different",
+        "Anonymised data used for AI training must be genuinely non-re-identifiable"
+      ]
+    },
+    {
+      "id": "sg-pdpa-notification",
+      "title": "Notification of automated decisions",
+      "description": "Under the PDPA, organisations making significant automated decisions about individuals must notify them and provide a human review avenue in certain circumstances.",
+      "obligations": [
+        "Notify individuals when significant decisions about them are made substantially by automated means",
+        "Provide a process for individuals to request human review of automated decisions",
+        "Respond to data access and correction requests relating to AI decision inputs"
+      ]
+    }
+  ],
+  "ai_verify_toolkit": {
+    "description": "The AI Verify Foundation operates an internationally recognised AI governance testing framework that provides structured tests across 11 AI ethics principles. Completing AI Verify provides a transparency report that can be shared with customers and regulators.",
+    "principles_tested": [
+      "Transparency",
+      "Explainability",
+      "Repeatability / Reproducibility",
+      "Safety",
+      "Security",
+      "Robustness",
+      "Fairness",
+      "Data Governance",
+      "Accountability",
+      "Human Agency and Oversight",
+      "Inclusive Growth, Societal and Environmental Wellbeing"
+    ],
+    "recognition": "AI Verify is mutually recognised with several international AI governance frameworks including elements of the EU AI Act"
+  },
+  "asean_ai_governance": {
+    "description": "Singapore leads the ASEAN Guide on AI Governance and Ethics, which provides a regional baseline applicable across ASEAN member states.",
+    "member_states": ["Brunei","Cambodia","Indonesia","Laos","Malaysia","Myanmar","Philippines","Singapore","Thailand","Vietnam"],
+    "key_principles": [
+      "Human-centric AI that benefits people",
+      "Transparency and explainability proportionate to AI impact",
+      "Robustness and safety",
+      "Fairness and non-discrimination",
+      "Data governance and privacy"
+    ]
+  },
+  "cross_references": [
+    { "regulation": "EU AI Act",     "relevance": "Singapore actively works to align AI Verify with EU AI Act; companies with both EU and SG operations can leverage AI Verify assessments toward EU Act compliance." },
+    { "regulation": "NIST AI RMF",   "relevance": "Singapore framework aligns with NIST AI RMF governance approach; both reference the same underlying AI ethics principles." }
+  ]
+}

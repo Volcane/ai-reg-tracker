@@ -1,0 +1,112 @@
+{
+  "id": "oecd_ai_principles",
+  "jurisdiction": "INTL",
+  "title": "OECD AI Principles and G7 Hiroshima AI Process",
+  "official_title": "OECD Recommendation on Artificial Intelligence (OECD/LEGAL/0449) and G7 Hiroshima AI Process — International Code of Conduct for Advanced AI Systems",
+  "short_name": "OECD AI Principles / G7",
+  "status": "Active — 47 countries adhering to OECD principles; G7 Code of Conduct voluntary",
+  "last_reviewed": "2025-03-01",
+  "overview": "The OECD AI Principles (2019, updated 2024) are the most widely adopted international AI governance reference standard, with 47 adhering countries including all G7 and G20 members plus the EU. They are not binding law but are explicitly referenced in the EU AI Act, US EO 14110, and the national AI strategies of most major economies. The G7 Hiroshima AI Process produced an International Code of Conduct for Advanced AI Systems (2023) with 11 guiding principles specifically for frontier AI developers. Understanding these frameworks is important because they inform regulatory expectations across all major jurisdictions simultaneously.",
+  "oecd_principles": [
+    {
+      "pillar": "1. Inclusive growth, sustainable development and wellbeing",
+      "description": "AI should benefit people and the planet by driving inclusive growth, sustaining innovation, fostering the development of trustworthy AI.",
+      "regulatory_translation": "Referenced in EU AI Act preamble; underpins the 'human-centric AI' language in Singapore, Australia, and Japan frameworks."
+    },
+    {
+      "pillar": "2. Human-centred values and fairness",
+      "description": "AI should respect the rule of law, human rights and democratic values; include privacy and data protection, non-discrimination, fairness, and gender equality.",
+      "regulatory_translation": "Directly maps to EU AI Act prohibitions, GDPR data protection principles, and US anti-discrimination law applied to AI."
+    },
+    {
+      "pillar": "3. Transparency and explainability",
+      "description": "AI actors should commit to transparency and responsible disclosure regarding AI systems. When AI makes decisions affecting people, meaningful information about the AI system should be accessible.",
+      "regulatory_translation": "Foundation for EU AI Act transparency obligations, UK DSA recommender transparency, and NYC LL 144 bias audit publication requirements."
+    },
+    {
+      "pillar": "4. Robustness, security and safety",
+      "description": "AI systems should be robust, secure, and safe throughout their life cycles. AI should not pose unreasonable safety risks.",
+      "regulatory_translation": "Maps to EU AI Act conformity assessment for high-risk AI; underpins FDA SaMD requirements; aligned with NIST AI RMF MEASURE function."
+    },
+    {
+      "pillar": "5. Accountability",
+      "description": "AI actors should be accountable for proper functioning of AI systems in accordance with the above principles.",
+      "regulatory_translation": "Foundation of all national AI governance frameworks; maps to EU AI Act provider/deployer distinction; SR 11-7 model governance accountability."
+    }
+  ],
+  "g7_hiroshima_code_of_conduct": {
+    "adopted": "October 2023",
+    "target": "Advanced AI system developers (primarily frontier foundation model developers)",
+    "guiding_principles": [
+      {
+        "number": 1,
+        "principle": "Take appropriate measures to identify, assess, and mitigate risks across the AI lifecycle",
+        "description": "Developers should identify and document risks before, during, and after deployment."
+      },
+      {
+        "number": 2,
+        "principle": "Identify and mitigate vulnerabilities after deployment and take corrective action",
+        "description": "Post-deployment monitoring and rapid response to discovered vulnerabilities."
+      },
+      {
+        "number": 3,
+        "principle": "Publicly report capabilities and limitations of advanced AI systems",
+        "description": "Transparency reporting on what the model can and cannot do, including safety evaluations."
+      },
+      {
+        "number": 4,
+        "principle": "Work toward responsible information sharing on incidents",
+        "description": "Share information about safety incidents with other AI developers and governments where appropriate."
+      },
+      {
+        "number": 5,
+        "principle": "Invest in cybersecurity and protect against insider threats",
+        "description": "Secure model weights and training infrastructure against theft and misuse."
+      },
+      {
+        "number": 6,
+        "principle": "Develop and deploy technical mechanisms to identify AI-generated content",
+        "description": "Support watermarking, provenance, and detection mechanisms for AI outputs."
+      },
+      {
+        "number": 7,
+        "principle": "Prioritise research on societal risks and safety",
+        "description": "Invest in safety research and interpretability to enable better risk assessment."
+      },
+      {
+        "number": 8,
+        "principle": "Support international technical standards for trusted AI",
+        "description": "Participate in and adhere to international standards for AI governance."
+      },
+      {
+        "number": 9,
+        "principle": "Implement data input controls for privacy and IP",
+        "description": "Respect copyright and implement appropriate data provenance and consent mechanisms."
+      },
+      {
+        "number": 10,
+        "principle": "Advance the development of technical standards and best practices",
+        "description": "Contribute to and implement industry best practices on evaluation, red-teaming, and documentation."
+      },
+      {
+        "number": 11,
+        "principle": "Deploy appropriate safeguards against misuse for serious harms",
+        "description": "Implement technical and operational safeguards to prevent CBRN misuse, generation of CSAM, and other serious harms."
+      }
+    ]
+  },
+  "regulatory_cross_reference_map": {
+    "description": "How OECD principles map to binding regulations — useful for gap analysis across multiple jurisdictions",
+    "mappings": [
+      { "oecd_pillar": "Transparency and explainability", "binding_regulations": ["EU AI Act Article 13-14", "EU GDPR Article 22", "CFPB Reg B adverse action", "NYC LL 144 audit publication", "DSA Article 27"] },
+      { "oecd_pillar": "Robustness, security and safety", "binding_regulations": ["EU AI Act conformity assessment", "FDA SaMD pre-market clearance", "OCC SR 11-7 model validation"] },
+      { "oecd_pillar": "Accountability",                  "binding_regulations": ["EU AI Act provider/deployer obligations", "Illinois AIPA employer obligations", "Colorado AI Act deployer governance program"] },
+      { "oecd_pillar": "Human-centred values and fairness","binding_regulations": ["EEOC Uniform Guidelines", "Colorado AI Act anti-discrimination", "Illinois AIPA bias audits", "EU AI Act prohibited practices"] }
+    ]
+  },
+  "cross_references": [
+    { "regulation": "EU AI Act",    "relevance": "EU AI Act preamble explicitly references OECD AI Principles as foundational; conforming to OECD principles supports EU AI Act compliance posture." },
+    { "regulation": "EO 14110",     "relevance": "US EO 14110 references OECD AI Principles as the US international AI governance baseline." },
+    { "regulation": "NIST AI RMF",  "relevance": "NIST AI RMF is the US operationalisation of OECD principles; both reference the same trustworthy AI characteristics." }
+  ]
+}

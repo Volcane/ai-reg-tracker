@@ -491,6 +491,75 @@ def get_baseline(baseline_id: str):
     return b
 
 
+# ·· Obligation Register ·······································
+
+class RegisterRequest(BaseModel):
+    jurisdictions: List[str]
+    mode:          str  = "fast"   # fast | full
+    days:          int  = 365
+    force:         bool = False
+
+
+@app.get("/api/register")
+def get_register(
+    jurisdictions: str = Query(..., description="Comma-separated jurisdiction codes"),
+    mode:          str = "fast",
+    days:          int = 365,
+    force:         bool = False,
+):
+    """
+    Get the consolidated obligation register for a set of jurisdictions.
+    mode=fast returns structural consolidation from baselines (no API call).
+    mode=full uses Claude for semantic deduplication (one API call, cached 24h).
+    """
+    jurs = [j.strip() for j in jurisdictions.split(",") if j.strip()]
+    if not jurs:
+        raise HTTPException(status_code=400, detail="jurisdictions required")
+
+    try:
+        from agents.consolidation_agent import ConsolidationAgent
+        agent = ConsolidationAgent()
+        if mode == "full":
+            if not ANTHROPIC_API_KEY:
+                raise HTTPException(status_code=503,
+                                    detail="ANTHROPIC_API_KEY not set for full mode")
+            register = agent.consolidate_full(jurs, days=days, force=force)
+        else:
+            register = agent.consolidate_fast(jurs, force=force)
+        return {
+            "jurisdictions": jurs,
+            "mode":          mode,
+            "count":         len(register),
+            "items":         register,
+        }
+    except Exception as e:
+        log.error("Register error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/register/refresh")
+def refresh_register(req: RegisterRequest):
+    """Force-refresh the register for given jurisdictions."""
+    try:
+        from agents.consolidation_agent import ConsolidationAgent
+        agent = ConsolidationAgent()
+        if req.mode == "full":
+            register = agent.consolidate_full(req.jurisdictions, req.days,
+                                               force=True)
+        else:
+            register = agent.consolidate_fast(req.jurisdictions, force=True)
+        return {"count": len(register), "items": register}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/register/categories")
+def register_categories():
+    """Return the list of obligation categories."""
+    from agents.consolidation_agent import CATEGORIES
+    return CATEGORIES
+
+
 # ·· Company Profiles & Gap Analysis ···························
 
 class AISystemModel(BaseModel):

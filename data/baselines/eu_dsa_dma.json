@@ -1,0 +1,118 @@
+{
+  "id": "eu_dsa_dma",
+  "jurisdiction": "EU",
+  "title": "EU Digital Services Act and Digital Markets Act — AI-Relevant Provisions",
+  "official_title": "Regulation (EU) 2022/2065 (DSA) and Regulation (EU) 2022/1925 (DMA) — provisions governing algorithmic systems and AI",
+  "short_name": "EU DSA/DMA (AI)",
+  "status": "In Force",
+  "last_reviewed": "2025-03-01",
+  "overview": "The Digital Services Act (DSA) and Digital Markets Act (DMA) create significant obligations for AI-driven recommendation systems, content moderation algorithms, and platform ranking systems. While they predate the EU AI Act and are not AI-specific laws, their provisions directly regulate algorithmic systems at scale. Very Large Online Platforms (VLOPs) and Very Large Online Search Engines (VLOSEs) face the most onerous obligations; all online intermediaries have baseline requirements.",
+  "dsa_key_provisions": [
+    {
+      "article": "Article 27",
+      "title": "Recommender system transparency",
+      "threshold": "All online platforms with recommendation systems",
+      "description": "Platforms using recommender systems must explain the main parameters used in the system and offer users at least one option not based on profiling.",
+      "obligations": [
+        "Publish clear, plain-language explanations of the main parameters used in recommendation algorithms",
+        "Offer at least one recommendation option not based on profiling of the user",
+        "Make the non-profiling option easily accessible to users"
+      ]
+    },
+    {
+      "article": "Articles 34-35",
+      "title": "Systemic risk assessment and mitigation (VLOPs/VLOSEs)",
+      "threshold": "Very Large Online Platforms (>45M monthly active EU users) and Very Large Online Search Engines",
+      "description": "VLOPs and VLOSEs must identify, analyse, and mitigate systemic risks arising from their algorithmic systems, including recommendation algorithms, content moderation AI, and advertising systems.",
+      "obligations": [
+        "Conduct annual systemic risk assessment covering: dissemination of illegal content, adverse effects on fundamental rights, civic discourse and elections, public health, gender-based violence",
+        "Implement reasonable mitigation measures proportionate to identified risks",
+        "Independent audit of risk assessment and mitigation measures annually",
+        "Report systemic risk assessment results to the Digital Services Coordinator and European Commission"
+      ]
+    },
+    {
+      "article": "Article 38",
+      "title": "Recommender system transparency for VLOPs",
+      "threshold": "VLOPs only",
+      "description": "VLOPs must provide additional recommender system transparency including at least one option based on explicit criteria not relying on profiling.",
+      "obligations": [
+        "Provide at least one recommender option based solely on explicit user criteria (recency, topic)",
+        "Make these options accessible from the interface where content is recommended",
+        "Explain all available recommender system options clearly"
+      ]
+    },
+    {
+      "article": "Article 40",
+      "title": "Data access for researchers",
+      "threshold": "VLOPs and VLOSEs",
+      "description": "VLOPs must provide vetted researchers access to data necessary to assess systemic risks from algorithmic systems.",
+      "obligations": [
+        "Establish a mechanism to provide data access to vetted researchers approved by Digital Services Coordinators",
+        "Data must be sufficient to investigate systemic risks from algorithms",
+        "Cannot impose unnecessary restrictions on data access"
+      ]
+    },
+    {
+      "article": "Articles 16-17",
+      "title": "Notice and action mechanisms; statement of reasons",
+      "threshold": "All online platforms",
+      "description": "When AI-based content moderation restricts content or accounts, platforms must notify affected users and provide reasons. Users must be able to challenge AI content moderation decisions.",
+      "obligations": [
+        "Notify users when AI content moderation restricts their content or account",
+        "Provide clear explanation of the decision including reference to the specific rule applied",
+        "Offer internal complaint mechanism for challenging AI moderation decisions",
+        "Cooperate with out-of-court dispute settlement bodies"
+      ]
+    }
+  ],
+  "dma_key_provisions": [
+    {
+      "article": "Article 6(5)",
+      "title": "Self-preferencing prohibition affects ranking AI",
+      "threshold": "Gatekeepers (Amazon, Apple, Alphabet, Meta, Microsoft, ByteDance designated)",
+      "description": "Gatekeepers cannot use their own-brand products and services more favourably in ranking than those of third parties. Applies to algorithmic ranking in app stores, search engines, and marketplaces.",
+      "obligations": [
+        "Ranking algorithms cannot systematically favour gatekeeper's own services",
+        "Ranking criteria must be applied equally to own-brand and third-party services",
+        "Cannot use non-public data generated by third parties to train ranking models that benefit own services"
+      ]
+    },
+    {
+      "article": "Article 6(11)",
+      "title": "No use of third-party data for own AI models",
+      "threshold": "Gatekeepers",
+      "description": "Gatekeepers cannot use data obtained from business users to develop competing products or train AI models that benefit their own competing services.",
+      "obligations": [
+        "Separate data collected from business users on the platform from data used to train AI models for competing services",
+        "Obtain consent before using business user data for AI training",
+        "Document and audit data flows between platform operations and AI model training"
+      ]
+    },
+    {
+      "article": "Article 5(2)",
+      "title": "Consent requirements for cross-service AI profiling",
+      "threshold": "Gatekeepers",
+      "description": "Gatekeepers cannot combine personal data across their services for advertising AI unless they obtain valid GDPR consent.",
+      "obligations": [
+        "Obtain explicit, informed consent before combining personal data across different services for AI-based advertising",
+        "Provide genuine opt-out option that does not degrade core service",
+        "Cannot make consent a condition of service access"
+      ]
+    }
+  ],
+  "penalty_structure": {
+    "dsa_violations":          { "max_pct_turnover": 6,  "note": "Up to 6% global annual turnover for VLOPs/VLOSEs" },
+    "dsa_repeated_violations": { "max_pct_turnover": 6,  "note": "Periodic penalty payments up to 5% of average daily turnover; structural remedies for systemic infringements" },
+    "dma_violations":          { "max_pct_turnover": 10, "note": "Up to 10% global annual turnover; up to 20% for repeated infringements within 8 years" }
+  },
+  "interaction_with_eu_ai_act": [
+    "DSA systemic risk assessments for VLOPs overlap with EU AI Act risk assessments for high-risk AI systems — both may apply to the same AI-driven content moderation or recommendation system",
+    "Content moderation AI used by VLOPs may qualify as high-risk AI under EU AI Act Annex III if used for law enforcement-related purposes",
+    "DSA researcher data access provisions create obligations that interact with EU AI Act technical documentation requirements"
+  ],
+  "cross_references": [
+    { "regulation": "EU AI Act", "relevance": "AI Act obligations apply in addition to DSA/DMA; VLOP recommendation systems and content moderation AI face obligations under both simultaneously." },
+    { "regulation": "EU GDPR",   "relevance": "DSA/DMA consent requirements reference GDPR consent; all cross-service profiling and advertising AI must comply with GDPR lawful basis requirements." }
+  ]
+}

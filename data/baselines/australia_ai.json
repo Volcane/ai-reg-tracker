@@ -1,0 +1,71 @@
+{
+  "id": "australia_ai",
+  "jurisdiction": "AU",
+  "title": "Australia AI Governance Framework and Interim Mandatory Guardrails",
+  "official_title": "Australia's AI Ethics Framework, Voluntary AI Safety Standard, and Interim Mandatory Guardrails for AI in High-Risk Settings",
+  "short_name": "Australia AI Framework",
+  "status": "Active — voluntary framework; mandatory guardrails proposed for high-risk AI",
+  "last_reviewed": "2025-03-01",
+  "overview": "Australia has taken a staged approach to AI regulation. The voluntary AI Ethics Framework (8 principles) has been in place since 2019. A Voluntary AI Safety Standard was released in 2024 with 10 guardrails as best practice. The Department of Industry, Science and Resources is developing mandatory guardrails for high-risk AI contexts, expected to become binding for Commonwealth government procurement first. Australia actively participates in the OECD AI Principles, G7 AI process, and Global Partnership on AI (GPAI). The Privacy Act 1988 applies to AI systems processing personal information of Australians.",
+  "ai_ethics_principles": [
+    { "number": 1, "principle": "Human, societal and environmental wellbeing",        "description": "AI systems should benefit individuals, society and the environment." },
+    { "number": 2, "principle": "Human-centred values",                               "description": "AI systems should respect human rights, diversity, and the autonomy of people." },
+    { "number": 3, "principle": "Fairness",                                           "description": "AI systems should be inclusive and accessible, and should not involve or result in unfair discrimination." },
+    { "number": 4, "principle": "Privacy protection and security",                    "description": "AI systems should respect and uphold privacy rights and data protection, and ensure security of data." },
+    { "number": 5, "principle": "Reliability and safety",                             "description": "AI systems should reliably operate in accordance with their intended purpose." },
+    { "number": 6, "principle": "Transparency and explainability",                    "description": "There should be transparency and responsible disclosure so people can understand when they are being significantly impacted by AI." },
+    { "number": 7, "principle": "Contestability",                                     "description": "When an AI system significantly impacts a person, there should be a timely process to allow that person to challenge the use or output of the AI system." },
+    { "number": 8, "principle": "Accountability",                                     "description": "People responsible for the different phases of the AI system lifecycle should be identifiable and accountable." }
+  ],
+  "voluntary_ai_safety_standard_guardrails": [
+    { "id": "au-sg-1",  "guardrail": "Accountability",             "description": "Establish clear accountability for AI development and deployment across the organisation." },
+    { "id": "au-sg-2",  "guardrail": "Risk identification",        "description": "Identify and assess risks of AI systems across the AI system lifecycle." },
+    { "id": "au-sg-3",  "guardrail": "Data governance",            "description": "Implement data governance practices for AI system development and deployment." },
+    { "id": "au-sg-4",  "guardrail": "Transparency",               "description": "Be transparent about AI use in decisions and processes that affect people." },
+    { "id": "au-sg-5",  "guardrail": "Human oversight",            "description": "Establish appropriate human oversight of AI systems and their decisions." },
+    { "id": "au-sg-6",  "guardrail": "Contestability",             "description": "Enable people to challenge AI system outputs and decisions." },
+    { "id": "au-sg-7",  "guardrail": "Privacy protection",         "description": "Protect individuals' privacy throughout the AI system lifecycle." },
+    { "id": "au-sg-8",  "guardrail": "Reliability and monitoring", "description": "Ensure AI systems are reliable and monitor their performance over time." },
+    { "id": "au-sg-9",  "guardrail": "Inclusivity",                "description": "Actively work to avoid unfair bias, discrimination, and barriers to inclusion." },
+    { "id": "au-sg-10", "guardrail": "Security",                   "description": "Protect AI systems from cybersecurity threats and misuse." }
+  ],
+  "privacy_act_ai_obligations": {
+    "status": "In Force — Privacy Act 1988 with 2024 amendments",
+    "key_obligations": [
+      {
+        "id": "au-privacy-collection",
+        "title": "Lawful collection for AI",
+        "description": "Personal information used to train AI must be collected lawfully, with notice to affected individuals, and only for a primary purpose that is disclosed.",
+        "obligations": [
+          "Notify individuals when collecting personal information that will be used for AI development",
+          "Do not collect more personal information than necessary for the AI system's purpose",
+          "Use or disclose personal information for secondary purposes only if the individual would reasonably expect it"
+        ]
+      },
+      {
+        "id": "au-privacy-automated-decisions",
+        "title": "Automated decisions — 2024 reform",
+        "description": "The Privacy Act reforms (2024) introduced obligations relating to automated decision-making using personal information, including notice rights.",
+        "obligations": [
+          "Notify individuals when automated decision-making involving their personal information will be used for significant decisions",
+          "Provide information about the types of decisions made using automated processes",
+          "Implement a process for individuals to query decisions affecting them"
+        ]
+      }
+    ]
+  },
+  "government_ai_procurement": {
+    "description": "The Australian Government applies mandatory requirements for AI systems procured or developed for government use, including compliance with the AI Ethics Framework and documented risk assessments.",
+    "key_requirements": [
+      "Complete AI Impact Assessment before deploying AI in government service delivery",
+      "All government AI systems must align with 8 AI Ethics Principles",
+      "High-risk government AI requires independent assessment",
+      "Public disclosure of significant government AI system use"
+    ]
+  },
+  "cross_references": [
+    { "regulation": "OECD AI Principles",  "relevance": "Australia's AI Ethics Framework is substantially aligned with OECD AI Principles; both use similar governance structures." },
+    { "regulation": "EU AI Act",           "relevance": "Australian companies with EU operations must comply with EU AI Act. Australia is monitoring EU AI Act for potential alignment in mandatory guardrails development." },
+    { "regulation": "NIST AI RMF",         "relevance": "Australian voluntary guardrails align with NIST AI RMF governance approach; US-Australian companies can largely satisfy both with a unified governance program." }
+  ]
+}

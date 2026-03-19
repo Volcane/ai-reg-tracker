@@ -1,0 +1,100 @@
+{
+  "id": "brazil_ai",
+  "jurisdiction": "BR",
+  "title": "Brazil LGPD AI Provisions and AI Regulation Bill",
+  "official_title": "Lei Geral de Proteção de Dados Pessoais (LGPD) — AI-relevant provisions; and Brazil AI Bill (PL 2338/2023)",
+  "short_name": "Brazil AI (LGPD + AI Bill)",
+  "status": "LGPD In Force; AI Bill advancing through Congress (2025)",
+  "last_reviewed": "2025-03-01",
+  "overview": "Brazil's AI legal landscape has two components: the existing LGPD (Brazilian General Data Protection Law), which is in force and directly governs AI systems processing personal data, including a specific Article 20 on automated decision-making; and PL 2338/2023 (the AI Bill), which passed the Senate in December 2024 and is advancing through the Chamber of Deputies. The AI Bill takes a risk-based approach modeled partly on the EU AI Act but with Brazil-specific adaptations including strong provisions on algorithmic discrimination and consumer rights. Brazil is the most significant AI regulatory market in Latin America.",
+  "lgpd_ai_obligations": {
+    "law": "Lei nº 13.709/2018 (LGPD)",
+    "enforcement_body": "Autoridade Nacional de Proteção de Dados (ANPD)",
+    "status": "In Force",
+    "key_provisions": [
+      {
+        "article": "Article 20",
+        "title": "Automated individual decision-making",
+        "description": "Data subjects have the right to request review of automated decisions that affect their interests, including decisions based on profiling of natural persons.",
+        "obligations": [
+          "Upon request, provide clear and adequate information about the criteria and procedures used for automated decisions",
+          "Implement a process for reviewing automated decisions affecting individuals",
+          "Disclose when decisions are made by automated means",
+          "Cannot make decisions based solely on automated processing that produce legal effects or significantly affect individuals without providing a review mechanism"
+        ],
+        "comparison": "Similar to GDPR Article 22 but applies more broadly — the right to explanation is not limited to legal or similarly significant effects"
+      },
+      {
+        "article": "Article 6",
+        "title": "Data processing principles applicable to AI",
+        "obligations": [
+          "Purpose: AI systems may only process data for specific, legitimate and explicit purposes informed to the data subject",
+          "Necessity: only minimum necessary personal data may be used in AI systems",
+          "Non-discrimination: AI processing cannot be carried out for illicit or abusive discriminatory purposes",
+          "Transparency: data subjects must have access to clear, accurate and accessible information about AI processing"
+        ]
+      }
+    ]
+  },
+  "ai_bill_pl_2338": {
+    "bill": "PL 2338/2023",
+    "senate_approval": "December 2024",
+    "chamber_status": "Under review — Chamber of Deputies (2025)",
+    "expected_enactment": "2025-2026",
+    "overview": "Brazil's AI Bill establishes a horizontal framework for AI systems, with risk classification, obligations for high-risk AI, prohibited practices, and consumer rights. It draws on the EU AI Act but includes Brazil-specific provisions on algorithmic discrimination, worker rights, and public sector AI use.",
+    "risk_classification": {
+      "high_risk_categories": [
+        "AI used in decisions on education access, credit, and social benefits",
+        "AI used in recruitment and employment",
+        "AI used in biometric identification",
+        "AI used in fundamental rights determinations",
+        "AI in critical infrastructure",
+        "AI used by public authorities for law enforcement"
+      ]
+    },
+    "proposed_obligations": [
+      {
+        "id": "br-ai-risk-assess",
+        "title": "Prior impact assessment",
+        "description": "Operators of high-risk AI must conduct a prior impact assessment (similar to DPIA) before deployment.",
+        "applies_to": "Operators of high-risk AI systems"
+      },
+      {
+        "id": "br-ai-transparency",
+        "title": "Transparency and explanation",
+        "description": "Operators must be transparent about AI use and provide explanations for significant automated decisions upon request.",
+        "applies_to": "All AI system operators"
+      },
+      {
+        "id": "br-ai-human-review",
+        "title": "Right to human review",
+        "description": "Individuals have the right to request human review of significant AI-based decisions.",
+        "applies_to": "High-risk AI operators"
+      },
+      {
+        "id": "br-ai-discrimination",
+        "title": "Anti-discrimination",
+        "description": "AI systems must not discriminate on the basis of protected characteristics. This applies even to systems with discriminatory effect regardless of intent.",
+        "applies_to": "All AI system operators"
+      }
+    ],
+    "prohibited_practices": [
+      "AI systems that manipulate individuals through subliminal or exploitative techniques",
+      "Social scoring by public authorities using AI",
+      "Real-time remote biometric identification in public spaces for law enforcement (with narrow exceptions)",
+      "AI systems that violate human dignity or fundamental rights"
+    ],
+    "workers_rights": {
+      "description": "The AI Bill includes specific provisions on AI in employment that go beyond most other national frameworks",
+      "key_provisions": [
+        "Employers must notify workers and unions when AI systems are used to monitor or manage workers",
+        "AI-based performance monitoring must comply with privacy and dignity protections",
+        "Workers affected by AI-driven layoffs have specific consultation rights"
+      ]
+    }
+  },
+  "cross_references": [
+    { "regulation": "EU AI Act",    "relevance": "Brazil AI Bill is substantially modeled on EU AI Act with adaptations for Brazil's legal context; companies with both EU and Brazil operations will find significant structural alignment." },
+    { "regulation": "EU GDPR",      "relevance": "LGPD is modeled on GDPR; Article 20 LGPD mirrors GDPR Article 22; GDPR-compliant AI governance substantially satisfies LGPD." }
+  ]
+}

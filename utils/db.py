@@ -46,11 +46,35 @@ class Document(Base):
     raw_json       = Column(JSON)
     fetched_at     = Column(DateTime, default=datetime.utcnow)
     content_hash   = Column(String)
+    origin         = Column(String, default="api")   # api | pdf_auto | pdf_manual
 
     __table_args__ = (
         Index("ix_doc_jurisdiction", "jurisdiction"),
         Index("ix_doc_source",       "source"),
         Index("ix_doc_published",    "published_date"),
+    )
+
+
+class PdfMetadata(Base):
+    """
+    Stores metadata about PDFs that have been downloaded or manually ingested.
+    One record per document that has associated PDF extraction data.
+    """
+    __tablename__ = "pdf_metadata"
+
+    id                 = Column(Integer, primary_key=True, autoincrement=True)
+    document_id        = Column(String, nullable=False, unique=True)
+    pdf_path           = Column(Text)           # local file path
+    pdf_url            = Column(Text)           # source URL (if downloaded)
+    page_count         = Column(Integer)
+    word_count         = Column(Integer)
+    extraction_method  = Column(String)         # pdfplumber | pypdf
+    extracted_at       = Column(DateTime, default=datetime.utcnow)
+    origin             = Column(String)         # pdf_auto | pdf_manual
+
+    __table_args__ = (
+        Index("ix_pdf_document_id", "document_id"),
+        Index("ix_pdf_origin",      "origin"),
     )
 
 
@@ -533,6 +557,104 @@ class PromptAdaptation(Base):
     created_at   = Column(DateTime, default=datetime.utcnow)
 
 
+class ObligationRegisterCache(Base):
+    """
+    Cached results from the ConsolidationAgent.
+    Keyed by a hash of (jurisdictions, mode).
+    """
+    __tablename__ = "obligation_register_cache"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    cache_key    = Column(String, nullable=False, unique=True)
+    jurisdictions= Column(JSON)      # list[str]
+    mode         = Column(String)    # fast | full
+    register_json= Column(JSON)      # list of consolidated obligation dicts
+    item_count   = Column(Integer, default=0)
+    computed_at  = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (Index("ix_orc_cache_key", "cache_key"),)
+
+
+class CompanyProfile(Base):
+    """
+    Stores a company's profile for gap analysis.
+    Multiple profiles are supported (e.g. per business unit or product line).
+    """
+    __tablename__ = "company_profiles"
+
+    id                      = Column(Integer, primary_key=True, autoincrement=True)
+    name                    = Column(String, nullable=False)   # e.g. "ACME Corp — Healthcare Division"
+    industry_sector         = Column(String)
+    company_size            = Column(String)
+    operating_jurisdictions = Column(JSON)    # list[str]
+    ai_systems              = Column(JSON)    # list[AISytem dicts]
+    current_practices       = Column(JSON)    # governance practices dict
+    existing_certifications = Column(JSON)    # list[str]
+    primary_concerns        = Column(Text)
+    recent_changes          = Column(Text)
+    created_at              = Column(DateTime, default=datetime.utcnow)
+    updated_at              = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_profile_name", "name"),
+    )
+
+
+class GapAnalysis(Base):
+    """
+    Stores the result of a gap analysis run against a company profile.
+    History is preserved — each run produces a new record.
+    """
+    __tablename__ = "gap_analyses"
+
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id       = Column(Integer, nullable=False)
+    profile_name     = Column(String)
+    jurisdictions    = Column(JSON)           # list[str] — scope of this run
+    docs_examined    = Column(Integer, default=0)
+    applicable_count = Column(Integer, default=0)
+    gap_count        = Column(Integer, default=0)
+    critical_count   = Column(Integer, default=0)
+    posture_score    = Column(Integer, default=0)   # 0-100
+    scope_json       = Column(JSON)           # Pass 1 output
+    gaps_json        = Column(JSON)           # Pass 2 output
+    model_used       = Column(String)
+    generated_at     = Column(DateTime, default=datetime.utcnow)
+    starred          = Column(Boolean, default=False)
+    notes            = Column(Text)
+
+    __table_args__ = (
+        Index("ix_gap_profile_id",   "profile_id"),
+        Index("ix_gap_generated_at", "generated_at"),
+    )
+
+
+class ThematicSynthesis(Base):
+    """
+    Stores the result of a cross-document thematic synthesis run.
+    One record per (topic_key, generated_at) pair — history is preserved.
+    """
+    __tablename__ = "thematic_syntheses"
+
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    topic_key        = Column(String, nullable=False)   # stable hash of topic + jurisdictions
+    topic            = Column(Text, nullable=False)
+    jurisdictions    = Column(JSON)                     # list[str]
+    docs_used        = Column(Integer, default=0)
+    doc_ids          = Column(JSON)                     # list[str]
+    synthesis_json   = Column(JSON)                     # full synthesis output from Claude
+    conflicts_json   = Column(JSON)                     # conflict detection output from Claude
+    model_used       = Column(String)
+    generated_at     = Column(DateTime, default=datetime.utcnow)
+    starred          = Column(Boolean, default=False)   # user can star important syntheses
+    notes            = Column(Text)                     # user annotations
+
+    __table_args__ = (
+        Index("ix_synth_topic_key",    "topic_key"),
+        Index("ix_synth_generated_at", "generated_at"),
+    )
+
+
 class FetchHistory(Base):
     """
     Log of every fetch operation, used for adaptive scheduling.
@@ -785,6 +907,353 @@ def get_fetch_history(days: int = 60) -> List[Dict]:
         ]
 
 
+# ── Obligation register cache CRUD ───────────────────────────────────────────
+
+def save_register_cache(cache_key: str, register: List[Dict[str, Any]]) -> None:
+    with get_session() as session:
+        row = session.query(ObligationRegisterCache).filter_by(
+            cache_key=cache_key
+        ).first()
+        if row:
+            row.register_json = register
+            row.item_count    = len(register)
+            row.computed_at   = datetime.utcnow()
+        else:
+            session.add(ObligationRegisterCache(
+                cache_key     = cache_key,
+                register_json = register,
+                item_count    = len(register),
+                computed_at   = datetime.utcnow(),
+            ))
+        session.commit()
+
+
+def get_register_cache(cache_key: str,
+                        max_age_hours: int = 24) -> Optional[List[Dict]]:
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(hours=max_age_hours)
+        row   = session.query(ObligationRegisterCache).filter(
+            ObligationRegisterCache.cache_key   == cache_key,
+            ObligationRegisterCache.computed_at >= since,
+        ).first()
+        return row.register_json if row else None
+
+
+def delete_register_cache(jurisdictions: Optional[List[str]] = None) -> int:
+    """Delete cached register entries. Pass None to clear all."""
+    with get_session() as session:
+        q = session.query(ObligationRegisterCache)
+        deleted = q.delete()
+        session.commit()
+        return deleted
+
+
+# ── Company profile CRUD ─────────────────────────────────────────────────────
+
+def save_profile(profile_dict: Dict[str, Any]) -> int:
+    """Create or update a company profile. Returns the profile ID."""
+    with get_session() as session:
+        profile_id = profile_dict.get("id")
+        if profile_id:
+            row = session.get(CompanyProfile, profile_id)
+            if row:
+                for k, v in profile_dict.items():
+                    if hasattr(row, k) and k != "id":
+                        setattr(row, k, v)
+                row.updated_at = datetime.utcnow()
+                session.commit()
+                return row.id
+        # New profile
+        row = CompanyProfile(**{
+            k: v for k, v in profile_dict.items()
+            if hasattr(CompanyProfile, k) and k != "id"
+        })
+        row.created_at = datetime.utcnow()
+        row.updated_at = datetime.utcnow()
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return row.id
+
+
+def get_profile(profile_id: int) -> Optional[Dict[str, Any]]:
+    with get_session() as session:
+        row = session.get(CompanyProfile, profile_id)
+        return _profile_to_dict(row) if row else None
+
+
+def list_profiles() -> List[Dict[str, Any]]:
+    with get_session() as session:
+        rows = session.query(CompanyProfile).order_by(
+            CompanyProfile.updated_at.desc()
+        ).all()
+        return [_profile_to_dict(r) for r in rows]
+
+
+def delete_profile(profile_id: int) -> None:
+    with get_session() as session:
+        row = session.get(CompanyProfile, profile_id)
+        if row:
+            session.delete(row)
+            session.commit()
+
+
+def _profile_to_dict(row: CompanyProfile) -> Dict[str, Any]:
+    return {
+        "id":                      row.id,
+        "name":                    row.name,
+        "industry_sector":         row.industry_sector,
+        "company_size":            row.company_size,
+        "operating_jurisdictions": row.operating_jurisdictions or [],
+        "ai_systems":              row.ai_systems or [],
+        "current_practices":       row.current_practices or {},
+        "existing_certifications": row.existing_certifications or [],
+        "primary_concerns":        row.primary_concerns,
+        "recent_changes":          row.recent_changes,
+        "created_at":              row.created_at.isoformat() if row.created_at else None,
+        "updated_at":              row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+# ── Gap analysis CRUD ─────────────────────────────────────────────────────────
+
+def save_gap_analysis(result: Dict[str, Any]) -> int:
+    """Persist a gap analysis result. Returns the new row ID."""
+    with get_session() as session:
+        row = GapAnalysis(
+            profile_id       = result.get("profile_id"),
+            profile_name     = result.get("profile_name"),
+            jurisdictions    = result.get("jurisdictions", []),
+            docs_examined    = result.get("docs_examined", 0),
+            applicable_count = result.get("applicable_count", 0),
+            gap_count        = result.get("gap_count", 0),
+            critical_count   = result.get("critical_count", 0),
+            posture_score    = result.get("posture_score", 0),
+            scope_json       = result.get("scope"),
+            gaps_json        = result.get("gaps_result"),
+            model_used       = result.get("model_used", ""),
+            generated_at     = datetime.utcnow(),
+        )
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return row.id
+
+
+def get_gap_analysis(analysis_id: int) -> Optional[Dict[str, Any]]:
+    with get_session() as session:
+        row = session.get(GapAnalysis, analysis_id)
+        return _gap_to_dict(row) if row else None
+
+
+def list_gap_analyses(profile_id: Optional[int] = None,
+                      limit: int = 20) -> List[Dict[str, Any]]:
+    with get_session() as session:
+        q = session.query(GapAnalysis)
+        if profile_id:
+            q = q.filter(GapAnalysis.profile_id == profile_id)
+        rows = q.order_by(GapAnalysis.generated_at.desc()).limit(limit).all()
+        return [_gap_to_dict(r, summary_only=True) for r in rows]
+
+
+def star_gap_analysis(analysis_id: int, starred: bool = True) -> None:
+    with get_session() as session:
+        row = session.get(GapAnalysis, analysis_id)
+        if row:
+            row.starred = starred
+            session.commit()
+
+
+def annotate_gap_analysis(analysis_id: int, notes: str) -> None:
+    with get_session() as session:
+        row = session.get(GapAnalysis, analysis_id)
+        if row:
+            row.notes = notes
+            session.commit()
+
+
+def _gap_to_dict(row: GapAnalysis,
+                  summary_only: bool = False) -> Dict[str, Any]:
+    base = {
+        "id":               row.id,
+        "profile_id":       row.profile_id,
+        "profile_name":     row.profile_name,
+        "jurisdictions":    row.jurisdictions or [],
+        "docs_examined":    row.docs_examined,
+        "applicable_count": row.applicable_count,
+        "gap_count":        row.gap_count,
+        "critical_count":   row.critical_count,
+        "posture_score":    row.posture_score,
+        "model_used":       row.model_used,
+        "generated_at":     row.generated_at.isoformat() if row.generated_at else None,
+        "starred":          row.starred,
+        "notes":            row.notes,
+    }
+    if not summary_only:
+        base["scope"]       = row.scope_json
+        base["gaps_result"] = row.gaps_json
+    return base
+
+
+# ── PDF metadata CRUD ────────────────────────────────────────────────────────
+
+def save_pdf_metadata(meta: Dict[str, Any]) -> int:
+    """Insert or replace a PDF metadata record."""
+    with get_session() as session:
+        # Upsert by document_id
+        existing = (
+            session.query(PdfMetadata)
+            .filter_by(document_id=meta["document_id"])
+            .first()
+        )
+        if existing:
+            for k, v in meta.items():
+                if hasattr(existing, k):
+                    setattr(existing, k, v)
+            session.commit()
+            return existing.id
+        row = PdfMetadata(**{k: v for k, v in meta.items() if hasattr(PdfMetadata, k)})
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return row.id
+
+
+def get_pdf_metadata(document_id: str) -> Optional[Dict[str, Any]]:
+    with get_session() as session:
+        row = (
+            session.query(PdfMetadata)
+            .filter_by(document_id=document_id)
+            .first()
+        )
+        return _pdf_meta_to_dict(row) if row else None
+
+
+def get_all_pdf_metadata() -> List[Dict[str, Any]]:
+    with get_session() as session:
+        rows = session.query(PdfMetadata).order_by(PdfMetadata.extracted_at.desc()).all()
+        return [_pdf_meta_to_dict(r) for r in rows]
+
+
+def _pdf_meta_to_dict(row: PdfMetadata) -> Dict[str, Any]:
+    return {
+        "id":                row.id,
+        "document_id":       row.document_id,
+        "pdf_path":          row.pdf_path,
+        "pdf_url":           row.pdf_url,
+        "page_count":        row.page_count,
+        "word_count":        row.word_count,
+        "extraction_method": row.extraction_method,
+        "extracted_at":      row.extracted_at.isoformat() if row.extracted_at else None,
+        "origin":            row.origin,
+    }
+
+
+# ── Synthesis CRUD ────────────────────────────────────────────────────────────
+
+def save_synthesis(result: Dict[str, Any]) -> int:
+    """Persist a thematic synthesis result. Returns the new row ID."""
+    with get_session() as session:
+        row = ThematicSynthesis(
+            topic_key      = result.get("topic_key", ""),
+            topic          = result.get("topic", ""),
+            jurisdictions  = result.get("jurisdictions", []),
+            docs_used      = result.get("docs_used", 0),
+            doc_ids        = result.get("doc_ids", []),
+            synthesis_json = result.get("synthesis"),
+            conflicts_json = result.get("conflicts"),
+            model_used     = result.get("model_used", ""),
+            generated_at   = datetime.utcnow(),
+        )
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return row.id
+
+
+def get_existing_synthesis(topic_key: str, max_age_days: int = 7) -> Optional[Dict[str, Any]]:
+    """Return the most recent synthesis for a topic_key if it is fresh enough."""
+    with get_session() as session:
+        since = datetime.utcnow() - timedelta(days=max_age_days)
+        row   = (
+            session.query(ThematicSynthesis)
+            .filter(
+                ThematicSynthesis.topic_key    == topic_key,
+                ThematicSynthesis.generated_at >= since,
+            )
+            .order_by(ThematicSynthesis.generated_at.desc())
+            .first()
+        )
+        return _synthesis_to_dict(row) if row else None
+
+
+def get_synthesis_by_id(synthesis_id: int) -> Optional[Dict[str, Any]]:
+    with get_session() as session:
+        row = session.get(ThematicSynthesis, synthesis_id)
+        return _synthesis_to_dict(row) if row else None
+
+
+def get_recent_syntheses(limit: int = 20) -> List[Dict[str, Any]]:
+    """Return recent synthesis records (summary only — no full JSON)."""
+    with get_session() as session:
+        rows = (
+            session.query(ThematicSynthesis)
+            .order_by(ThematicSynthesis.generated_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return [_synthesis_to_dict(r, summary_only=True) for r in rows]
+
+
+def star_synthesis(synthesis_id: int, starred: bool = True) -> None:
+    with get_session() as session:
+        row = session.get(ThematicSynthesis, synthesis_id)
+        if row:
+            row.starred = starred
+            session.commit()
+
+
+def annotate_synthesis(synthesis_id: int, notes: str) -> None:
+    with get_session() as session:
+        row = session.get(ThematicSynthesis, synthesis_id)
+        if row:
+            row.notes = notes
+            session.commit()
+
+
+def delete_synthesis(synthesis_id: int) -> None:
+    with get_session() as session:
+        row = session.get(ThematicSynthesis, synthesis_id)
+        if row:
+            session.delete(row)
+            session.commit()
+
+
+def _synthesis_to_dict(row: ThematicSynthesis,
+                        summary_only: bool = False) -> Dict[str, Any]:
+    base = {
+        "id":           row.id,
+        "topic_key":    row.topic_key,
+        "topic":        row.topic,
+        "jurisdictions": row.jurisdictions or [],
+        "docs_used":    row.docs_used,
+        "model_used":   row.model_used,
+        "generated_at": row.generated_at.isoformat() if row.generated_at else None,
+        "starred":      row.starred,
+        "notes":        row.notes,
+        "has_conflicts": bool(row.conflicts_json),
+        "conflict_count": (
+            len(row.conflicts_json.get("conflicts", []))
+            if row.conflicts_json else 0
+        ),
+    }
+    if not summary_only:
+        base["synthesis"]  = row.synthesis_json
+        base["conflicts"]  = row.conflicts_json
+        base["doc_ids"]    = row.doc_ids or []
+    return base
+
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 def get_stats() -> Dict[str, Any]:
@@ -799,6 +1268,12 @@ def get_stats() -> Dict[str, Any]:
         total_feedback  = session.query(FeedbackEvent).count()
         not_relevant    = session.query(FeedbackEvent).filter_by(feedback="not_relevant").count()
         adaptations     = session.query(PromptAdaptation).filter_by(active=True).count()
+        total_syntheses = session.query(ThematicSynthesis).count()
+        total_pdfs      = session.query(PdfMetadata).count()
+        pdf_manual      = session.query(PdfMetadata).filter_by(origin="pdf_manual").count()
+        pdf_auto        = session.query(PdfMetadata).filter_by(origin="pdf_auto").count()
+        total_profiles  = session.query(CompanyProfile).count()
+        total_analyses  = session.query(GapAnalysis).count()
         return {
             "total_documents":     total_docs,
             "total_summaries":     total_summaries,
@@ -812,4 +1287,10 @@ def get_stats() -> Dict[str, Any]:
             "total_feedback":      total_feedback,
             "false_positives":     not_relevant,
             "prompt_adaptations":  adaptations,
+            "total_syntheses":     total_syntheses,
+            "total_pdfs":          total_pdfs,
+            "pdf_manual":          pdf_manual,
+            "pdf_auto":            pdf_auto,
+            "company_profiles":    total_profiles,
+            "gap_analyses":        total_analyses,
         }

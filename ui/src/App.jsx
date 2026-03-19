@@ -3,27 +3,35 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, FileText, GitCompare, Play,
   Eye, Network, Settings, Loader2, AlertCircle,
-  CheckSquare, Bell, Brain
+  CheckSquare, Bell, Brain, Layers, FileInput, BarChart3, BookOpen
 } from 'lucide-react'
 import { api } from './api.js'
-import Dashboard   from './views/Dashboard.jsx'
-import Documents   from './views/Documents.jsx'
-import Changes     from './views/Changes.jsx'
-import RunAgents   from './views/RunAgents.jsx'
-import Watchlist   from './views/Watchlist.jsx'
-import Graph       from './views/Graph.jsx'
+import Dashboard    from './views/Dashboard.jsx'
+import Documents    from './views/Documents.jsx'
+import Changes      from './views/Changes.jsx'
+import RunAgents    from './views/RunAgents.jsx'
+import Watchlist    from './views/Watchlist.jsx'
+import Graph        from './views/Graph.jsx'
+import Learning     from './views/Learning.jsx'
+import Synthesis    from './views/Synthesis.jsx'
+import PDFIngest    from './views/PDFIngest.jsx'
+import GapAnalysis  from './views/GapAnalysis.jsx'
+import Baselines    from './views/Baselines.jsx'
 import SettingsView from './views/Settings.jsx'
-import Learning    from './views/Learning.jsx'
 
 const NAV = [
-  { to: '/',          icon: LayoutDashboard, label: 'Dashboard'  },
-  { to: '/documents', icon: FileText,        label: 'Documents'  },
-  { to: '/changes',   icon: GitCompare,      label: 'Changes'    },
-  { to: '/run',       icon: Play,            label: 'Run Agents' },
-  { to: '/watchlist', icon: Bell,            label: 'Watchlist'  },
-  { to: '/graph',     icon: Network,         label: 'Graph'      },
-  { to: '/learning',  icon: Brain,           label: 'Learning'   },
-  { to: '/settings',  icon: Settings,        label: 'Settings'   },
+  { to: '/',           icon: LayoutDashboard, label: 'Dashboard'   },
+  { to: '/documents',  icon: FileText,        label: 'Documents'   },
+  { to: '/changes',    icon: GitCompare,      label: 'Changes'     },
+  { to: '/baselines',  icon: BookOpen,        label: 'Baselines'   },
+  { to: '/synthesis',  icon: Layers,          label: 'Synthesis'   },
+  { to: '/gap',        icon: BarChart3,       label: 'Gap Analysis'},
+  { to: '/pdf',        icon: FileInput,       label: 'PDF Ingest'  },
+  { to: '/run',        icon: Play,            label: 'Run Agents'  },
+  { to: '/watchlist',  icon: Bell,            label: 'Watchlist'   },
+  { to: '/graph',      icon: Network,         label: 'Graph'       },
+  { to: '/learning',   icon: Brain,           label: 'Learning'    },
+  { to: '/settings',   icon: Settings,        label: 'Settings'    },
 ]
 
 export default function App() {
@@ -140,11 +148,15 @@ export default function App() {
           <Route path="/"          element={<Dashboard  status={status} />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/changes"   element={<Changes />} />
+          <Route path="/baselines" element={<Baselines />} />
+          <Route path="/synthesis" element={<Synthesis />} />
+          <Route path="/gap"       element={<GapAnalysis />} />
+          <Route path="/pdf"       element={<PDFIngest />} />
           <Route path="/run"       element={<RunAgents onJobStart={() => setJobRunning(true)} />} />
-          <Route path="/watchlist" element={<Watchlist />} />
-          <Route path="/graph"     element={<Graph />} />
-          <Route path="/learning"  element={<Learning />} />
-          <Route path="/settings"  element={<SettingsView status={status} />} />
+          <Route path="/watchlist"  element={<Watchlist />} />
+          <Route path="/graph"      element={<Graph />} />
+          <Route path="/learning"   element={<Learning />} />
+          <Route path="/settings"   element={<SettingsView status={status} />} />
         </Routes>
       </main>
     </div>

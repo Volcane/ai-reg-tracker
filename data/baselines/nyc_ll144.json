@@ -1,0 +1,94 @@
+{
+  "id": "nyc_ll144",
+  "jurisdiction": "NY",
+  "title": "NYC Local Law 144 — Automated Employment Decision Tools",
+  "official_title": "New York City Local Law 144 of 2021 — Bias Audits for Automated Employment Decision Tools",
+  "short_name": "NYC Local Law 144",
+  "citation": "NYC Administrative Code § 20-871 et seq.",
+  "effective_date": "2023-07-05",
+  "status": "In Force",
+  "last_reviewed": "2025-03-01",
+  "overview": "NYC Local Law 144 is the most operationally specific AI employment law in the United States. It requires employers and employment agencies that use automated employment decision tools (AEDTs) to make or substantially assist hiring or promotion decisions affecting NYC workers to: conduct annual independent bias audits, publish audit results publicly, and notify candidates and employees before using an AEDT. The law applies to any employer with employees or candidates in NYC. It is enforced by the NYC Department of Consumer and Worker Protection (DCWP) and carries per-violation civil penalties.",
+  "scope": {
+    "applies_to": "Employers and employment agencies that use AEDTs to make or substantially assist decisions about hiring or promoting individuals in NYC",
+    "definition_aedt": "Any computational process derived from machine learning, statistical modeling, data analytics, or artificial intelligence that issues simplified output, including scores, classifications, or recommendations, that employers or employment agencies use to substantially assist or replace discretionary decision making for hiring or promotion of candidates.",
+    "definition_substantially_assist": "Relying solely on a simplified output with no other factors considered; using a simplified output as one of a set of criteria where it has the highest weight; or using a simplified output to overrule a conclusion derived from other factors.",
+    "covered_decisions": ["Hiring decisions", "Promotion decisions"],
+    "geographic_scope": "Applies when the candidate or employee is located in NYC at the time of the decision"
+  },
+  "key_obligations": [
+    {
+      "id": "nyc-ll144-bias-audit",
+      "title": "Annual independent bias audit",
+      "description": "Employers must have an independent auditor conduct a bias audit of the AEDT within one year before its use. The auditor must be a disinterested third party with no financial conflict of interest. The audit must calculate the selection rate and impact ratio for sex, race/ethnicity, and intersectional categories (sex x race/ethnicity).",
+      "deadline": "Annual — audit must be no more than 1 year old when the AEDT is used",
+      "applies_to": "All employers using covered AEDTs"
+    },
+    {
+      "id": "nyc-ll144-public-posting",
+      "title": "Public posting of audit results",
+      "description": "Employers must make the bias audit summary publicly available on their website before deploying the AEDT. The summary must include: the date of the most recent bias audit, the source and description of data used, the number of individuals in each category, the selection rates by category, and the impact ratios by category.",
+      "deadline": "Before AEDT use; must be updated within 30 days of a new audit",
+      "applies_to": "All employers using covered AEDTs"
+    },
+    {
+      "id": "nyc-ll144-candidate-notice",
+      "title": "Advance notice to candidates",
+      "description": "Employers must notify candidates at least 10 business days before using an AEDT about them. Notice must include: that an AEDT will be used; the job qualifications and characteristics the AEDT assesses; instructions for requesting an alternative selection process or accommodation.",
+      "deadline": "At least 10 business days before AEDT use",
+      "applies_to": "All employers using covered AEDTs for external candidates"
+    },
+    {
+      "id": "nyc-ll144-employee-notice",
+      "title": "Notice to employees being considered for promotion",
+      "description": "Employers must notify employees being considered for promotion at least 10 business days before using an AEDT about them. Notice must include the same information as candidate notice.",
+      "deadline": "At least 10 business days before AEDT use",
+      "applies_to": "All employers using covered AEDTs for promotion decisions"
+    },
+    {
+      "id": "nyc-ll144-data-retention",
+      "title": "Data retention",
+      "description": "Employers must retain bias audit results and the data used for at least 3 years after the audit date.",
+      "deadline": "3-year rolling retention",
+      "applies_to": "All employers"
+    }
+  ],
+  "audit_requirements": {
+    "auditor_independence": "Must be a disinterested third party — no employment relationship, no financial interest in the vendor, no financial interest in the employer",
+    "metrics_required": [
+      "Selection rate by sex category",
+      "Selection rate by race/ethnicity category",
+      "Selection rate by intersectional category (sex x race/ethnicity)",
+      "Impact ratio for each category relative to the most selected category",
+      "Total number of individuals assessed",
+      "Number of individuals in each category"
+    ],
+    "data_requirements": "Must use historical data from use of the AEDT, or if insufficient, use data from a sample that is valid and statistically significant",
+    "impact_ratio_threshold": "No explicit pass/fail threshold — disclosure required regardless of ratio"
+  },
+  "penalties": {
+    "enforcement": "NYC Department of Consumer and Worker Protection (DCWP)",
+    "civil_penalty_first_violation": 500,
+    "civil_penalty_subsequent_violations": "500 to 1500 per day per violation",
+    "private_right_of_action": false,
+    "note": "Each day of non-compliance is a separate violation"
+  },
+  "interaction_with_other_laws": [
+    {
+      "law": "Illinois AIPA",
+      "relevance": "Companies with NYC and Illinois employees face overlapping but distinct notice, audit, and anti-discrimination obligations. AIPA applies to broader AI systems; LL 144 is narrower but more specific on audit methodology."
+    },
+    {
+      "law": "Colorado AI Act",
+      "relevance": "Colorado covers broader consequential decisions; LL 144 covers only hiring/promotion but with more specific audit requirements."
+    },
+    {
+      "law": "NYC Human Rights Law",
+      "relevance": "LL 144 bias audit requirements supplement but do not replace NYCHRL anti-discrimination obligations. Disparate impact from AEDTs can independently violate NYCHRL."
+    }
+  ],
+  "cross_references": [
+    { "regulation": "EEOC Uniform Guidelines on Employee Selection Procedures", "relevance": "Federal 4/5ths rule for adverse impact tracks similar logic to LL 144 impact ratio; employers should ensure AEDT audit methodology aligns with both." },
+    { "regulation": "Title VII of the Civil Rights Act", "relevance": "AEDTs producing disparate impact on protected classes violate Title VII regardless of LL 144 compliance." }
+  ]
+}

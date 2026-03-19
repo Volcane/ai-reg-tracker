@@ -1,0 +1,109 @@
+{
+  "id": "japan_ai",
+  "jurisdiction": "JP",
+  "title": "Japan AI Governance Guidelines and AI Strategy",
+  "official_title": "Japan AI Strategy 2022, Governance Guidelines for Implementation of AI Principles, and AI Safety Institute Guidelines",
+  "short_name": "Japan AI Guidelines",
+  "status": "Active — voluntary guidelines; binding sector rules via existing laws",
+  "last_reviewed": "2025-03-01",
+  "overview": "Japan has adopted an agile, principles-based approach to AI governance that emphasises innovation while managing risk. The government's AI Strategy and Ministry of Economy, Trade and Industry (METI) governance guidelines provide voluntary frameworks. Japan established an AI Safety Institute (AISI) in 2024 to develop evaluation methods for advanced AI systems. Binding obligations for AI come through existing sector-specific laws: Act on Protection of Personal Information (APPI) for data protection, Medical Devices Act for healthcare AI, and sector regulators for financial AI. Japan actively promotes international AI governance alignment through the G7 Hiroshima AI Process and OECD.",
+  "ai_governance_guidelines": {
+    "published_by": "Ministry of Economy, Trade and Industry (METI) and Cabinet Office",
+    "version": "Ver. 1.1 (2023)",
+    "scope": "Developers, providers, and users of AI systems in Japan",
+    "seven_principles": [
+      {
+        "principle": "Human-centric",
+        "description": "AI systems should be developed and utilized in a manner that respects and promotes fundamental human rights and individual dignity."
+      },
+      {
+        "principle": "Education / Literacy",
+        "description": "Effort should be made to provide AI education and improve AI literacy across all sectors of society."
+      },
+      {
+        "principle": "Privacy protection",
+        "description": "AI developers and users should respect privacy and work to protect it throughout the AI lifecycle."
+      },
+      {
+        "principle": "Security",
+        "description": "AI systems should be implemented with appropriate security measures and should not be misused."
+      },
+      {
+        "principle": "Fair competition",
+        "description": "AI development should not undermine fair competition or result in inappropriate concentration of market power."
+      },
+      {
+        "principle": "Fairness, accountability, and transparency",
+        "description": "AI developers and users should make sincere efforts to ensure fairness, accountability, and appropriate transparency regarding AI systems."
+      },
+      {
+        "principle": "Innovation",
+        "description": "Government and industry should work together to create an environment where AI innovation can flourish."
+      }
+    ]
+  },
+  "appi_ai_obligations": {
+    "law": "Act on Protection of Personal Information (APPI)",
+    "amended": "2022 amendment in force April 2022",
+    "key_obligations": [
+      {
+        "id": "jp-appi-third-party",
+        "title": "Third-party provision of personal information",
+        "description": "Personal information cannot be provided to third parties (including for AI training purposes) without the principal's consent, subject to exceptions.",
+        "obligations": [
+          "Obtain consent before providing personal information to third parties for AI training",
+          "Opt-out mechanism available for certain third-party provisions — must be publicly disclosed",
+          "Pseudonymised information can be shared for AI analytics with fewer restrictions, but re-identification is prohibited"
+        ]
+      },
+      {
+        "id": "jp-appi-purpose",
+        "title": "Purpose limitation",
+        "description": "Personal information must be used within the scope of the stated purpose. Using personal data for AI training that was collected for a different purpose requires re-notification.",
+        "obligations": [
+          "State the purpose of use of personal information when collecting it, including AI development uses",
+          "Obtain consent or re-notify individuals if personal data is used for AI training not covered by original purpose statement"
+        ]
+      },
+      {
+        "id": "jp-appi-overseas",
+        "title": "Cross-border transfer for AI training",
+        "description": "Transferring personal information overseas for AI training (e.g. to global cloud AI services) requires consent or establishment of an adequate protection framework.",
+        "obligations": [
+          "Obtain individual consent before transferring personal information overseas for AI processing",
+          "Or establish an equivalent protection framework with the recipient",
+          "Disclose information about overseas AI processing in privacy notices"
+        ]
+      }
+    ]
+  },
+  "ai_safety_institute": {
+    "established": "2024",
+    "under": "Information-technology Promotion Agency (IPA), Ministry of Economy, Trade and Industry",
+    "activities": [
+      "Developing evaluation methods for safety of advanced AI systems",
+      "Participating in international AI Safety Institute network (UK, US, EU, Australia, etc.)",
+      "Conducting red-team evaluations of large AI models",
+      "Publishing safety guidelines for AI developers"
+    ]
+  },
+  "sector_specific_ai_rules": [
+    {
+      "sector": "Financial services",
+      "regulator": "Financial Services Agency (FSA)",
+      "guidance": "FSA has issued supervisory guidelines incorporating AI model risk management similar to US SR 11-7. Banks and insurers using AI in credit or underwriting must demonstrate model governance.",
+      "status": "Active supervisory expectations"
+    },
+    {
+      "sector": "Healthcare",
+      "regulator": "Ministry of Health, Labour and Welfare (MHLW) / PMDA",
+      "guidance": "AI medical devices are regulated as Software as Medical Device under the Medical Devices Act. Similar to FDA SaMD framework. PMDA has issued guidance on AI/ML-based SaMD review.",
+      "status": "Binding — Medical Devices Act"
+    }
+  ],
+  "cross_references": [
+    { "regulation": "OECD AI Principles", "relevance": "Japan's seven AI principles substantially align with OECD AI Principles; Japan is a founding OECD AI Principles adopter." },
+    { "regulation": "G7 Hiroshima AI Process", "relevance": "Japan chaired the G7 that produced the Hiroshima AI Process; Japanese AI developers are expected to adhere to the Code of Conduct for Advanced AI Systems." },
+    { "regulation": "EU AI Act",    "relevance": "Japanese companies with EU operations or products sold in the EU must comply with EU AI Act; Japan and EU are collaborating on technical standard alignment." }
+  ]
+}

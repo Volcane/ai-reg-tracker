@@ -1,0 +1,85 @@
+{
+  "id": "us_nist_ai_rmf",
+  "jurisdiction": "Federal",
+  "title": "NIST AI Risk Management Framework (AI RMF 1.0)",
+  "official_title": "Artificial Intelligence Risk Management Framework — NIST AI 100-1",
+  "short_name": "NIST AI RMF",
+  "nist_identifier": "NIST AI 100-1",
+  "published": "2023-01-26",
+  "status": "Published — Voluntary; quasi-mandatory for federal contractors",
+  "last_reviewed": "2025-03-01",
+  "overview": "The NIST AI RMF is a voluntary framework that provides a structured approach to managing risks throughout the AI lifecycle. It is technology- and sector-neutral, applicable to any organisation developing or deploying AI. While voluntary, it has become the de facto US AI governance standard: EO 14110 endorses it, OMB M-24-10 requires federal agencies to implement it, and it is increasingly referenced in sector-specific regulations (FTC, OCC, CFPB). Companies seeking to demonstrate AI governance maturity should align with it.",
+  "core_functions": [
+    {
+      "function": "GOVERN",
+      "code": "GV",
+      "description": "Cultivate and implement organisational processes, procedures, and policies for AI risk management. Establish accountability structures, values, and culture for responsible AI.",
+      "key_categories": [
+        "GV-1: Policies, processes, and accountability for AI risk are documented and established",
+        "GV-2: Accountability and transparency are established throughout the AI lifecycle",
+        "GV-3: Organisational roles and responsibilities for AI risk are defined and in place",
+        "GV-4: Organisational teams are committed to a culture of transparency and AI risk management",
+        "GV-5: AI risk management processes are informed by and incorporate input from AI actors throughout the lifecycle",
+        "GV-6: Policies and procedures are in place to address AI risks and benefits arising from third-party AI technology and data"
+      ]
+    },
+    {
+      "function": "MAP",
+      "code": "MP",
+      "description": "Identify and classify AI risks in context. Understand the organisational context, categorise AI systems, and identify affected stakeholders.",
+      "key_categories": [
+        "MP-1: Context is established for the AI risk assessment",
+        "MP-2: Scientific understanding of AI risks and benefits is used to establish context",
+        "MP-3: AI risks and benefits to individuals, groups, communities, organisations, and society are understood",
+        "MP-4: Risks and impacts of the AI system to individuals, groups, communities, and society are assessed"
+      ]
+    },
+    {
+      "function": "MEASURE",
+      "code": "MS",
+      "description": "Analyse, assess, benchmark, and monitor AI risks and their impacts using quantitative and qualitative methods.",
+      "key_categories": [
+        "MS-1: AI risk measurement is established",
+        "MS-2: AI systems are evaluated for trustworthy characteristics",
+        "MS-3: AI risks are tracked in the context of real-world deployment",
+        "MS-4: Feedback about efficacy of risk management practices is gathered and considered"
+      ]
+    },
+    {
+      "function": "MANAGE",
+      "code": "MG",
+      "description": "Allocate resources to treat identified AI risks and respond to incidents and feedback.",
+      "key_categories": [
+        "MG-1: Risks from AI systems are prioritised based on impact and likelihood, and mapped to organisational risk tolerance",
+        "MG-2: Treatments for identified AI risks are prioritised and in place",
+        "MG-3: AI risks are monitored over time and addressed",
+        "MG-4: Risk treatments including responses to incidents are documented and monitored"
+      ]
+    }
+  ],
+  "trustworthy_ai_characteristics": [
+    "Accountable and transparent",
+    "Explainable and interpretable",
+    "Privacy-enhanced",
+    "Fair with harmful bias managed",
+    "Secure and resilient",
+    "Safe",
+    "Valid and reliable"
+  ],
+  "playbook_highlights": [
+    { "action": "Complete AI system inventory", "function": "GOVERN/MAP",   "description": "Catalogue all AI systems in use or development with metadata on purpose, data, stakeholders, and risk level" },
+    { "action": "Establish AI impact assessments", "function": "MAP/MEASURE", "description": "Conduct pre-deployment assessments covering all trustworthy characteristics, particularly fairness and safety" },
+    { "action": "Implement bias testing", "function": "MEASURE",            "description": "Test AI systems for discriminatory outcomes across demographic groups; document results and mitigations" },
+    { "action": "Create AI incident response", "function": "MANAGE",        "description": "Define what constitutes an AI incident, who is responsible for response, and how to report to affected parties" },
+    { "action": "Document model cards", "function": "GOVERN/MAP",           "description": "Create standardised documentation (model cards) for each AI system covering intended use, limitations, and performance" }
+  ],
+  "relationship_to_other_frameworks": [
+    { "framework": "ISO/IEC 42001",     "relationship": "Complementary — ISO 42001 is certifiable and covers similar ground; organisations may pursue ISO 42001 certification while using RMF as implementation guidance" },
+    { "framework": "EU AI Act",         "relationship": "Aligned on risk-based approach; RMF implementation helps satisfy EU AI Act governance requirements for high-risk AI systems" },
+    { "framework": "NIST Cybersecurity Framework", "relationship": "RMF's GOVERN function aligns with CSF governance tier; AI and cybersecurity risk management should be integrated" }
+  ],
+  "cross_references": [
+    { "regulation": "EO 14110",    "relevance": "EO 14110 directs NIST to develop AI safety standards and elevates the RMF as the US government's preferred AI governance framework" },
+    { "regulation": "OMB M-24-10", "relevance": "Federal agencies required to implement AI governance practices aligned with the RMF; federal contractors increasingly expected to demonstrate RMF alignment" }
+  ]
+}
