@@ -489,6 +489,108 @@ Do not include generic advice — every item should be specific to this regulati
     }
 
 
+# ·· Search ····················································
+
+@app.get("/api/search")
+def search_docs(
+    q:            str,
+    limit:        int           = 30,
+    jurisdiction: Optional[str] = None,
+    urgency:      Optional[str] = None,
+    days:         int           = 3650,
+):
+    """
+    Ranked full-text search over documents using FTS5 + TF-IDF + optional embeddings.
+    Returns documents sorted by relevance score.
+    """
+    if not q or not q.strip():
+        raise HTTPException(status_code=400, detail="q (query) is required")
+    try:
+        from utils.search import search_documents, get_engine
+        import sqlite3 as _sqlite3
+
+        # Connect to SQLite for FTS5 layer
+        conn  = _sqlite3.connect(DB_PATH)
+        hits  = search_documents(q.strip(), top_k=limit * 2, conn=conn)
+        conn.close()
+
+        # Join search hits with document metadata from the main DB
+        hit_ids = {h["doc_id"]: h for h in hits}
+        if not hit_ids:
+            return {"query": q, "total": 0, "items": [], "expanded_query": q}
+
+        from utils.search import expand_query
+        summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction)
+
+        # Build result: ranked by search score, enriched with document metadata
+        results = []
+        for doc in summaries:
+            did = doc.get("id")
+            if did not in hit_ids:
+                continue
+            if urgency and doc.get("urgency") != urgency:
+                continue
+            results.append({
+                **doc,
+                "search_score": round(hit_ids[did]["score"], 3),
+                "search_layers": hit_ids[did].get("sources", []),
+            })
+
+        # Sort by search score (already ranked), then fall through to docs
+        # that matched via FTS but weren't in summaries
+        results.sort(key=lambda x: -x["search_score"])
+
+        return {
+            "query":          q,
+            "expanded_query": expand_query(q),
+            "total":          len(results),
+            "items":          results[:limit],
+            "embedding_active": get_engine()._embedding.available,
+        }
+    except Exception as e:
+        log.error("Search error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/search/rebuild")
+def rebuild_search_index(background_tasks: BackgroundTasks):
+    """Rebuild the TF-IDF and FTS5 search indices (runs in background)."""
+    def _run():
+        import sqlite3 as _sqlite3
+        from utils.search import rebuild_index, rebuild_fts_index, get_engine
+        try:
+            docs = get_recent_summaries(days=3650)
+            n    = rebuild_index(docs)
+            # Also rebuild FTS5
+            conn = _sqlite3.connect(DB_PATH)
+            rebuild_fts_index(conn, docs)
+            conn.close()
+            log.info("Search index rebuild complete: %d documents", n)
+        except Exception as e:
+            log.error("Search index rebuild error: %s", e)
+    background_tasks.add_task(_run)
+    return {"status": "rebuilding"}
+
+
+@app.get("/api/search/status")
+def search_status():
+    """Return search engine status: which layers are active."""
+    try:
+        from utils.search import get_engine, AI_TERMS_EXPANDED
+        engine = get_engine()
+        return {
+            "keyword_terms":      len(AI_TERMS_EXPANDED),
+            "tfidf_built":        engine._tfidf.matrix is not None,
+            "tfidf_doc_count":    len(engine._tfidf.doc_ids),
+            "tfidf_vocab_size":   len(engine._tfidf.vocab),
+            "fts5_available":     True,
+            "embedding_available":engine._embedding.available,
+            "embedding_model":    engine._embedding.MODEL_NAME if engine._embedding.available else None,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ·· Regulatory Horizon ·············································
 
 @app.get("/api/horizon")
@@ -1286,54 +1388,80 @@ def get_watchlist_matches(name: str, days: int = 30):
 # ·· Relationship graph ··········································
 
 @app.get("/api/graph")
-def get_relationship_graph(jurisdiction: Optional[str] = None, days: int = 90):
+def get_knowledge_graph(
+    jurisdiction: Optional[str] = None,
+    node_types:   Optional[str] = None,   # comma-separated: baseline,document
+    edge_types:   Optional[str] = None,   # comma-separated: cross_ref,genealogical,semantic,document,conflict
+    max_nodes:    int           = 200,
+):
     """
-    Return a nodes + edges graph of document relationships for visualisation.
-    Nodes = documents, Edges = DocumentLink relationships.
+    Return the full regulatory knowledge graph: baseline nodes, document nodes,
+    and typed edges (cross_ref, genealogical, semantic, document, conflict).
     """
-    from utils.db import get_session, DocumentLink, Document, Summary
+    from agents.graph_agent import GraphAgent
+    agent = GraphAgent()
 
-    with get_session() as session:
-        # Get all links
-        links = session.query(DocumentLink).all()
-        doc_ids = set()
-        for lnk in links:
-            doc_ids.add(lnk.base_doc_id)
-            doc_ids.add(lnk.related_doc_id)
+    nt = [x.strip() for x in node_types.split(",")] if node_types else None
+    et = [x.strip() for x in edge_types.split(",")] if edge_types else None
 
-        # Get nodes
-        nodes = []
-        for doc_id in doc_ids:
-            doc  = session.get(Document, doc_id)
-            summ = session.get(Summary,  doc_id)
-            if not doc:
-                continue
-            if jurisdiction and doc.jurisdiction != jurisdiction:
-                continue
-            nodes.append({
-                "id":           doc.id,
-                "label":        (doc.title or "")[:60],
-                "jurisdiction": doc.jurisdiction,
-                "doc_type":     doc.doc_type,
-                "status":       doc.status,
-                "urgency":      summ.urgency if summ else "Low",
-                "url":          doc.url,
-            })
+    return agent.get_graph_data(
+        jurisdiction     = jurisdiction,
+        node_types       = nt,
+        edge_types       = et,
+        max_nodes        = max_nodes,
+    )
 
-        node_ids = {n["id"] for n in nodes}
-        edges = [
-            {
-                "source":    lnk.base_doc_id,
-                "target":    lnk.related_doc_id,
-                "type":      lnk.link_type,
-                "label":     lnk.link_type,
-                "created_at": lnk.created_at.isoformat() if lnk.created_at else None,
-            }
-            for lnk in links
-            if lnk.base_doc_id in node_ids and lnk.related_doc_id in node_ids
-        ]
 
-    return {"nodes": nodes, "edges": edges}
+@app.post("/api/graph/build")
+def build_knowledge_graph(background_tasks: BackgroundTasks,
+                           force: bool = False):
+    """
+    (Re)build the knowledge graph edge table from all baselines and documents.
+    Runs in the background — lightweight, no LLM calls.
+    """
+    def _run():
+        from agents.graph_agent import GraphAgent
+        counts = GraphAgent().build(force=force)
+        log.info("Knowledge graph built: %s", counts)
+    background_tasks.add_task(_run)
+    return {"status": "building"}
+
+
+@app.post("/api/graph/conflicts")
+def detect_graph_conflicts(background_tasks: BackgroundTasks):
+    """
+    Detect regulatory conflicts using the LLM across curated baseline pairs.
+    Each pair costs one LLM call. Runs in background.
+    """
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured.")
+    def _run():
+        from agents.graph_agent import GraphAgent
+        n = GraphAgent().build_conflicts()
+        log.info("Conflict detection complete: %d conflicts", n)
+    background_tasks.add_task(_run)
+    return {"status": "detecting_conflicts"}
+
+
+@app.get("/api/graph/status")
+def graph_status():
+    """Return knowledge graph statistics."""
+    try:
+        from utils.db import count_graph_edges, get_graph_edges
+        edges = get_graph_edges()
+        counts: Dict[str, int] = {}
+        for e in edges:
+            t = e.get("edge_type", "unknown")
+            counts[t] = counts.get(t, 0) + 1
+        return {
+            "total_edges":       len(edges),
+            "edge_type_counts":  counts,
+            "built":             len(edges) > 0,
+        }
+    except Exception as e:
+        return {"built": False, "error": str(e)}
 
 
 # ·· Export ·····················································
@@ -1352,7 +1480,286 @@ def export_markdown(days: int = 30, jurisdiction: Optional[str] = None):
                         filename=Path(path).name)
 
 
-# ·· Serve React frontend ·······································
+# ·· Q&A ·····················································
+
+class QARequest(BaseModel):
+    question:    str
+    jurisdiction: Optional[str] = None
+    session_id:   Optional[int] = None   # for follow-up context (last N turns)
+
+
+@app.post("/api/qa")
+def ask_question(req: QARequest):
+    """
+    Answer a natural-language question about AI regulation, grounded in
+    the full ARIS corpus (baselines + summarised documents).
+
+    Returns: answer text with inline citations, structured citation objects
+    for the UI, and suggested follow-up questions.
+    """
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=f"LLM provider '{_provider()}' is not configured. "
+                   "Set the appropriate API key in config/keys.env."
+        )
+
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=400, detail="question is required")
+
+    # Load recent history as conversation context
+    conversation_history = None
+    try:
+        from utils.db import get_qa_history
+        history = get_qa_history(limit=6)
+        if history:
+            conversation_history = list(reversed(history))   # oldest first
+    except Exception:
+        pass
+
+    try:
+        from agents.qa_agent import QAAgent
+        agent  = QAAgent()
+        result = agent.ask(
+            question             = req.question.strip(),
+            jurisdiction         = req.jurisdiction,
+            conversation_history = conversation_history,
+            save_to_history      = True,
+        )
+        return result
+    except Exception as e:
+        log.error("Q&A error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/qa/history")
+def get_qa_history_endpoint(limit: int = 50):
+    """Return recent Q&A session history, newest first."""
+    try:
+        from utils.db import get_qa_history
+        return {"items": get_qa_history(limit=limit)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/qa/index/rebuild")
+def rebuild_qa_index(background_tasks: BackgroundTasks):
+    """
+    Rebuild the Q&A passage index from all baselines and summarised documents.
+    Runs in the background — takes 5-30 seconds depending on corpus size.
+    Poll /api/qa/index/status to check progress.
+    """
+    def _run():
+        try:
+            from utils.rag import build_passage_index
+            counts = build_passage_index(force=True)
+            log.info("Q&A index rebuild complete: %s", counts)
+        except Exception as e:
+            log.error("Q&A index rebuild error: %s", e)
+    background_tasks.add_task(_run)
+    return {"status": "rebuilding"}
+
+
+@app.get("/api/qa/index/status")
+def qa_index_status():
+    """Return Q&A index statistics: passage count, sources indexed, readiness."""
+    try:
+        from utils.db import get_all_qa_passage_ids
+        from utils.rag import get_retriever
+        sources = get_all_qa_passage_ids()
+        baseline_count  = sum(1 for s in sources if s["source_type"] == "baseline")
+        document_count  = sum(1 for s in sources if s["source_type"] == "document")
+
+        retriever = get_retriever()
+        return {
+            "ready":            retriever._ready,
+            "passage_count":    len(retriever._tfidf._ids),
+            "baselines_indexed":baseline_count,
+            "documents_indexed":document_count,
+            "tfidf_built":      retriever._tfidf._built,
+        }
+    except Exception as e:
+        return {"ready": False, "error": str(e)}
+
+
+# ·· Timeline ··················································
+
+@app.get("/api/timeline")
+def get_timeline(
+    jurisdiction:     Optional[str] = None,
+    include_docs:     bool          = True,
+    include_horizon:  bool          = True,
+    years_back:       int           = 10,
+    years_ahead:      int           = 3,
+):
+    """
+    Return the unified regulatory timeline: baseline milestones,
+    live document events, and anticipated horizon items.
+    """
+    from agents.timeline_agent import TimelineAgent
+    return TimelineAgent().get_timeline(
+        jurisdiction    = jurisdiction,
+        include_docs    = include_docs,
+        include_horizon = include_horizon,
+        years_back      = years_back,
+        years_ahead     = years_ahead,
+    )
+
+
+# ·· Regulatory Briefs ·········································
+
+class BriefRequest(BaseModel):
+    topic:        str
+    jurisdiction: Optional[str] = None
+    force:        bool          = False
+
+
+@app.post("/api/briefs/generate")
+def generate_brief(req: BriefRequest):
+    """
+    Generate a structured regulatory brief on a topic using RAG + LLM.
+    One LLM call; result cached for 14 days.
+    """
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured.")
+    if not req.topic.strip():
+        raise HTTPException(status_code=400, detail="topic is required")
+    try:
+        from agents.brief_agent import BriefAgent
+        return BriefAgent().generate(
+            topic        = req.topic.strip(),
+            jurisdiction = req.jurisdiction,
+            force        = req.force,
+        )
+    except Exception as e:
+        log.error("Brief generation error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/briefs")
+def list_briefs():
+    """List all cached regulatory briefs."""
+    from agents.brief_agent import BriefAgent
+    return {"briefs": BriefAgent.list_briefs()}
+
+
+@app.get("/api/briefs/{topic_key}")
+def get_brief(topic_key: str):
+    """Return a cached brief by its topic key."""
+    from utils.db import get_brief_cache
+    cached = get_brief_cache(topic_key, max_age_days=9999)  # never expire on direct fetch
+    if not cached:
+        raise HTTPException(status_code=404, detail="Brief not found")
+    return cached
+
+
+# ·· Deep Document Comparison ··································
+
+class CompareRequest(BaseModel):
+    source_id_a:  str
+    source_type_a: str = "auto"   # auto | baseline | document
+    source_id_b:  str
+    source_type_b: str = "auto"
+    focus:        Optional[str] = None   # specific concept to focus on
+
+
+@app.post("/api/compare")
+def deep_compare(req: CompareRequest):
+    """
+    Deep conceptual comparison between any two baselines or documents.
+    Unlike the diff endpoint (version comparison), this produces a
+    structured analysis of how two regulations approach regulation differently.
+    One LLM call.
+    """
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured.")
+    try:
+        from agents.compare_agent import CompareAgent
+        return CompareAgent().compare(
+            id_a        = req.source_id_a,
+            type_a      = req.source_type_a,
+            id_b        = req.source_id_b,
+            type_b      = req.source_type_b,
+            focus       = req.focus,
+        )
+    except Exception as e:
+        log.error("Compare error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@app.get("/api/concepts")
+def list_concepts():
+    """List all available concepts with cache status."""
+    from agents.concept_agent import ConceptAgent
+    return {"concepts": ConceptAgent.list_concepts()}
+
+
+@app.get("/api/concepts/{concept_key}")
+def get_concept(concept_key: str, force: bool = False):
+    """
+    Return the cross-jurisdiction concept map for a given concept.
+    Served from cache if available (< 7 days old); builds fresh otherwise.
+    """
+    from agents.concept_agent import ConceptAgent, CONCEPT_CATALOGUE
+    if concept_key not in CONCEPT_CATALOGUE:
+        raise HTTPException(status_code=404,
+                            detail=f"Unknown concept '{concept_key}'. "
+                                   f"Valid: {list(CONCEPT_CATALOGUE.keys())}")
+
+    # Serve from cache without LLM if available
+    if not force:
+        from utils.db import get_concept_map
+        cached = get_concept_map(concept_key)
+        if cached:
+            spec = CONCEPT_CATALOGUE[concept_key]
+            cached["description"] = spec["description"]
+            return cached
+
+    # Needs LLM
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured.")
+    try:
+        agent  = ConceptAgent()
+        result = agent.get_concept_map(concept_key, force=force)
+        if not result:
+            raise HTTPException(status_code=500, detail="Concept map build failed")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.error("Concept map error for %s: %s", concept_key, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/concepts/{concept_key}/build")
+def build_concept(concept_key: str, background_tasks: BackgroundTasks):
+    """
+    Trigger a background rebuild of the concept map (uses one LLM call).
+    """
+    from agents.concept_agent import CONCEPT_CATALOGUE
+    if concept_key not in CONCEPT_CATALOGUE:
+        raise HTTPException(status_code=404, detail=f"Unknown concept: {concept_key}")
+    from utils.llm import is_configured, _provider
+    if not is_configured():
+        raise HTTPException(status_code=503,
+                            detail=f"LLM provider '{_provider()}' is not configured.")
+
+    def _run():
+        from agents.concept_agent import ConceptAgent
+        result = ConceptAgent().get_concept_map(concept_key, force=True)
+        if result:
+            log.info("Concept map built: %s (%d entries)", concept_key, result.get("entry_count", 0))
+    background_tasks.add_task(_run)
+    return {"status": "building", "concept_key": concept_key}
+
 
 UI_DIST = Path(__file__).parent / "ui" / "dist"
 

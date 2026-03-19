@@ -228,6 +228,71 @@ NEW_TABLES = [
         computed_at   TEXT
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS brief_cache (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        topic_key   TEXT NOT NULL UNIQUE,
+        topic_label TEXT,
+        content     TEXT,
+        citations   TEXT,
+        model_used  TEXT,
+        built_at    TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS concept_map_cache (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        concept_key   TEXT NOT NULL UNIQUE,
+        concept_label TEXT,
+        entries_json  TEXT,
+        entry_count   INTEGER DEFAULT 0,
+        model_used    TEXT,
+        built_at      TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id   TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        target_id   TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        edge_type   TEXT NOT NULL,
+        concept     TEXT,
+        evidence    TEXT,
+        strength    REAL DEFAULT 1.0,
+        detected_by TEXT DEFAULT 'system',
+        created_at  TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS qa_passages (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_type    TEXT NOT NULL,
+        source_id      TEXT NOT NULL,
+        source_title   TEXT,
+        jurisdiction   TEXT,
+        chunk_index    INTEGER DEFAULT 0,
+        chunk_total    INTEGER DEFAULT 1,
+        section_label  TEXT,
+        text           TEXT NOT NULL,
+        text_hash      TEXT,
+        indexed_at     TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS qa_sessions (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        question        TEXT NOT NULL,
+        answer          TEXT,
+        citations       TEXT,
+        passage_ids     TEXT,
+        follow_ups      TEXT,
+        model_used      TEXT,
+        retrieval_count INTEGER DEFAULT 0,
+        asked_at        TEXT
+    )
+    """,
 ]
 
 

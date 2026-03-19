@@ -47,43 +47,69 @@ class FederalRegisterSource:
     Queries the Federal Register v1 API for AI-related documents.
     API docs: https://www.federalregister.gov/developers/documentation/api/v1
     No API key required.
+
+    The FR API's conditions[term] field does not support long boolean OR
+    queries reliably — it returns 422 for queries over ~100 characters.
+    We instead run one focused request per search term and deduplicate.
     """
 
     BASE = FEDERAL_REGISTER_BASE
 
+    # Short, focused terms — one request each, deduplicated by document_number.
+    SEARCH_TERMS = [
+        "artificial intelligence",
+        "machine learning",
+        "automated decision",
+        "algorithmic",
+        "generative AI",
+        "large language model",
+    ]
+
+    # Fields to retrieve — sent as repeated fields[] params, not a dict value.
+    FIELDS = [
+        "document_number", "title", "publication_date", "type",
+        "agency_names", "abstract", "html_url", "effective_on",
+    ]
+
     def search(self, lookback_days: int = LOOKBACK_DAYS,
-               per_page: int = 40) -> List[Dict[str, Any]]:
+               per_page: int = 20) -> List[Dict[str, Any]]:
         """
         Search for AI-related Federal Register documents published in the
-        last `lookback_days` days.
-        Returns a list of normalised document dicts.
+        last `lookback_days` days. Runs one request per search term and
+        deduplicates by document_number.
         """
-        results = []
-        query   = " OR ".join(f'"{kw}"' for kw in AI_KEYWORDS[:12])  # top 12 terms
-        params  = {
-            "conditions[term]":           query,
-            "conditions[publication_date][gte]": _date_str(lookback_days),
-            "fields[]": [
-                "document_number", "title", "publication_date", "type",
-                "agency_names", "abstract", "html_url", "pdf_url",
-                "action", "docket_ids", "effective_on", "comment_date",
-            ],
-            "per_page": per_page,
-            "order":    "newest",
-        }
+        seen:    set        = set()
+        results: List[Dict] = []
+        date_gte = _date_str(lookback_days)
 
-        try:
-            data = http_get(f"{self.BASE}/documents.json", params=params)
-        except Exception as e:
-            log.error("Federal Register search failed: %s", e)
-            return []
+        for term in self.SEARCH_TERMS:
+            # Build params as a list of tuples so fields[] is repeated correctly
+            params = [
+                ("conditions[term]",                  term),
+                ("conditions[publication_date][gte]", date_gte),
+                ("per_page",                          per_page),
+                ("order",                             "newest"),
+            ]
+            for field in self.FIELDS:
+                params.append(("fields[]", field))
 
-        for item in data.get("results", []):
-            text_blob = f"{item.get('title','')} {item.get('abstract','')}"
-            if not is_ai_relevant(text_blob):
+            try:
+                data = http_get(f"{self.BASE}/documents.json", params=params)
+            except Exception as e:
+                log.warning(
+                    "Federal Register search failed for term '%s': %s", term, e
+                )
                 continue
 
-            results.append(self._normalise(item))
+            for item in data.get("results", []):
+                doc_num   = item.get("document_number", "")
+                if doc_num in seen:
+                    continue
+                text_blob = f"{item.get('title', '')} {item.get('abstract', '')}"
+                if not is_ai_relevant(text_blob):
+                    continue
+                seen.add(doc_num)
+                results.append(self._normalise(item))
 
         log.info("Federal Register: %d AI-relevant documents found", len(results))
         return results

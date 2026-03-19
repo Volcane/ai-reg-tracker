@@ -399,6 +399,17 @@ class Orchestrator:
         for summary in summaries:
             upsert_summary(summary)
             saved += 1
+            # Re-index this document's passages so it's immediately Q&A searchable
+            try:
+                from utils.rag import index_document_passages
+                from utils.db import get_summary, get_document
+                doc_id  = summary.get("document_id", "")
+                full_doc = get_document(doc_id) or {}
+                summ     = get_summary(doc_id) or {}
+                combined = {**full_doc, **summ, "id": doc_id}
+                index_document_passages(combined)
+            except Exception:
+                pass   # never block summarisation
         log.info("Summarization complete — %d summaries saved", saved)
         return saved
 
@@ -421,6 +432,24 @@ class Orchestrator:
             log.info("Trend snapshots refreshed: %s", trend_counts)
         except Exception as e:
             log.debug("Trend snapshot refresh skipped: %s", e)
+
+        # Rebuild TF-IDF search index (no API calls, ~1s for typical corpus)
+        try:
+            from config.settings import SEARCH_AUTO_REBUILD
+            if SEARCH_AUTO_REBUILD:
+                from utils.search import rebuild_index
+                n = rebuild_index()
+                log.info("Search index rebuilt: %d documents", n)
+        except Exception as e:
+            log.debug("Search index rebuild skipped: %s", e)
+
+        # Rebuild Q&A passage index (incorporates newly summarised docs)
+        try:
+            from utils.rag import build_passage_index
+            qa_counts = build_passage_index()
+            log.info("Q&A index rebuilt: %s", qa_counts)
+        except Exception as e:
+            log.debug("Q&A index rebuild skipped: %s", e)
 
         return {**fetch_result, "summarized": summarized, **get_stats()}
 

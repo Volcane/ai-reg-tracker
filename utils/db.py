@@ -193,6 +193,7 @@ def upsert_document(doc_dict: Dict[str, Any]) -> bool:
     """
     Insert or update a document.
     Returns True if content changed (triggers diff pipeline in orchestrator).
+    Also updates the FTS5 search index.
     """
     content_hash = hashlib.md5(
         (doc_dict.get("full_text") or doc_dict.get("title") or "").encode()
@@ -211,7 +212,25 @@ def upsert_document(doc_dict: Dict[str, Any]) -> bool:
         doc.fetched_at   = datetime.utcnow()
         session.merge(doc)
         session.commit()
-        return True
+
+    # Update FTS index (non-blocking — failure never blocks document storage)
+    try:
+        from utils.search import index_document as _fts_index
+        import sqlite3 as _sqlite3
+        conn = _sqlite3.connect(DB_PATH)
+        _fts_index(
+            conn,
+            doc_id       = doc_dict["id"],
+            title        = doc_dict.get("title", ""),
+            summary      = doc_dict.get("plain_english", "") or doc_dict.get("full_text", "")[:500],
+            agency       = doc_dict.get("agency", ""),
+            jurisdiction = doc_dict.get("jurisdiction", ""),
+        )
+        conn.close()
+    except Exception:
+        pass   # FTS failure never blocks document storage
+
+    return True
 
 
 def get_document(doc_id: str) -> Optional[Dict[str, Any]]:
@@ -260,6 +279,28 @@ def upsert_summary(summary_dict: Dict[str, Any]) -> None:
     with get_session() as session:
         session.merge(Summary(**summary_dict))
         session.commit()
+
+    # Update FTS index with the richer plain-English summary text
+    doc_id = summary_dict.get("document_id", "")
+    plain  = summary_dict.get("plain_english", "") or ""
+    if doc_id and plain:
+        try:
+            from utils.search import index_document as _fts_index
+            import sqlite3 as _sqlite3
+            conn = _sqlite3.connect(DB_PATH)
+            # Re-fetch document metadata to keep the index complete
+            doc = get_document(doc_id) or {}
+            _fts_index(
+                conn,
+                doc_id       = doc_id,
+                title        = doc.get("title", ""),
+                summary      = plain,
+                agency       = doc.get("agency", ""),
+                jurisdiction = doc.get("jurisdiction", ""),
+            )
+            conn.close()
+        except Exception:
+            pass
 
 
 def get_summary(doc_id: str) -> Optional[Dict[str, Any]]:
@@ -713,6 +754,56 @@ class FetchHistory(Base):
     __table_args__ = (
         Index("ix_fh_source",     "source"),
         Index("ix_fh_fetched_at", "fetched_at"),
+    )
+
+
+class QAPassage(Base):
+    """
+    A retrievable passage from the document corpus or a baseline file.
+
+    The Q&A system chunks all documents and baselines into passages of
+    ~800 tokens. Each passage stores enough metadata to cite its source
+    precisely in a Q&A response.
+    """
+    __tablename__ = "qa_passages"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    source_type    = Column(String, nullable=False)  # document | baseline
+    source_id      = Column(String, nullable=False)  # document id or baseline id
+    source_title   = Column(Text)
+    jurisdiction   = Column(String)
+    chunk_index    = Column(Integer, default=0)      # passage number within source
+    chunk_total    = Column(Integer, default=1)      # total passages for this source
+    section_label  = Column(String)                  # e.g. "Key Definitions", "Article 5"
+    text           = Column(Text, nullable=False)    # the passage text
+    text_hash      = Column(String)                  # md5 for dedup
+    indexed_at     = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_qap_source_id",   "source_id"),
+        Index("ix_qap_source_type", "source_type"),
+        Index("ix_qap_jurisdiction","jurisdiction"),
+    )
+
+
+class QASession(Base):
+    """
+    Stores Q&A conversation turns for history and re-use.
+    """
+    __tablename__ = "qa_sessions"
+
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    question        = Column(Text, nullable=False)
+    answer          = Column(Text)
+    citations       = Column(JSON)    # list of {source_id, source_title, section, excerpt}
+    passage_ids     = Column(JSON)    # list of QAPassage.id used
+    follow_ups      = Column(JSON)    # list of suggested follow-up questions
+    model_used      = Column(String)
+    retrieval_count = Column(Integer, default=0)
+    asked_at        = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_qas_asked_at", "asked_at"),
     )
 
 
@@ -1561,3 +1652,337 @@ def get_stats() -> Dict[str, Any]:
             "trend_snapshots":     trend_snapshots,
             "horizon_items":       horizon_items,
         }
+
+
+class KnowledgeGraphEdge(Base):
+    """
+    A typed, evidenced edge in the regulatory knowledge graph.
+
+    Source and target can be either baseline IDs or document IDs.
+    node_type distinguishes them so the graph renderer can style appropriately.
+
+    Edge types
+    ----------
+    genealogical  — one regulation was modelled on or inspired by another
+    semantic      — two regulations share a concept (bias, transparency, etc.)
+    implements    — a document implements/operationalises a baseline
+    amends        — a document amends a prior document or baseline
+    cross_ref     — explicit cross-reference declared in a baseline file
+    conflict      — the two regulations impose conflicting requirements
+    """
+    __tablename__ = "knowledge_graph_edges"
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    source_id      = Column(String, nullable=False)
+    source_type    = Column(String, nullable=False)   # baseline | document
+    target_id      = Column(String, nullable=False)
+    target_type    = Column(String, nullable=False)   # baseline | document
+    edge_type      = Column(String, nullable=False)   # see docstring
+    concept        = Column(String)                   # for semantic edges
+    evidence       = Column(Text)                     # why this edge exists
+    strength       = Column(Float, default=1.0)       # 0–1 relevance/confidence
+    detected_by    = Column(String, default="system") # system | user
+    created_at     = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_kge_source",    "source_id"),
+        Index("ix_kge_target",    "target_id"),
+        Index("ix_kge_edge_type", "edge_type"),
+    )
+
+
+# ── Knowledge Graph CRUD ──────────────────────────────────────────────────────
+
+def upsert_graph_edge(edge: dict) -> int:
+    """Insert a knowledge graph edge; skip if (source, target, edge_type, concept) exists."""
+    with get_session() as session:
+        existing = session.query(KnowledgeGraphEdge).filter_by(
+            source_id = edge["source_id"],
+            target_id = edge["target_id"],
+            edge_type = edge["edge_type"],
+            concept   = edge.get("concept"),
+        ).first()
+        if existing:
+            return existing.id
+        e = KnowledgeGraphEdge(**{k: v for k, v in edge.items()
+                                   if hasattr(KnowledgeGraphEdge, k)})
+        session.add(e)
+        session.commit()
+        return e.id
+
+
+def get_graph_edges(source_id: Optional[str] = None,
+                    edge_types: Optional[List[str]] = None) -> List[Dict]:
+    with get_session() as session:
+        q = session.query(KnowledgeGraphEdge)
+        if source_id:
+            q = q.filter(
+                (KnowledgeGraphEdge.source_id == source_id) |
+                (KnowledgeGraphEdge.target_id == source_id)
+            )
+        if edge_types:
+            q = q.filter(KnowledgeGraphEdge.edge_type.in_(edge_types))
+        return [
+            {
+                "id":          r.id,
+                "source_id":   r.source_id,
+                "source_type": r.source_type,
+                "target_id":   r.target_id,
+                "target_type": r.target_type,
+                "edge_type":   r.edge_type,
+                "concept":     r.concept,
+                "evidence":    r.evidence,
+                "strength":    r.strength,
+            }
+            for r in q.all()
+        ]
+
+
+def count_graph_edges() -> int:
+    with get_session() as session:
+        return session.query(KnowledgeGraphEdge).count()
+
+
+class ConceptMapCache(Base):
+    """
+    Cached cross-jurisdiction concept map.
+    Stores the full structured comparison for a concept so it can be
+    served instantly without re-running LLM calls.
+    """
+    __tablename__ = "concept_map_cache"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    concept_key   = Column(String, nullable=False, unique=True)
+    concept_label = Column(String)
+    entries_json  = Column(Text)      # JSON: list of ConceptEntry dicts
+    entry_count   = Column(Integer, default=0)
+    model_used    = Column(String)
+    built_at      = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_cmc_concept", "concept_key"),
+    )
+
+
+# ── Concept Map CRUD ──────────────────────────────────────────────────────────
+
+def save_concept_map(concept_key: str, concept_label: str,
+                     entries: list, model_used: str = "") -> None:
+    with get_session() as session:
+        existing = session.query(ConceptMapCache).filter_by(concept_key=concept_key).first()
+        if existing:
+            existing.entries_json  = json.dumps(entries)
+            existing.entry_count   = len(entries)
+            existing.model_used    = model_used
+            existing.concept_label = concept_label
+            existing.built_at      = datetime.utcnow()
+        else:
+            session.add(ConceptMapCache(
+                concept_key   = concept_key,
+                concept_label = concept_label,
+                entries_json  = json.dumps(entries),
+                entry_count   = len(entries),
+                model_used    = model_used,
+            ))
+        session.commit()
+
+
+def get_concept_map(concept_key: str, max_age_days: int = 7) -> Optional[Dict]:
+    with get_session() as session:
+        row = session.query(ConceptMapCache).filter_by(concept_key=concept_key).first()
+        if not row:
+            return None
+        age = (datetime.utcnow() - row.built_at).days if row.built_at else 999
+        if age > max_age_days:
+            return None
+        try:
+            entries = json.loads(row.entries_json or "[]")
+        except Exception:
+            entries = []
+        return {
+            "concept_key":   row.concept_key,
+            "concept_label": row.concept_label,
+            "entries":       entries,
+            "entry_count":   row.entry_count,
+            "model_used":    row.model_used,
+            "built_at":      row.built_at.isoformat() if row.built_at else None,
+        }
+
+
+def list_concept_maps() -> List[Dict]:
+    with get_session() as session:
+        rows = session.query(ConceptMapCache).order_by(
+            ConceptMapCache.concept_label
+        ).all()
+        return [
+            {
+                "concept_key":   r.concept_key,
+                "concept_label": r.concept_label,
+                "entry_count":   r.entry_count,
+                "built_at":      r.built_at.isoformat() if r.built_at else None,
+            }
+            for r in rows
+        ]
+
+
+class BriefCache(Base):
+    """Cached regulatory intelligence brief."""
+    __tablename__ = "brief_cache"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    topic_key   = Column(String, nullable=False, unique=True)
+    topic_label = Column(String)
+    content     = Column(Text)
+    citations   = Column(JSON)
+    model_used  = Column(String)
+    built_at    = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (Index("ix_bc_topic", "topic_key"),)
+
+
+# ── Brief Cache CRUD ──────────────────────────────────────────────────────────
+
+def save_brief_cache(key: str, label: str, result: dict) -> None:
+    with get_session() as session:
+        existing = session.query(BriefCache).filter_by(topic_key=key).first()
+        if existing:
+            existing.topic_label = label
+            existing.content     = result.get("content", "")
+            existing.citations   = result.get("citations", [])
+            existing.model_used  = result.get("model_used", "")
+            existing.built_at    = datetime.utcnow()
+        else:
+            session.add(BriefCache(
+                topic_key   = key,
+                topic_label = label,
+                content     = result.get("content", ""),
+                citations   = result.get("citations", []),
+                model_used  = result.get("model_used", ""),
+            ))
+        session.commit()
+
+
+def get_brief_cache(key: str, max_age_days: int = 14) -> Optional[Dict]:
+    with get_session() as session:
+        row = session.query(BriefCache).filter_by(topic_key=key).first()
+        if not row:
+            return None
+        age = (datetime.utcnow() - row.built_at).days if row.built_at else 999
+        if age > max_age_days:
+            return None
+        return {
+            "topic_key":   row.topic_key,
+            "topic_label": row.topic_label,
+            "content":     row.content or "",
+            "citations":   row.citations or [],
+            "model_used":  row.model_used,
+            "built_at":    row.built_at.isoformat() if row.built_at else None,
+        }
+
+
+def list_brief_caches() -> List[Dict]:
+    with get_session() as session:
+        rows = session.query(BriefCache).order_by(BriefCache.built_at.desc()).all()
+        return [
+            {
+                "topic_key":   r.topic_key,
+                "topic_label": r.topic_label,
+                "model_used":  r.model_used,
+                "built_at":    r.built_at.isoformat() if r.built_at else None,
+                "content_len": len(r.content or ""),
+            }
+            for r in rows
+        ]
+
+
+# ── Q&A CRUD ──────────────────────────────────────────────────────────────────
+
+def upsert_qa_passage(passage: dict) -> int:
+    """
+    Insert a passage, skipping if text_hash already exists.
+    Returns the passage id.
+    """
+    with get_session() as session:
+        existing = session.query(QAPassage).filter_by(
+            text_hash=passage["text_hash"]
+        ).first()
+        if existing:
+            return existing.id
+        p = QAPassage(**{k: v for k, v in passage.items()
+                         if hasattr(QAPassage, k)})
+        session.add(p)
+        session.commit()
+        return p.id
+
+
+def get_qa_passages(source_id: str) -> List[Dict]:
+    """Return all passages for a given source (document or baseline)."""
+    with get_session() as session:
+        rows = (session.query(QAPassage)
+                .filter_by(source_id=source_id)
+                .order_by(QAPassage.chunk_index)
+                .all())
+        return [
+            {
+                "id":           r.id,
+                "source_type":  r.source_type,
+                "source_id":    r.source_id,
+                "source_title": r.source_title,
+                "jurisdiction": r.jurisdiction,
+                "chunk_index":  r.chunk_index,
+                "chunk_total":  r.chunk_total,
+                "section_label":r.section_label,
+                "text":         r.text,
+            }
+            for r in rows
+        ]
+
+
+def delete_qa_passages_for_source(source_id: str) -> int:
+    """Remove all passages for a source (called before re-indexing)."""
+    with get_session() as session:
+        count = session.query(QAPassage).filter_by(source_id=source_id).delete()
+        session.commit()
+        return count
+
+
+def get_all_qa_passage_ids() -> List[Dict]:
+    """Return lightweight {source_id, source_type} list for index status."""
+    with get_session() as session:
+        rows = session.query(
+            QAPassage.source_id,
+            QAPassage.source_type,
+        ).distinct().all()
+        return [{"source_id": r[0], "source_type": r[1]} for r in rows]
+
+
+def save_qa_session(session_dict: dict) -> int:
+    """Persist a Q&A turn. Returns the session id."""
+    with get_session() as session:
+        qa = QASession(**{k: v for k, v in session_dict.items()
+                          if hasattr(QASession, k)})
+        session.add(qa)
+        session.commit()
+        return qa.id
+
+
+def get_qa_history(limit: int = 50) -> List[Dict]:
+    """Return recent Q&A turns, newest first."""
+    with get_session() as session:
+        rows = (session.query(QASession)
+                .order_by(QASession.asked_at.desc())
+                .limit(limit)
+                .all())
+        return [
+            {
+                "id":               r.id,
+                "question":         r.question,
+                "answer":           r.answer,
+                "citations":        r.citations or [],
+                "follow_ups":       r.follow_ups or [],
+                "retrieval_count":  r.retrieval_count,
+                "model_used":       r.model_used,
+                "asked_at":         r.asked_at.isoformat() if r.asked_at else None,
+            }
+            for r in rows
+        ]
