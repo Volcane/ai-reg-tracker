@@ -180,12 +180,11 @@ def list_documents(
     page:         int           = 1,
     page_size:    int           = 50,
 ):
-    """Paginated document list with filters."""
+    """Paginated document list with filters. Excludes not_relevant (archived) documents."""
+    from utils.db import get_document_review_statuses
     summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction)
 
     if urgency:
-        # Only filter by urgency when explicitly set — unsummarized docs
-        # (urgency=None) are preserved when no urgency filter is active
         summaries = [s for s in summaries if s.get("urgency") == urgency]
     if doc_type:
         summaries = [s for s in summaries if s.get("doc_type") == doc_type]
@@ -198,6 +197,17 @@ def list_documents(
             or q in (s.get("agency") or "").lower()
         ]
 
+    # Look up review status for all docs in this page
+    doc_ids = [s["id"] for s in summaries]
+    statuses = get_document_review_statuses(doc_ids)
+
+    # Exclude not_relevant (archived) from the main list
+    summaries = [s for s in summaries if statuses.get(s["id"]) != "not_relevant"]
+
+    # Attach review_status to each item
+    for s in summaries:
+        s["review_status"] = statuses.get(s["id"])  # relevant | partially_relevant | None
+
     total  = len(summaries)
     start  = (page - 1) * page_size
     end    = start + page_size
@@ -208,6 +218,25 @@ def list_documents(
         "pages":     (total + page_size - 1) // page_size,
         "items":     summaries[start:end],
     }
+
+
+@app.get("/api/documents/archived")
+def list_archived_documents(
+    jurisdiction: Optional[str] = None,
+    days:         int           = 3650,
+    search:       Optional[str] = None,
+    page:         int           = 1,
+    page_size:    int           = 30,
+):
+    """Documents marked Not Relevant — removed from main list, browsable here."""
+    from utils.db import get_archived_documents
+    return get_archived_documents(
+        days         = days,
+        jurisdiction = jurisdiction,
+        search       = search,
+        page         = page,
+        page_size    = page_size,
+    )
 
 
 @app.get("/api/documents/{doc_id}")

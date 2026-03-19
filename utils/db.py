@@ -950,6 +950,103 @@ def get_fetch_history(days: int = 60) -> List[Dict]:
         ]
 
 
+# ── Document review status helpers ───────────────────────────────────────────
+
+def get_document_review_statuses(doc_ids: List[str]) -> Dict[str, str]:
+    """
+    Return a dict of {document_id: feedback} for the given doc IDs.
+    Only the most recent feedback per document is returned.
+    Documents with no feedback are absent from the dict.
+    """
+    if not doc_ids:
+        return {}
+    with get_session() as session:
+        # Most recent feedback per document
+        from sqlalchemy import func
+        latest = (
+            session.query(
+                FeedbackEvent.document_id,
+                FeedbackEvent.feedback,
+                FeedbackEvent.recorded_at,
+            )
+            .filter(FeedbackEvent.document_id.in_(doc_ids))
+            .order_by(
+                FeedbackEvent.document_id,
+                FeedbackEvent.recorded_at.desc(),
+            )
+            .all()
+        )
+        seen: Dict[str, str] = {}
+        for doc_id, feedback, _ in latest:
+            if doc_id not in seen:
+                seen[doc_id] = feedback
+        return seen
+
+
+def get_archived_documents(days: int = 3650,
+                            jurisdiction: Optional[str] = None,
+                            search: Optional[str] = None,
+                            page: int = 1,
+                            page_size: int = 30) -> Dict[str, Any]:
+    """
+    Return paginated list of documents marked not_relevant.
+    """
+    # Get all not_relevant document IDs
+    with get_session() as session:
+        q = session.query(FeedbackEvent.document_id).filter(
+            FeedbackEvent.feedback == "not_relevant"
+        ).distinct()
+        archived_ids = {row[0] for row in q.all()}
+
+    if not archived_ids:
+        return {"total": 0, "page": page, "page_size": page_size, "pages": 0, "items": []}
+
+    since     = datetime.utcnow() - timedelta(days=days)
+    all_items = []
+
+    with get_session() as session:
+        q = (
+            session.query(Document, Summary)
+            .outerjoin(Summary, Document.id == Summary.document_id)
+            .filter(Document.id.in_(archived_ids))
+            .filter(
+                (Document.fetched_at    >= since) |
+                (Document.published_date >= since)
+            )
+        )
+        if jurisdiction:
+            q = q.filter(Document.jurisdiction == jurisdiction)
+
+        for doc, summ in q.order_by(Document.fetched_at.desc()).all():
+            d = _doc_to_dict(doc)
+            if summ:
+                d.update({
+                    "plain_english":   summ.plain_english,
+                    "urgency":         summ.urgency,
+                    "relevance_score": summ.relevance_score,
+                    "requirements":    summ.requirements,
+                    "impact_areas":    summ.impact_areas,
+                    "deadline":        summ.deadline,
+                })
+            d["review_status"] = "not_relevant"
+            if search:
+                q_lower = search.lower()
+                if not (q_lower in (d.get("title") or "").lower()
+                        or q_lower in (d.get("plain_english") or "").lower()):
+                    continue
+            all_items.append(d)
+
+    total = len(all_items)
+    start = (page - 1) * page_size
+    return {
+        "total":     total,
+        "page":      page,
+        "page_size": page_size,
+        "pages":     max(1, (total + page_size - 1) // page_size),
+        "items":     all_items[start:start + page_size],
+    }
+
+
 # ── Regulatory horizon CRUD ──────────────────────────────────────────────────
 
 def upsert_horizon_item(item: Dict[str, Any]) -> bool:

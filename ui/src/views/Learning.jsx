@@ -358,11 +358,14 @@ function QualityBar({ score }) {
 
 // ── Inline feedback buttons (used in Documents view) ─────────────────────────
 
-export function FeedbackButtons({ documentId, onFeedback }) {
-  const [sent,     setSent]     = useState(null)
-  const [loading,  setLoading]  = useState(false)
+export function FeedbackButtons({ documentId, initialStatus, onFeedback }) {
+  const [sent,       setSent]       = useState(initialStatus || null)
+  const [loading,    setLoading]    = useState(false)
   const [showReason, setShowReason] = useState(false)
-  const [reason,   setReason]   = useState('')
+  const [reason,     setReason]     = useState('')
+
+  // Sync if the parent resets the doc (e.g. navigating to a different document)
+  useEffect(() => { setSent(initialStatus || null) }, [documentId, initialStatus])
 
   const submit = async (feedback) => {
     setLoading(true)
@@ -374,11 +377,24 @@ export function FeedbackButtons({ documentId, onFeedback }) {
     finally { setLoading(false) }
   }
 
-  if (sent) return (
-    <div style={{ fontSize: 12, color: 'var(--text-3)', fontStyle: 'italic' }}>
-      ✓ Feedback recorded — system will learn from this
-    </div>
-  )
+  if (sent) {
+    const label = sent === 'relevant'           ? '✓ Marked Relevant'
+                : sent === 'partially_relevant' ? '✓ Marked Partially Relevant'
+                : sent === 'not_relevant'       ? '✓ Marked Not Relevant — moving to archive'
+                : '✓ Feedback recorded'
+    const color = sent === 'relevant'           ? 'var(--green)'
+                : sent === 'partially_relevant' ? 'var(--yellow)'
+                : 'var(--text-3)'
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 12, color, fontStyle: 'italic' }}>{label}</span>
+        <button className="btn-ghost btn-sm" style={{ fontSize: 11 }}
+          onClick={() => { setSent(null); setShowReason(false); setReason('') }}>
+          Change
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -389,7 +405,7 @@ export function FeedbackButtons({ documentId, onFeedback }) {
         <button className="btn-secondary btn-sm" disabled={loading} onClick={() => submit('relevant')}>
           <ThumbsUp size={12} style={{ color: 'var(--green)' }} /> Relevant
         </button>
-        <button className="btn-secondary btn-sm" disabled={loading} onClick={() => { setShowReason(true) }}>
+        <button className="btn-secondary btn-sm" disabled={loading} onClick={() => setShowReason(true)}>
           <ThumbsDown size={12} style={{ color: 'var(--red)' }} /> Not Relevant
         </button>
         <button className="btn-secondary btn-sm" disabled={loading} onClick={() => submit('partially_relevant')}>
@@ -407,7 +423,7 @@ export function FeedbackButtons({ documentId, onFeedback }) {
           />
           <div className="flex gap-2">
             <button className="btn-danger btn-sm" onClick={() => submit('not_relevant')} disabled={loading}>
-              {loading ? 'Submitting…' : 'Submit Feedback'}
+              {loading ? 'Submitting…' : 'Confirm — Not Relevant'}
             </button>
             <button className="btn-ghost btn-sm" onClick={() => setShowReason(false)}>Cancel</button>
           </div>
