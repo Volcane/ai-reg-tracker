@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 
 # ── FastAPI imports ───────────────────────────────────────────────────────────
 try:
-    from fastapi import FastAPI, HTTPException, BackgroundTasks, Query
+    from fastapi import FastAPI, HTTPException, BackgroundTasks, Query, UploadFile, File, Form
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
@@ -175,7 +175,7 @@ def list_documents(
     jurisdiction: Optional[str] = None,
     urgency:      Optional[str] = None,
     doc_type:     Optional[str] = None,
-    days:         int           = 90,
+    days:         int           = 365,
     search:       Optional[str] = None,
     page:         int           = 1,
     page_size:    int           = 50,
@@ -184,6 +184,8 @@ def list_documents(
     summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction)
 
     if urgency:
+        # Only filter by urgency when explicitly set — unsummarized docs
+        # (urgency=None) are preserved when no urgency filter is active
         summaries = [s for s in summaries if s.get("urgency") == urgency]
     if doc_type:
         summaries = [s for s in summaries if s.get("doc_type") == doc_type]
@@ -454,6 +456,561 @@ Do not include generic advice — every item should be specific to this regulati
         "checklist":   checklist_md,
         "generated_at": datetime.utcnow().isoformat(),
     }
+
+
+# ·· Regulatory Baselines ·····································
+
+@app.get("/api/baselines")
+def list_baselines():
+    """Return summary metadata for all loaded baseline regulations."""
+    from agents.baseline_agent import BaselineAgent
+    return BaselineAgent().get_all()
+
+
+@app.get("/api/baselines/coverage")
+def baseline_coverage():
+    """Return coverage summary — jurisdictions, count, last reviewed date."""
+    from agents.baseline_agent import BaselineAgent
+    return BaselineAgent().get_coverage_summary()
+
+
+@app.get("/api/baselines/jurisdiction/{jurisdiction}")
+def baselines_for_jurisdiction(jurisdiction: str):
+    """Return all baselines for a specific jurisdiction."""
+    from agents.baseline_agent import BaselineAgent
+    return BaselineAgent().get_for_jurisdiction(jurisdiction)
+
+
+@app.get("/api/baselines/{baseline_id}")
+def get_baseline(baseline_id: str):
+    """Return the full baseline for a given ID."""
+    from agents.baseline_agent import BaselineAgent
+    b = BaselineAgent().get_by_id(baseline_id)
+    if not b:
+        raise HTTPException(status_code=404, detail=f"Baseline '{baseline_id}' not found")
+    return b
+
+
+# ·· Company Profiles & Gap Analysis ···························
+
+class AISystemModel(BaseModel):
+    name:               str
+    description:        Optional[str] = None
+    purpose:            Optional[str] = None
+    data_inputs:        List[str]     = []
+    affected_population:Optional[str] = None
+    deployment_status:  str           = "production"
+    autonomy_level:     str           = "human-in-loop"
+
+
+class CurrentPracticesModel(BaseModel):
+    has_ai_governance_policy:     Optional[bool] = None
+    has_risk_assessments:         Optional[bool] = None
+    has_human_oversight:          Optional[bool] = None
+    has_incident_response:        Optional[bool] = None
+    has_documentation:            Optional[bool] = None
+    has_bias_testing:             Optional[bool] = None
+    has_transparency_disclosures: Optional[bool] = None
+    notes:                        Optional[str]  = None
+
+
+class ProfileRequest(BaseModel):
+    id:                      Optional[int]       = None
+    name:                    str
+    industry_sector:         Optional[str]       = None
+    company_size:            Optional[str]       = None
+    operating_jurisdictions: List[str]           = []
+    ai_systems:              List[AISystemModel] = []
+    current_practices:       Optional[CurrentPracticesModel] = None
+    existing_certifications: List[str]           = []
+    primary_concerns:        Optional[str]       = None
+    recent_changes:          Optional[str]       = None
+
+
+class GapAnalysisRequest(BaseModel):
+    profile_id:    int
+    jurisdictions: Optional[List[str]] = None
+    days:          int                 = 365
+    system_filter: Optional[List[str]] = None
+
+
+class GapAnnotateRequest(BaseModel):
+    notes: str
+
+
+@app.get("/api/profiles")
+def list_profiles_endpoint():
+    from utils.db import list_profiles
+    return list_profiles()
+
+
+@app.get("/api/profiles/{profile_id}")
+def get_profile_endpoint(profile_id: int):
+    from utils.db import get_profile
+    p = get_profile(profile_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return p
+
+
+@app.post("/api/profiles")
+def save_profile_endpoint(req: ProfileRequest):
+    from utils.db import save_profile
+    data = req.model_dump()
+    if data.get("current_practices"):
+        data["current_practices"] = data["current_practices"]
+    pid = save_profile(data)
+    from utils.db import get_profile
+    return get_profile(pid)
+
+
+@app.delete("/api/profiles/{profile_id}")
+def delete_profile_endpoint(profile_id: int):
+    from utils.db import delete_profile
+    delete_profile(profile_id)
+    return {"ok": True}
+
+
+@app.get("/api/gap-analyses")
+def list_analyses_endpoint(profile_id: Optional[int] = None, limit: int = 20):
+    from utils.db import list_gap_analyses
+    return list_gap_analyses(profile_id=profile_id, limit=limit)
+
+
+@app.get("/api/gap-analyses/{analysis_id}")
+def get_analysis_endpoint(analysis_id: int):
+    from utils.db import get_gap_analysis
+    result = get_gap_analysis(analysis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return result
+
+
+@app.post("/api/gap-analyses")
+def run_gap_analysis_endpoint(req: GapAnalysisRequest,
+                               background_tasks: BackgroundTasks):
+    """Trigger a gap analysis run (background job)."""
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="Another job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log(f"Gap analysis started for profile ID {req.profile_id}")
+        try:
+            from agents.gap_analysis_agent import GapAnalysisAgent
+            agent  = GapAnalysisAgent()
+            result = agent.run(
+                profile_id    = req.profile_id,
+                jurisdictions = req.jurisdictions or None,
+                days          = req.days,
+                system_filter = req.system_filter or None,
+            )
+            if result.get("error"):
+                _log(f"Gap analysis error: {result['error']}")
+            else:
+                _log(f"Gap analysis complete: {result.get('gap_count', 0)} gaps found, "
+                     f"posture score {result.get('posture_score')}/100")
+            _job_state["last_result"] = {
+                "analysis_id":   result.get("id"),
+                "gap_count":     result.get("gap_count", 0),
+                "critical_count":result.get("critical_count", 0),
+                "posture_score": result.get("posture_score", 0),
+            }
+        except Exception as e:
+            _log(f"ERROR: {e}")
+            raise
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "profile_id": req.profile_id}
+
+
+@app.post("/api/gap-analyses/{analysis_id}/star")
+def star_analysis_endpoint(analysis_id: int, starred: bool = True):
+    from utils.db import star_gap_analysis
+    star_gap_analysis(analysis_id, starred)
+    return {"ok": True}
+
+
+@app.post("/api/gap-analyses/{analysis_id}/annotate")
+def annotate_analysis_endpoint(analysis_id: int, req: GapAnnotateRequest):
+    from utils.db import annotate_gap_analysis
+    annotate_gap_analysis(analysis_id, req.notes)
+    return {"ok": True}
+
+
+# ·· PDF Ingestion ·············································
+
+class PDFIngestRequest(BaseModel):
+    filename:       str
+    title:          Optional[str]  = None
+    jurisdiction:   str            = "Unknown"
+    agency:         Optional[str]  = None
+    doc_type:       str            = "PDF Document"
+    status:         str            = "Unknown"
+    url:            Optional[str]  = None
+    published_date: Optional[str]  = None
+    notes:          Optional[str]  = None
+
+
+class PDFDownloadRequest(BaseModel):
+    document_ids:   List[str]
+    limit:          int = 20
+
+
+@app.get("/api/pdf/stats")
+def pdf_stats():
+    """PDF ingestion statistics."""
+    from sources.pdf_agent import get_pdf_stats
+    return get_pdf_stats()
+
+
+@app.get("/api/pdf/inbox")
+def pdf_inbox():
+    """List PDF files currently in the drop folder."""
+    from sources.pdf_agent import PDFManualIngestor
+    return PDFManualIngestor().list_inbox()
+
+
+@app.get("/api/pdf/candidates")
+def pdf_candidates(jurisdiction: Optional[str] = None):
+    """List documents that have PDF URLs available for auto-download."""
+    from sources.pdf_agent import PDFAutoDownloader
+    return PDFAutoDownloader().candidates(jurisdiction=jurisdiction)
+
+
+@app.post("/api/pdf/upload")
+async def pdf_upload(
+    file:           UploadFile = File(...),
+    title:          str        = Form(""),
+    jurisdiction:   str        = Form("Unknown"),
+    agency:         str        = Form(""),
+    doc_type:       str        = Form("PDF Document"),
+    status:         str        = Form("Unknown"),
+    url:            str        = Form(""),
+    published_date: str        = Form(""),
+    notes:          str        = Form(""),
+):
+    """Upload a PDF file with manual metadata tagging."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+    data = await file.read()
+    if len(data) < 100:
+        raise HTTPException(status_code=400, detail="File appears empty")
+
+    metadata = {
+        "title":          title or Path(file.filename).stem,
+        "jurisdiction":   jurisdiction,
+        "agency":         agency or None,
+        "doc_type":       doc_type,
+        "status":         status,
+        "url":            url or None,
+        "published_date": published_date or None,
+        "notes":          notes or None,
+    }
+
+    try:
+        from sources.pdf_agent import PDFManualIngestor
+        doc = PDFManualIngestor().ingest_bytes(file.filename, data, metadata)
+        return {
+            "ok":          True,
+            "document_id": doc["id"],
+            "title":       doc["title"],
+            "word_count":  len((doc.get("full_text") or "").split()),
+        }
+    except Exception as e:
+        log.error("PDF upload failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/pdf/ingest")
+def pdf_ingest_inbox(req: PDFIngestRequest):
+    """Ingest a PDF file from the drop folder with metadata."""
+    metadata = {
+        "title":          req.title or Path(req.filename).stem,
+        "jurisdiction":   req.jurisdiction,
+        "agency":         req.agency,
+        "doc_type":       req.doc_type,
+        "status":         req.status,
+        "url":            req.url,
+        "published_date": req.published_date,
+        "notes":          req.notes,
+    }
+    try:
+        from sources.pdf_agent import PDFManualIngestor
+        doc = PDFManualIngestor().ingest(req.filename, metadata)
+        return {
+            "ok":          True,
+            "document_id": doc["id"],
+            "title":       doc["title"],
+            "word_count":  len((doc.get("full_text") or "").split()),
+        }
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        log.error("PDF ingest failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/pdf/download")
+def pdf_download(req: PDFDownloadRequest, background_tasks: BackgroundTasks):
+    """Trigger background auto-download of PDFs for given document IDs."""
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="Another job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log(f"PDF auto-download started for {len(req.document_ids)} documents")
+        try:
+            from sources.pdf_agent import PDFAutoDownloader
+            downloader = PDFAutoDownloader()
+            succeeded  = 0
+            failed     = 0
+            for doc_id in req.document_ids[:req.limit]:
+                from utils.db import get_document
+                doc = get_document(doc_id)
+                if not doc:
+                    _log(f"  ✗ Not found: {doc_id}")
+                    failed += 1
+                    continue
+                _log(f"  ↓ Downloading: {doc.get('title', doc_id)[:60]}")
+                result = downloader.run(limit=1,
+                                        progress_cb=_log)
+                if result["succeeded"]:
+                    succeeded += 1
+                else:
+                    failed += 1
+            _log(f"PDF download complete — {succeeded} succeeded, {failed} failed")
+            _job_state["last_result"] = {"pdf_succeeded": succeeded, "pdf_failed": failed}
+        except Exception as e:
+            _log(f"ERROR: {e}")
+            raise
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "count": len(req.document_ids)}
+
+
+@app.post("/api/pdf/download-all")
+def pdf_download_all(
+    jurisdiction: Optional[str] = None,
+    limit: int = 50,
+    background_tasks: BackgroundTasks = None,
+):
+    """Auto-download PDFs for all eligible documents (background job)."""
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="Another job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log(f"PDF bulk download started (jurisdiction={jurisdiction}, limit={limit})")
+        try:
+            from sources.pdf_agent import PDFAutoDownloader
+            result = PDFAutoDownloader().run(
+                jurisdiction=jurisdiction,
+                limit=limit,
+                progress_cb=_log,
+            )
+            _log(f"Done — {result['succeeded']} succeeded, "
+                 f"{result['failed']} failed, {result['skipped']} skipped")
+            _job_state["last_result"] = result
+        except Exception as e:
+            _log(f"ERROR: {e}")
+            raise
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started"}
+
+
+# ·· Thematic Synthesis & Conflict Detection ····················
+
+class SynthesisRequest(BaseModel):
+    topic:            str
+    jurisdictions:    Optional[List[str]] = None
+    days:             int  = 365
+    detect_conflicts: bool = True
+    force_refresh:    bool = False
+
+
+class AnnotateRequest(BaseModel):
+    notes: str
+
+
+@app.get("/api/synthesis")
+def list_syntheses(limit: int = 20):
+    """List recent thematic synthesis records."""
+    from utils.db import get_recent_syntheses
+    return get_recent_syntheses(limit=limit)
+
+
+@app.get("/api/synthesis/topics")
+def suggested_topics():
+    """Return topic suggestions based on what document clusters exist in the DB."""
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    from agents.synthesis_agent import SynthesisAgent
+    return SynthesisAgent().list_suggested_topics()
+
+
+@app.get("/api/synthesis/{synthesis_id}")
+def get_synthesis(synthesis_id: int):
+    """Return a full synthesis record by ID."""
+    from utils.db import get_synthesis_by_id
+    result = get_synthesis_by_id(synthesis_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Synthesis not found")
+    return result
+
+
+@app.post("/api/synthesis")
+def run_synthesis(req: SynthesisRequest, background_tasks: BackgroundTasks):
+    """
+    Trigger a thematic synthesis + optional conflict detection run.
+    Runs in the background — poll /api/run/status and /api/run/log.
+    """
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="ANTHROPIC_API_KEY not configured")
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="Another job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log(f"Synthesis started: topic='{req.topic}'")
+        try:
+            from agents.synthesis_agent import SynthesisAgent
+            agent  = SynthesisAgent()
+            _log(f"Gathering documents for: {req.topic}")
+            result = agent.run(
+                topic            = req.topic,
+                jurisdictions    = req.jurisdictions or None,
+                days             = req.days,
+                detect_conflicts = req.detect_conflicts,
+                force_refresh    = req.force_refresh,
+            )
+            n_conflicts = 0
+            if result.get("conflicts"):
+                n_conflicts = len(result["conflicts"].get("conflicts", []))
+            _log(f"Synthesis complete: {result.get('docs_used', 0)} docs, "
+                 f"{n_conflicts} conflicts detected")
+            _job_state["last_result"] = {
+                "synthesis_id":  result.get("id"),
+                "topic":         req.topic,
+                "docs_used":     result.get("docs_used", 0),
+                "conflicts":     n_conflicts,
+                "jurisdictions": result.get("jurisdictions", []),
+            }
+        except Exception as e:
+            _log(f"ERROR: {e}")
+            raise
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "topic": req.topic}
+
+
+@app.post("/api/synthesis/{synthesis_id}/star")
+def star_synthesis_endpoint(synthesis_id: int, starred: bool = True):
+    from utils.db import star_synthesis
+    star_synthesis(synthesis_id, starred)
+    return {"ok": True}
+
+
+@app.post("/api/synthesis/{synthesis_id}/annotate")
+def annotate_synthesis_endpoint(synthesis_id: int, req: AnnotateRequest):
+    from utils.db import annotate_synthesis
+    annotate_synthesis(synthesis_id, req.notes)
+    return {"ok": True}
+
+
+@app.delete("/api/synthesis/{synthesis_id}")
+def delete_synthesis_endpoint(synthesis_id: int):
+    from utils.db import delete_synthesis
+    delete_synthesis(synthesis_id)
+    return {"ok": True}
+
+
+# ·· Learning / Feedback ········································
+
+class FeedbackRequest(BaseModel):
+    document_id: str
+    feedback:    str                    # relevant | not_relevant | partially_relevant
+    reason:      Optional[str] = None   # free-text explanation
+    user:        str = "user"
+
+
+@app.post("/api/feedback")
+def submit_feedback(req: FeedbackRequest):
+    """Record human relevance feedback on a document."""
+    doc = get_document(req.document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    summary = get_summary(req.document_id)
+    doc_with_summary = {**doc, **({"relevance_score": summary.get("relevance_score")} if summary else {})}
+
+    try:
+        from agents.learning_agent import LearningAgent
+        learner = LearningAgent()
+        profile = learner.record_feedback(
+            doc      = doc_with_summary,
+            feedback = req.feedback,
+            reason   = req.reason,
+            user     = req.user,
+        )
+        return {"ok": True, "source_quality": profile.get("quality_score")}
+    except Exception as e:
+        log.error("Feedback recording failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/learning")
+def get_learning_report():
+    """Full learning report: source quality, keyword weights, prompt adaptations."""
+    try:
+        from agents.learning_agent import LearningAgent
+        learner = LearningAgent()
+        return learner.get_learning_report()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/learning/feedback")
+def get_feedback_history(days: int = 30):
+    from utils.db import get_recent_feedback
+    return get_recent_feedback(days=days)
+
+
+@app.get("/api/learning/schedule")
+def get_schedule():
+    """Adaptive scheduling recommendations per source."""
+    try:
+        from agents.learning_agent import LearningAgent
+        return LearningAgent().get_optimal_fetch_schedule()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/learning/adaptation/{adapt_id}/toggle")
+def toggle_adaptation(adapt_id: int, active: bool = True):
+    from utils.db import toggle_prompt_adaptation
+    toggle_prompt_adaptation(adapt_id, active)
+    return {"ok": True}
 
 
 # ·· Watchlist ··················································

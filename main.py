@@ -425,6 +425,196 @@ def _print_diff_result(d: dict):
     console.print()
 
 
+# ── synthesise ────────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.argument("topic")
+@click.option("--jurisdictions", "-j", multiple=True,
+              help="Limit to specific jurisdictions (repeat flag for multiple: -j EU -j Federal)")
+@click.option("--days",           default=365, show_default=True,
+              help="How far back to look for documents")
+@click.option("--no-conflicts",   is_flag=True, default=False,
+              help="Skip conflict detection (faster)")
+@click.option("--refresh",        is_flag=True, default=False,
+              help="Force re-run even if a recent synthesis exists")
+def synthesise(topic, jurisdictions, days, no_conflicts, refresh):
+    """
+    Run a cross-document thematic synthesis on a topic.
+
+    Examples:
+
+    \b
+    python main.py synthesise "AI in healthcare"
+    python main.py synthesise "automated hiring decisions" -j EU -j Federal
+    python main.py synthesise "generative AI obligations" --no-conflicts
+    """
+    from agents.synthesis_agent import SynthesisAgent
+    from utils.reporter import print_banner
+    print_banner()
+
+    jurs = list(jurisdictions) if jurisdictions else None
+    console.print(f"\n[bold]Synthesising:[/bold] {topic}")
+    if jurs:
+        console.print(f"[dim]Jurisdictions: {', '.join(jurs)}[/dim]")
+
+    try:
+        agent  = SynthesisAgent()
+
+        # Show topic suggestions if database is populated
+        with console.status("Gathering documents…"):
+            result = agent.run(
+                topic            = topic,
+                jurisdictions    = jurs,
+                days             = days,
+                detect_conflicts = not no_conflicts,
+                force_refresh    = refresh,
+            )
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        return
+
+    if result.get("error"):
+        console.print(f"[yellow]⚠[/yellow]  {result['error']}")
+        return
+
+    _print_synthesis_result(result)
+
+
+@cli.command()
+def synthesis_topics():
+    """Show suggested synthesis topics based on what's in the database."""
+    from agents.synthesis_agent import SynthesisAgent
+    from utils.reporter import print_banner
+    print_banner()
+    try:
+        agent       = SynthesisAgent()
+        suggestions = agent.list_suggested_topics()
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        return
+
+    if not suggestions:
+        console.print("[dim]No multi-jurisdiction document clusters found yet. "
+                      "Fetch and summarize more documents first.[/dim]")
+        return
+
+    console.print("\n[bold]Suggested synthesis topics[/bold] "
+                  "[dim](ranked by cross-jurisdictional breadth)[/dim]\n")
+    for s in suggestions[:15]:
+        jurs = ", ".join(s["jurisdictions"])
+        flag = " [bold yellow]★[/bold yellow]" if s.get("has_high_urgency") else ""
+        console.print(
+            f"  [bold]{s['topic']}[/bold]{flag}\n"
+            f"  [dim]{s['doc_count']} docs · {s['jurisdiction_count']} jurisdictions: {jurs}[/dim]\n"
+            f"  [dim]→ python main.py synthesise \"{s['topic']}\"[/dim]\n"
+        )
+
+
+@cli.command()
+@click.option("--limit", default=10, show_default=True)
+def syntheses(limit):
+    """List recent thematic synthesis results."""
+    from utils.db import get_recent_syntheses
+    from utils.reporter import print_banner
+    print_banner()
+
+    rows = get_recent_syntheses(limit=limit)
+    if not rows:
+        console.print("[dim]No syntheses yet. Run: python main.py synthesise \"your topic\"[/dim]")
+        return
+
+    console.print(f"\n[bold]Recent Syntheses[/bold] ({len(rows)} shown)\n")
+    for r in rows:
+        star  = " ★" if r.get("starred") else ""
+        cons  = f"  [dim]{r['conflict_count']} conflicts[/dim]" if r.get("has_conflicts") else ""
+        jurs  = ", ".join(r.get("jurisdictions") or [])
+        console.print(
+            f"  [bold][{r['id']}][/bold]  {r['topic']}{star}\n"
+            f"  [dim]{r['docs_used']} docs · {jurs} · {(r.get('generated_at') or '')[:10]}{cons}[/dim]\n"
+        )
+    console.print("[dim]Run: python main.py synthesise \"topic\" --refresh  to re-run[/dim]")
+
+
+# ── Helper: print synthesis result ────────────────────────────────────────────
+
+def _print_synthesis_result(result: dict):
+    """Render a synthesis result to the terminal."""
+    synth  = result.get("synthesis") or {}
+    conf   = result.get("conflicts") or {}
+    jurs   = ", ".join(result.get("jurisdictions") or [])
+
+    console.print(f"\n[bold blue]══ Synthesis: {result['topic']} ══[/bold blue]")
+    console.print(f"[dim]ID: {result.get('id')} · {result.get('docs_used', 0)} docs · "
+                  f"{jurs} · {(result.get('generated_at') or '')[:10]}[/dim]\n")
+
+    # Landscape summary
+    if synth.get("landscape_summary"):
+        console.print(f"[bold]Regulatory Landscape[/bold]")
+        console.print(f"{synth['landscape_summary']}\n")
+
+    # Maturity + evolution
+    maturity  = synth.get("regulatory_maturity", "")
+    evolution = synth.get("evolution_narrative", "")
+    if maturity:
+        console.print(f"  [dim]Maturity:[/dim] {maturity}")
+    if evolution:
+        console.print(f"  [dim]Trend:[/dim] {evolution}\n")
+
+    # Cumulative obligations
+    obligations = synth.get("cumulative_obligations") or []
+    if obligations:
+        console.print(f"[bold]Cumulative Obligations[/bold] ({len(obligations)} across all jurisdictions)")
+        for obl in obligations[:6]:
+            jur_list = ", ".join(obl.get("source_jurisdictions") or [])
+            univ     = obl.get("universality", "")
+            console.print(f"  • {obl.get('obligation', '')}")
+            console.print(f"    [dim]{jur_list} · {univ}[/dim]")
+            if obl.get("earliest_deadline"):
+                console.print(f"    [dim]Deadline: {obl['earliest_deadline']}[/dim]")
+        if len(obligations) > 6:
+            console.print(f"  [dim]… and {len(obligations) - 6} more[/dim]")
+        console.print()
+
+    # Emerging trends
+    trends = synth.get("emerging_trends") or []
+    if trends:
+        console.print("[bold]Emerging Trends[/bold]")
+        for t in trends[:4]:
+            console.print(f"  → {t}")
+        console.print()
+
+    # Recommended posture
+    posture = synth.get("recommended_compliance_posture", "")
+    if posture:
+        console.print(f"[bold]Recommended Compliance Posture[/bold]")
+        console.print(f"{posture}\n")
+
+    # Conflicts
+    conflicts = conf.get("conflicts") or []
+    if conflicts:
+        console.print(f"[bold red]Jurisdiction Conflicts[/bold red] ({len(conflicts)} detected)")
+        for c in sorted(conflicts, key=lambda x: {"Critical":0,"High":1,"Medium":2,"Low":3}.get(x.get("severity","Low"),4)):
+            sev_style = {"Critical":"bold red","High":"bold yellow","Medium":"yellow","Low":"dim"}.get(c.get("severity","Low"),"")
+            console.print(
+                f"\n  [{sev_style}]{c.get('severity')}[/{sev_style}]  "
+                f"[bold]{c.get('title', '')}[/bold]"
+            )
+            console.print(f"  [dim]{c.get('jurisdiction_a')} vs {c.get('jurisdiction_b')} · {c.get('type')}[/dim]")
+            console.print(f"  {c.get('conflict_description', '')}")
+            if c.get("safest_approach"):
+                console.print(f"  [dim]Safest approach: {c['safest_approach']}[/dim]")
+
+        # Highest common denominator
+        hcd = conf.get("highest_common_denominator")
+        if hcd:
+            console.print(f"\n[bold]Highest Common Denominator[/bold]")
+            console.print(f"[dim]{hcd}[/dim]")
+    elif result.get("conflicts") is not None:
+        console.print("[green]✓[/green] No material jurisdiction conflicts detected")
+
+    console.print()
+
+
 # ── watch ─────────────────────────────────────────────────────────────────────
 
 @cli.command()
