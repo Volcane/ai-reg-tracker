@@ -458,6 +458,103 @@ Do not include generic advice — every item should be specific to this regulati
     }
 
 
+# ·· Regulatory Horizon ·············································
+
+@app.get("/api/horizon")
+def get_horizon(
+    days_ahead:   int            = 365,
+    jurisdiction: Optional[str] = None,
+    stage:        Optional[str] = None,
+    limit:        int            = 200,
+):
+    from utils.db import get_horizon_items
+    return get_horizon_items(
+        days_ahead   = days_ahead,
+        jurisdiction = jurisdiction,
+        stage        = stage,
+        limit        = limit,
+    )
+
+
+@app.get("/api/horizon/stats")
+def horizon_stats():
+    from utils.db import get_horizon_stats
+    return get_horizon_stats()
+
+
+@app.post("/api/horizon/fetch")
+def fetch_horizon(background_tasks: BackgroundTasks):
+    """Trigger a horizon fetch (background)."""
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="Another job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _log("Horizon fetch started")
+        try:
+            from sources.horizon_agent import HorizonAgent
+            counts = HorizonAgent().run(days_ahead=365)
+            total  = sum(counts.values())
+            _log(f"Horizon fetch complete: {total} new items ({counts})")
+            _job_state["last_result"] = {"horizon_new": total, "by_source": counts}
+        except Exception as e:
+            _log(f"ERROR: {e}")
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started"}
+
+
+@app.post("/api/horizon/{item_id}/dismiss")
+def dismiss_horizon(item_id: int):
+    from utils.db import dismiss_horizon_item
+    dismiss_horizon_item(item_id)
+    return {"ok": True}
+
+
+# ·· Regulatory Trends ·············································
+
+@app.get("/api/trends")
+def get_trends():
+    """Return all trend data: velocity, heatmap, and alerts."""
+    try:
+        from agents.trend_agent import TrendAgent
+        return TrendAgent().get_summary()
+    except Exception as e:
+        log.error("Trends error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/trends/velocity")
+def get_velocity():
+    from agents.trend_agent import TrendAgent
+    return TrendAgent().get_velocity()
+
+
+@app.get("/api/trends/heatmap")
+def get_heatmap():
+    from agents.trend_agent import TrendAgent
+    return TrendAgent().get_heatmap()
+
+
+@app.get("/api/trends/alerts")
+def get_alerts():
+    from agents.trend_agent import TrendAgent
+    return TrendAgent().get_alerts()
+
+
+@app.post("/api/trends/refresh")
+def refresh_trends(background_tasks: BackgroundTasks):
+    """Trigger a trend snapshot recompute (runs in background)."""
+    def _run():
+        from agents.trend_agent import TrendAgent
+        TrendAgent().run_snapshot()
+    background_tasks.add_task(_run)
+    return {"status": "refreshing"}
+
+
 # ·· Regulatory Baselines ·····································
 
 @app.get("/api/baselines/status")

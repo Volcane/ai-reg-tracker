@@ -557,6 +557,49 @@ class PromptAdaptation(Base):
     created_at   = Column(DateTime, default=datetime.utcnow)
 
 
+class RegulatoryHorizon(Base):
+    """
+    Forward-looking regulatory items — things planned or advancing but not
+    yet published. Populated by HorizonAgent from regulatory calendars.
+    """
+    __tablename__ = "regulatory_horizon"
+
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    source           = Column(String, nullable=False)   # unified_agenda | congress_hearings | eu_work_programme | uk_upcoming
+    external_id      = Column(String, nullable=False)   # stable ID from source
+    jurisdiction     = Column(String, nullable=False)
+    title            = Column(Text,   nullable=False)
+    description      = Column(Text)
+    agency           = Column(String)
+    stage            = Column(String)                   # planned | pre-rule | proposed | hearing | final | enacted
+    anticipated_date = Column(DateTime)
+    url              = Column(Text)
+    ai_score         = Column(Float, default=0.0)
+    fetched_at       = Column(DateTime, default=datetime.utcnow)
+    dismissed        = Column(Boolean,  default=False)  # user can dismiss items
+
+    __table_args__ = (
+        Index("ix_horizon_source_eid",   "source", "external_id", unique=True),
+        Index("ix_horizon_jurisdiction", "jurisdiction"),
+        Index("ix_horizon_anticipated",  "anticipated_date"),
+    )
+
+
+class TrendSnapshot(Base):
+    """
+    Cached output from TrendAgent — one row per snapshot_type.
+    Recomputed once per day; loaded instantly for the Trends view.
+    """
+    __tablename__ = "trend_snapshots"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_type = Column(String, nullable=False, unique=True)  # velocity | heatmap | alerts
+    data_json     = Column(JSON)
+    computed_at   = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (Index("ix_trend_type", "snapshot_type"),)
+
+
 class ObligationRegisterCache(Base):
     """
     Cached results from the ConsolidationAgent.
@@ -905,6 +948,129 @@ def get_fetch_history(days: int = 60) -> List[Dict]:
             }
             for r in rows
         ]
+
+
+# ── Regulatory horizon CRUD ──────────────────────────────────────────────────
+
+def upsert_horizon_item(item: Dict[str, Any]) -> bool:
+    """
+    Insert or update a horizon item. Returns True if it was new.
+    Deduplicates by (source, external_id).
+    """
+    with get_session() as session:
+        existing = session.query(RegulatoryHorizon).filter_by(
+            source      = item["source"],
+            external_id = item["external_id"],
+        ).first()
+
+        if existing:
+            # Update anticipated date and score if changed
+            existing.anticipated_date = item.get("anticipated_date")
+            existing.ai_score         = item.get("ai_score", 0)
+            existing.fetched_at       = datetime.utcnow()
+            session.commit()
+            return False
+
+        row = RegulatoryHorizon(
+            source           = item["source"],
+            external_id      = item["external_id"],
+            jurisdiction     = item["jurisdiction"],
+            title            = item["title"],
+            description      = item.get("description") or "",
+            agency           = item.get("agency") or "",
+            stage            = item.get("stage") or "planned",
+            anticipated_date = item.get("anticipated_date"),
+            url              = item.get("url") or "",
+            ai_score         = item.get("ai_score", 0),
+            fetched_at       = datetime.utcnow(),
+            dismissed        = False,
+        )
+        session.add(row)
+        session.commit()
+        return True
+
+
+def get_horizon_items(days_ahead: int = 365,
+                       jurisdiction: Optional[str] = None,
+                       stage: Optional[str] = None,
+                       include_past: bool = False,
+                       limit: int = 200) -> List[Dict[str, Any]]:
+    """Return upcoming horizon items ordered by anticipated date."""
+    with get_session() as session:
+        q = session.query(RegulatoryHorizon).filter_by(dismissed=False)
+
+        if not include_past:
+            cutoff_past = datetime.utcnow() - timedelta(days=30)
+            q = q.filter(
+                (RegulatoryHorizon.anticipated_date == None) |
+                (RegulatoryHorizon.anticipated_date >= cutoff_past)
+            )
+
+        if days_ahead:
+            cutoff_future = datetime.utcnow() + timedelta(days=days_ahead)
+            q = q.filter(
+                (RegulatoryHorizon.anticipated_date == None) |
+                (RegulatoryHorizon.anticipated_date <= cutoff_future)
+            )
+
+        if jurisdiction:
+            q = q.filter(RegulatoryHorizon.jurisdiction == jurisdiction)
+
+        if stage:
+            q = q.filter(RegulatoryHorizon.stage == stage)
+
+        rows = q.order_by(
+            RegulatoryHorizon.anticipated_date.asc().nullslast(),
+            RegulatoryHorizon.ai_score.desc(),
+        ).limit(limit).all()
+
+        return [_horizon_to_dict(r) for r in rows]
+
+
+def dismiss_horizon_item(item_id: int) -> None:
+    with get_session() as session:
+        row = session.get(RegulatoryHorizon, item_id)
+        if row:
+            row.dismissed = True
+            session.commit()
+
+
+def get_horizon_stats() -> Dict[str, Any]:
+    with get_session() as session:
+        total    = session.query(RegulatoryHorizon).filter_by(dismissed=False).count()
+        upcoming = session.query(RegulatoryHorizon).filter(
+            RegulatoryHorizon.dismissed        == False,
+            RegulatoryHorizon.anticipated_date != None,
+            RegulatoryHorizon.anticipated_date >= datetime.utcnow(),
+            RegulatoryHorizon.anticipated_date <= datetime.utcnow() + timedelta(days=90),
+        ).count()
+        by_jur: Dict[str, int] = {}
+        for row in session.query(RegulatoryHorizon).filter_by(dismissed=False).all():
+            jur = row.jurisdiction or "Unknown"
+            by_jur[jur] = by_jur.get(jur, 0) + 1
+        return {
+            "total":            total,
+            "upcoming_90_days": upcoming,
+            "by_jurisdiction":  by_jur,
+        }
+
+
+def _horizon_to_dict(row: RegulatoryHorizon) -> Dict[str, Any]:
+    return {
+        "id":               row.id,
+        "source":           row.source,
+        "external_id":      row.external_id,
+        "jurisdiction":     row.jurisdiction,
+        "title":            row.title,
+        "description":      row.description,
+        "agency":           row.agency,
+        "stage":            row.stage,
+        "anticipated_date": row.anticipated_date.isoformat() if row.anticipated_date else None,
+        "url":              row.url,
+        "ai_score":         row.ai_score,
+        "fetched_at":       row.fetched_at.isoformat() if row.fetched_at else None,
+        "dismissed":        row.dismissed,
+    }
 
 
 # ── Obligation register cache CRUD ───────────────────────────────────────────
@@ -1274,6 +1440,8 @@ def get_stats() -> Dict[str, Any]:
         pdf_auto        = session.query(PdfMetadata).filter_by(origin="pdf_auto").count()
         total_profiles  = session.query(CompanyProfile).count()
         total_analyses  = session.query(GapAnalysis).count()
+        trend_snapshots = session.query(TrendSnapshot).count()
+        horizon_items   = session.query(RegulatoryHorizon).filter_by(dismissed=False).count()
         return {
             "total_documents":     total_docs,
             "total_summaries":     total_summaries,
@@ -1293,4 +1461,6 @@ def get_stats() -> Dict[str, Any]:
             "pdf_auto":            pdf_auto,
             "company_profiles":    total_profiles,
             "gap_analyses":        total_analyses,
+            "trend_snapshots":     trend_snapshots,
+            "horizon_items":       horizon_items,
         }

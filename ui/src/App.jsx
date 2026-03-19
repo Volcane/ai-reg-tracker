@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, FileText, GitCompare, Play,
   Eye, Network, Settings, Loader2, AlertCircle,
-  CheckSquare, Bell, Brain, Layers, FileInput, BarChart3, BookOpen
+  CheckSquare, Bell, Brain, Layers, FileInput,
+  BarChart3, BookOpen, TrendingUp, CalendarDays,
 } from 'lucide-react'
 import { api } from './api.js'
 import Dashboard    from './views/Dashboard.jsx'
@@ -17,6 +18,8 @@ import Synthesis    from './views/Synthesis.jsx'
 import PDFIngest    from './views/PDFIngest.jsx'
 import GapAnalysis  from './views/GapAnalysis.jsx'
 import Baselines    from './views/Baselines.jsx'
+import Trends       from './views/Trends.jsx'
+import Horizon      from './views/Horizon.jsx'
 import SettingsView from './views/Settings.jsx'
 
 const NAV = [
@@ -24,6 +27,8 @@ const NAV = [
   { to: '/documents',  icon: FileText,        label: 'Documents'   },
   { to: '/changes',    icon: GitCompare,      label: 'Changes'     },
   { to: '/baselines',  icon: BookOpen,        label: 'Baselines'   },
+  { to: '/trends',     icon: TrendingUp,      label: 'Trends'      },
+  { to: '/horizon',    icon: CalendarDays,    label: 'Horizon'     },
   { to: '/synthesis',  icon: Layers,          label: 'Synthesis'   },
   { to: '/gap',        icon: BarChart3,       label: 'Gap Analysis'},
   { to: '/pdf',        icon: FileInput,       label: 'PDF Ingest'  },
@@ -149,6 +154,8 @@ export default function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/changes"   element={<Changes />} />
           <Route path="/baselines" element={<Baselines />} />
+          <Route path="/trends"    element={<Trends />} />
+          <Route path="/horizon"   element={<Horizon />} />
           <Route path="/synthesis" element={<Synthesis />} />
           <Route path="/gap"       element={<GapAnalysis />} />
           <Route path="/pdf"       element={<PDFIngest />} />

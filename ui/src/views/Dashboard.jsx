@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import {
-  ArrowRight, Database, Zap, ChevronRight,
+  ArrowRight, Database, Zap, ChevronRight, CalendarDays,
 } from 'lucide-react'
 import { api } from '../api.js'
 import { Badge, UrgencyDot, Spinner } from '../components.jsx'
@@ -20,12 +20,20 @@ const fetchBaselines = () =>
 const fetchBaselineCoverage = () =>
   fetch('/api/baselines/coverage').then(r => r.json()).catch(() => null)
 
+const fetchHorizonStats = () =>
+  fetch('/api/horizon/stats').then(r => r.json()).catch(() => null)
+
+const fetchHorizonUpcoming = () =>
+  fetch('/api/horizon?days_ahead=90&limit=5').then(r => r.json()).catch(() => [])
+
 export default function Dashboard({ status }) {
-  const [docs,     setDocs]     = useState([])
-  const [changes,  setChanges]  = useState([])
-  const [bases,    setBases]    = useState([])
-  const [coverage, setCoverage] = useState(null)
-  const [loading,  setLoading]  = useState(true)
+  const [docs,         setDocs]         = useState([])
+  const [changes,      setChanges]      = useState([])
+  const [bases,        setBases]        = useState([])
+  const [coverage,     setCoverage]     = useState(null)
+  const [horizonStats, setHorizonStats] = useState(null)
+  const [horizonItems, setHorizonItems] = useState([])
+  const [loading,      setLoading]      = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -34,11 +42,15 @@ export default function Dashboard({ status }) {
       api.changes({ days: 14 }).catch(() => []),
       fetchBaselines(),
       fetchBaselineCoverage(),
-    ]).then(([d, c, b, cov]) => {
+      fetchHorizonStats(),
+      fetchHorizonUpcoming(),
+    ]).then(([d, c, b, cov, hs, hi]) => {
       setDocs(d.items || [])
       setChanges(Array.isArray(c) ? c.slice(0, 5) : [])
       setBases(Array.isArray(b) ? b : [])
       setCoverage(cov)
+      setHorizonStats(hs)
+      setHorizonItems(Array.isArray(hi) ? hi : [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -80,6 +92,14 @@ export default function Dashboard({ status }) {
         <BaselineCoveragePanel
           bases={bases}
           coverage={coverage}
+          navigate={navigate}
+        />
+      )}
+
+      {horizonItems.length > 0 && (
+        <HorizonPreviewPanel
+          items={horizonItems}
+          stats={horizonStats}
           navigate={navigate}
         />
       )}
@@ -216,6 +236,69 @@ function BaselineCoveragePanel({ bases, coverage, navigate }) {
             <span style={{ color: 'var(--accent)' }}>{jur}</span> ×{byJur[jur]}
           </span>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Horizon preview panel ─────────────────────────────────────────────────────
+
+const STAGE_COLOR = {
+  'planned':  'var(--text-3)',
+  'pre-rule': 'var(--accent)',
+  'proposed': 'var(--yellow)',
+  'hearing':  'var(--orange)',
+  'final':    'var(--red)',
+  'enacted':  'var(--green)',
+}
+
+function HorizonPreviewPanel({ items, stats, navigate }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Regulatory Horizon — Coming Up
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+            {stats?.upcoming_90_days > 0
+              ? `${stats.upcoming_90_days} items anticipated in the next 90 days`
+              : `${stats?.total || items.length} items on the horizon`}
+          </div>
+        </div>
+        <button className="btn-ghost btn-sm" onClick={() => navigate('/horizon')}>
+          Full calendar <ChevronRight size={12} />
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {items.slice(0, 5).map(item => {
+          const color      = STAGE_COLOR[item.stage] || 'var(--text-3)'
+          const daysUntil  = item.anticipated_date
+            ? Math.round((new Date(item.anticipated_date) - new Date()) / 86400000)
+            : null
+
+          return (
+            <div key={item.id} className="card card-hover" style={{ padding: '9px 13px', borderLeft: `3px solid ${color}` }}
+              onClick={() => navigate('/horizon')}>
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: 10, color, fontFamily: 'var(--font-mono)', flexShrink: 0, minWidth: 90 }}>
+                  {item.stage?.replace('-', ' ').toUpperCase() || 'PLANNED'}
+                </span>
+                <span style={{ flex: 1, fontSize: 12 }} className="truncate">{item.title}</span>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', flexShrink: 0 }}>
+                  {item.jurisdiction}
+                </span>
+                {daysUntil !== null && (
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', flexShrink: 0,
+                    color: daysUntil < 30 ? 'var(--red)' : daysUntil < 90 ? 'var(--orange)' : 'var(--text-3)' }}>
+                    {daysUntil < 0 ? `${Math.abs(daysUntil)}d ago` : `${daysUntil}d`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

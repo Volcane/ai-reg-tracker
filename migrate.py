@@ -192,6 +192,32 @@ NEW_TABLES = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS regulatory_horizon (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        source           TEXT NOT NULL,
+        external_id      TEXT NOT NULL,
+        jurisdiction     TEXT NOT NULL,
+        title            TEXT NOT NULL,
+        description      TEXT,
+        agency           TEXT,
+        stage            TEXT,
+        anticipated_date TEXT,
+        url              TEXT,
+        ai_score         REAL DEFAULT 0.0,
+        fetched_at       TEXT,
+        dismissed        INTEGER DEFAULT 0,
+        UNIQUE(source, external_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS trend_snapshots (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        snapshot_type TEXT NOT NULL UNIQUE,
+        data_json     TEXT,
+        computed_at   TEXT
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS obligation_register_cache (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
         cache_key     TEXT NOT NULL UNIQUE,

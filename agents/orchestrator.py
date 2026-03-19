@@ -176,6 +176,17 @@ class Orchestrator:
                          agent.jurisdiction_name, agent.jurisdiction_code)
                 all_docs.extend(agent.fetch_all(lookback_days))
 
+        # ── Track 4: Horizon Scanning ─────────────────────────────────────────
+        run_horizon = run_all or "horizon" in sources_lower
+        if run_horizon:
+            log.info("═══ Track 4: Horizon Scanning ═══")
+            try:
+                from sources.horizon_agent import HorizonAgent
+                h_counts = HorizonAgent().run(days_ahead=365)
+                log.info("Horizon fetch complete: %s", h_counts)
+            except Exception as e:
+                log.warning("Horizon fetch failed: %s", e)
+
         # ── Persist & detect version changes ─────────────────────────────────
         new_count      = 0
         changed_ids    = []
@@ -402,6 +413,15 @@ class Orchestrator:
                                    run_diff=run_diff)
         summarized   = self.summarize(limit=summarize_limit,
                                        progress_callback=progress_callback)
+
+        # Refresh trend snapshots after every full run (no API calls)
+        try:
+            from agents.trend_agent import TrendAgent
+            trend_counts = TrendAgent().run_snapshot()
+            log.info("Trend snapshots refreshed: %s", trend_counts)
+        except Exception as e:
+            log.debug("Trend snapshot refresh skipped: %s", e)
+
         return {**fetch_result, "summarized": summarized, **get_stats()}
 
     # ── Introspection ─────────────────────────────────────────────────────────
