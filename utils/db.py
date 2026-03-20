@@ -283,8 +283,22 @@ def _doc_to_dict(doc: Document) -> Dict[str, Any]:
 # ── Summaries CRUD ────────────────────────────────────────────────────────────
 
 def upsert_summary(summary_dict: Dict[str, Any]) -> None:
+    # Guard: only pass keys that are actual Summary columns to avoid
+    # TypeError from unexpected fields (e.g. extra LLM output keys).
+    _SUMMARY_COLS = {
+        "document_id", "plain_english", "requirements", "recommendations",
+        "action_items", "deadline", "impact_areas", "urgency",
+        "relevance_score", "model_used", "summarized_at", "domain",
+        # jurisdiction is a migration-added column kept for legacy compat
+        "jurisdiction",
+    }
+    clean = {k: v for k, v in summary_dict.items() if k in _SUMMARY_COLS}
+
+    # Always ensure domain is set — fall back to "ai" rather than NULL
+    clean.setdefault("domain", "ai")
+
     with get_session() as session:
-        session.merge(Summary(**summary_dict))
+        session.merge(Summary(**clean))
         session.commit()
 
     # Update FTS index with the richer plain-English summary text
@@ -325,6 +339,7 @@ def get_summary(doc_id: str) -> Optional[Dict[str, Any]]:
             "impact_areas":    s.impact_areas,
             "urgency":         s.urgency,
             "relevance_score": s.relevance_score,
+            "domain":          s.domain or "ai",
         }
 
 
