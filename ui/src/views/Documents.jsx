@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Search, ExternalLink, FileText, ListChecks, GitCompare, X, ChevronRight, Download, CheckCircle2, MinusCircle, Archive } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api.js'
-import { Badge, UrgencyDot, Spinner, EmptyState, Modal, Pagination, RequirementList, KeyValue, SectionHeader } from '../components.jsx'
+import { Badge, UrgencyDot, Spinner, EmptyState, Modal, Pagination, RequirementList, KeyValue, SectionHeader, DomainFilter, ViewHeader } from '../components.jsx'
 import { FeedbackButtons } from './Learning.jsx'
 
 const URGENCIES    = ['', 'Critical', 'High', 'Medium', 'Low']
@@ -38,7 +38,15 @@ function ReviewBadge({ status }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Documents({ domain }) {
+export default function Documents() {
+  // Domain filter — local, persisted per view
+  const [domain, setDomain] = useState(() => {
+    try { return localStorage.getItem('aris_domain_documents') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_documents', d ?? '') } catch {}
+  }
   const [tab,      setTab]      = useState('active')   // 'active' | 'archived'
 
   // Active tab state
@@ -101,7 +109,7 @@ export default function Documents({ domain }) {
         setPages(res.pages || 1)
       }
     } finally { setLoading(false) }
-  }, [search, urgency, jurisdiction, days, page, domain])
+  }, [search, urgency, jurisdiction, days, page, domain])  // domain from local state
 
   const loadArchived = useCallback(async () => {
     setArchivedLoading(true)
@@ -223,9 +231,11 @@ export default function Documents({ domain }) {
       {/* ── Left panel — list ── */}
       <div style={{ flex: selected ? '0 0 55%' : '1', overflow: 'auto', padding: '28px 32px', borderRight: selected ? '1px solid var(--border)' : 'none' }}>
 
-        <SectionHeader
+        <ViewHeader
           title="Documents"
           subtitle={tab === 'active' ? `${total} active` : `${archivedTotal} archived`}
+          domain={domain}
+          onDomainChange={handleDomainChange}
           action={
             <a href={api.exportJson({ days })} download="aris_export.json">
               <button className="btn-secondary btn-sm"><Download size={13} />Export JSON</button>
@@ -261,7 +271,13 @@ export default function Documents({ domain }) {
           loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div>
           ) : docs.length === 0 ? (
-            <EmptyState title="No documents found" message="Try adjusting your filters or run the agents to fetch new data." />
+            <EmptyState
+              title={domain ? `No ${domain === 'privacy' ? 'data privacy' : 'AI regulation'} documents found` : "No documents found"}
+              message={domain
+                ? `Run agents with domain=${domain === 'privacy' ? 'privacy' : 'ai'} to fetch ${domain === 'privacy' ? 'data privacy' : 'AI regulation'} documents, or switch to All to see everything.`
+                : "Try adjusting your filters or run the agents to fetch new documents."
+              }
+            />
           ) : (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -519,7 +535,9 @@ function DocRow({ doc, selected, onClick, archived = false }) {
 
         <Badge level={doc.jurisdiction}>{doc.jurisdiction}</Badge>
 
-        {doc.urgency
+        {doc.urgency === 'Skipped'
+          ? <span className="badge" style={{ background: 'rgba(96,112,112,0.2)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 10 }} title={doc.plain_english}>Skipped</span>
+          : doc.urgency
           ? <Badge level={doc.urgency} />
           : !archived && <span className="badge badge-neutral" title="Not yet summarized">Pending</span>
         }
@@ -527,7 +545,13 @@ function DocRow({ doc, selected, onClick, archived = false }) {
         <ChevronRight size={13} style={{ color: 'var(--text-3)' }} />
       </div>
 
-      {doc.plain_english ? (
+      {doc.urgency === 'Skipped' ? (
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, fontStyle: 'italic' }} className="truncate">
+          {doc.plain_english?.replace('[Pre-filter skipped] ', '') || 'Filtered by relevance pre-filter'}
+          {' '}
+          <span style={{ color: 'var(--accent)', cursor: 'pointer' }}>Use Force Summarize to override</span>
+        </div>
+      ) : doc.plain_english ? (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }} className="truncate">
           {doc.plain_english}
         </div>

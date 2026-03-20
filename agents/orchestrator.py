@@ -432,7 +432,15 @@ class Orchestrator:
                 index_document_passages(combined)
             except Exception:
                 pass   # never block summarisation
-        log.info("Summarization complete — %d summaries saved", saved)
+        skipped_count = len(doc_dicts) - saved
+        if skipped_count > 0:
+            log.info(
+                "Summarization complete — %d saved, %d skipped by pre-filter "
+                "(use Force Summarize in Run Agents to process all)",
+                saved, skipped_count,
+            )
+        else:
+            log.info("Summarization complete — %d summaries saved", saved)
         return saved
 
     # ── Full run ──────────────────────────────────────────────────────────────

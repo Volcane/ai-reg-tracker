@@ -20,7 +20,15 @@ export default function RunAgents({ onJobStart }) {
   const [runDiff,         setRunDiff]         = useState(true)
   const [limit,           setLimit]           = useState(50)
   const [forceSummarize,  setForceSummarize]  = useState(false)
-  const [domain,          setDomain]          = useState('both')
+  const [domain,          setDomain]          = useState(() => {
+    // Inherit the most recently active view domain, or 'both' as default
+    try {
+      const recent = ['documents','changes','horizon','enforcement','baselines','trends','synthesis']
+        .map(k => localStorage.getItem(`aris_domain_${k}`))
+        .find(v => v && v !== '')
+      return recent || 'both'
+    } catch { return 'both' }
+  })
   const [running,         setRunning]         = useState(false)
   const [logLines,        setLogLines]        = useState([])
   const [logOffset,       setLogOffset]       = useState(0)
@@ -168,23 +176,28 @@ export default function RunAgents({ onJobStart }) {
                 </label>
               ))}
               {summarize && (
-                <label className="flex items-center gap-3"
-                       style={{ cursor: 'pointer', fontSize: 12, paddingLeft: 4 }}>
-                  <input
-                    type="checkbox"
-                    checked={forceSummarize}
-                    onChange={e => setForceSummarize(e.target.checked)}
-                    style={{ width: 'auto', accentColor: 'var(--yellow)' }}
-                  />
-                  <span style={{ color: forceSummarize ? 'var(--yellow)' : 'var(--text-3)' }}>
-                    Force summarize — bypass quality filter
-                    {forceSummarize && <span style={{ marginLeft: 6, fontSize: 10,
+                <div style={{ padding: '10px 12px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', border: `1px solid ${forceSummarize ? 'var(--yellow)' : 'var(--border)'}` }}>
+                  <label className="flex items-center gap-3" style={{ cursor: 'pointer', fontSize: 13, marginBottom: forceSummarize ? 6 : 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={forceSummarize}
+                      onChange={e => setForceSummarize(e.target.checked)}
+                      style={{ width: 'auto', accentColor: 'var(--yellow)' }}
+                    />
+                    <span style={{ color: forceSummarize ? 'var(--yellow)' : 'var(--text-2)', fontWeight: 500 }}>
+                      Force Summarize
+                    </span>
+                    {forceSummarize && <span style={{ marginLeft: 'auto', fontSize: 10,
                       background: 'rgba(212,168,67,0.15)', color: 'var(--yellow)',
                       padding: '1px 6px', borderRadius: 3, fontFamily: 'var(--font-mono)' }}>
                       ON
                     </span>}
-                  </span>
-                </label>
+                  </label>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
+                    Bypasses the relevance pre-filter. Use this if documents show as "Skipped" in the Documents view
+                    or if fewer documents are being summarized than expected.
+                  </div>
+                </div>
               )}
             </div>
           </div>

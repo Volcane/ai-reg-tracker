@@ -1,10 +1,10 @@
-# ARIS — AI Regulation Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 
-**Monitor. Baseline. Interpret. Consolidate. Trend. Horizon. Learn. Act.**
+**Monitor. Baseline. Compare. Interpret. Consolidate. Trend. Horizon. Learn. Act.**
 
-ARIS is a fully local, agentic system that monitors AI-related legislation and regulations across US Federal agencies, US state legislatures, and international jurisdictions. It ships with 19 curated baseline regulations, fetches live documents from official government APIs, uses Claude to interpret and analyse them, detects changes, tracks regulatory velocity, scans the regulatory horizon for planned regulations, consolidates obligations across all sources, and performs company-specific compliance gap analysis — all through a browser dashboard or the command line.
+ARIS is a fully local, agentic system that monitors **AI regulation and data privacy law** across US Federal agencies, US state legislatures, and international jurisdictions. It ships with 31 curated baseline regulations, fetches live documents from official government APIs, uses Claude to interpret and analyse them, detects changes, tracks regulatory velocity, scans the regulatory horizon for planned regulations, consolidates obligations across all sources, compares jurisdictions side-by-side, and performs company-specific compliance gap analysis — all through a browser dashboard or the command line.
 
-Everything runs on your machine. The 19 regulatory baselines, consolidation register, velocity analytics, and horizon calendar require no Claude API calls.
+Everything runs on your machine. The 31 baseline regulations, consolidation register, velocity analytics, and horizon calendar require no Claude API calls.
 
 ---
 
@@ -12,19 +12,20 @@ Everything runs on your machine. The 19 regulatory baselines, consolidation regi
 
 | # | Feature | API Calls | Description |
 |---|---------|-----------|-------------|
-| 1 | **Baselines** | None | 19 curated baseline regulations covering settled AI law. Always available. |
+| 1 | **Baselines** | None | 31 curated baselines covering settled AI regulation and data privacy law. Always available. |
 | 2 | **Fetch** | None | Pulls documents from Federal Register, Regulations.gov, Congress.gov, EUR-Lex, UK Parliament, Canada, and state legislatures. |
-| 3 | **Filter** | None | Keyword pre-screening and source-quality scoring before any Claude call. |
-| 4 | **Interpret** | Claude | Plain-English summaries, urgency ratings, requirements, action items, deadlines. |
+| 3 | **Filter** | None | Keyword pre-screening with domain-aware scoring (AI vs privacy vocabulary). Skipped documents are recorded with reasons — visible in the Documents view. |
+| 4 | **Interpret** | Claude | Plain-English summaries, urgency ratings, requirements, action items, deadlines. Domain-specific prompts for AI regulation vs data privacy. |
 | 5 | **Change detection** | Claude | Baseline-aware diffs — compares new documents against the settled baseline, not just against each other. |
-| 6 | **Consolidation** | Optional | De-duplicated obligation register from all 19 baselines. Fast mode: zero API calls. Full mode: one Claude call. |
-| 7 | **Trends & velocity** | None | Jurisdiction velocity charts, impact-area heatmap, acceleration alerts — from your database, no additional API calls. |
-| 8 | **Horizon scanning** | None | Monitors Unified Regulatory Agenda, congressional hearings, EU Work Programme, and UK Parliament upcoming business for regulations planned but not yet published. |
-| 9 | **Synthesis** | Claude | Cross-document regulatory landscape with conflict detection. |
-| 10 | **Gap analysis** | Claude | Company-profile compliance gaps anchored to specific document IDs. |
-| 11 | **Document review** | None | Feedback marks documents Relevant / Partially Relevant / Not Relevant. Not-relevant documents move to an archive. Reviewed documents show a badge so you don't re-review them. |
-| 12 | **Learning** | Claude (periodic) | Adapts keyword weights, source-quality scores, and prompt instructions from your feedback. |
-| 13 | **PDFs** | None | Auto-download PDFs from Federal Register, EUR-Lex, UK legislation; accept manually supplied PDFs. |
+| 6 | **Consolidation** | Optional | De-duplicated obligation register from all 31 baselines. Fast mode: zero API calls. Full mode: one Claude call, cached 24h. |
+| 7 | **Trends & velocity** | None | Jurisdiction velocity sparklines, impact-area heatmap, acceleration alerts — computed from your database, no API calls. |
+| 8 | **Horizon scanning** | None | Monitors Unified Regulatory Agenda, congressional hearings, EU Work Programme, and UK Parliament upcoming business. |
+| 9 | **Compare** | Claude | Side-by-side structured comparison of any two baselines — divergences, agreements, strictness, practical notes. |
+| 10 | **Synthesis** | Claude | Cross-document regulatory landscape with conflict detection. |
+| 11 | **Gap analysis** | Claude | Company-profile compliance gaps anchored to specific document IDs with phased roadmap. |
+| 12 | **Document review** | None | Feedback marks documents Relevant / Partially Relevant / Not Relevant. Not-relevant documents move to an archive. |
+| 13 | **Learning** | Claude (periodic) | Adapts keyword weights, source-quality scores, and prompt instructions from your feedback. Domain-aware: AI and privacy sources scored separately. |
+| 14 | **PDFs** | None | Auto-download PDFs from Federal Register, EUR-Lex, UK legislation; accept manually supplied PDFs. |
 
 ---
 
@@ -32,87 +33,102 @@ Everything runs on your machine. The 19 regulatory baselines, consolidation regi
 
 | View | What It Shows |
 |------|---------------|
-| **Dashboard** | Setup progress, baseline coverage, horizon preview, live urgency stats (once documents exist) |
-| **Documents** | Active document list with review badges; Archive tab for not-relevant documents |
-| **Changes** | Version diffs with severity badges and side-by-side requirement comparisons |
-| **Baselines** | Browse all 19 baseline regulations — obligations, prohibitions, timelines, penalties |
-| **Trends** | Jurisdiction velocity line charts, impact-area heatmap, acceleration alerts |
-| **Horizon** | 12-month forward calendar of planned/advancing regulations, grouped by month |
+| **Dashboard** | Alert rail (critical changes, upcoming deadlines), regulatory pulse (velocity sparklines), system health tiles |
+| **Documents** | Active document list with domain filter, review badges, Skipped indicator with reason; Archive tab |
+| **Changes** | Keyword search, version diffs with severity badges and side-by-side requirement comparisons |
+| **Baselines** | Domain tabs (AI Regulation / Data Privacy), jurisdiction filter, obligations and prohibitions |
+| **Compare** | Side-by-side Claude analysis of any two regulations — divergences, agreements, strictness by topic, practical notes |
+| **Trends** | Jurisdiction velocity sparklines with domain filter, impact-area heatmap, acceleration alerts |
+| **Horizon** | 12-month forward calendar with domain filter, timeline/list views |
+| **Obligations** | Standalone obligation register — browse consolidated obligations across any jurisdiction set |
+| **Ask ARIS** | RAG-powered Q&A across all documents with inline citations |
+| **Briefs** | One-page regulatory briefs per jurisdiction |
 | **Synthesis** | Cross-jurisdiction regulatory narratives and conflict maps |
-| **Gap Analysis** | Company profiles, gap cards by severity, Obligation Register tab, phased roadmap |
-| **PDF Ingest** | Upload PDFs or trigger auto-download |
-| **Run Agents** | Trigger fetch/summarise with live log output |
-| **Watchlist** | Keyword-based alerts across all documents |
+| **Gap Analysis** | Company profiles, domain-scoped gap analysis, obligation register, phased roadmap |
+| **Enforcement** | FTC, SEC, CFPB, ICO enforcement actions and federal litigation |
 | **Graph** | Document relationship network |
+| **Concept Map** | Cross-jurisdiction concept analysis |
+| **Timeline** | Chronological regulatory timeline |
+| **Watchlist** | Keyword-based alerts across all documents |
+| **PDF Ingest** | Upload PDFs or trigger auto-download |
+| **Run Agents** | Trigger fetch/summarise with live log; Force Summarize bypasses pre-filter |
 | **Learning** | Source quality profiles, keyword weights, prompt adaptations, feedback history |
-| **Settings** | API key status, jurisdiction toggles, database stats |
+| **Settings** | API key status with impact descriptions, jurisdiction toggles, database stats |
 
 ---
 
-## Baseline Coverage (19 baselines — no API calls required)
+## Dual-Domain Architecture
 
-### European Union
-| Baseline | Status | Covers |
-|----------|--------|--------|
-| EU AI Act (Regulation 2024/1689) | In Force | Risk tiers, prohibitions, high-risk AI obligations, GPAI, penalties up to €35M / 7% |
-| EU GDPR — AI Provisions | In Force | Article 22 automated decisions, DPIAs, purpose limitation |
-| EU DSA/DMA — AI Provisions | In Force | Recommender transparency, VLOP systemic risk, gatekeeper rules |
-| EU AI Liability + Product Liability Directives | Mixed | Strict liability for defective AI, rebuttable presumption, evidence disclosure |
+ARIS monitors two distinct regulatory domains that share infrastructure but have separate vocabularies, prompts, baselines, and scoring:
 
-### US Federal
-| Baseline | Status | Covers |
-|----------|--------|--------|
-| Executive Order 14110 | In Force | Foundation model reporting, NIST direction, agency requirements |
-| NIST AI RMF 1.0 | Published | GOVERN / MAP / MEASURE / MANAGE functions |
-| FTC AI Guidance | Active | Deceptive AI claims, algorithmic discrimination, FCRA |
-| US Sector AI Rules | Active | CFPB, EEOC, FDA, OCC, HHS sector-specific obligations |
+**AI Regulation** — legislation and guidance governing the development, deployment, and use of AI systems. Risk classification, transparency, oversight, prohibited uses, conformity assessment.
 
-### US States
-| Baseline | Jurisdiction | Status | Covers |
-|----------|-------------|--------|--------|
-| NYC Local Law 144 | New York City | In Force | Annual bias audits, AEDTs, 10-day candidate notice |
-| California AI Laws | California | Multiple | Training data transparency, AI content disclosure |
-| Illinois AI Policy Act | Illinois | In Force | Employer AI notice, bias audits, anti-discrimination |
-| Colorado AI Act | Colorado | In Force (Feb 2026) | High-risk AI assessments, human review, deployer governance |
+**Data Privacy** — laws governing the collection, processing, and transfer of personal data. Consent, individual rights, breach notification, legal bases, international transfers.
 
-### United Kingdom
-| Baseline | Status | Covers |
-|----------|--------|--------|
-| UK AI Framework + ICO AI Guidance | Active | Five cross-sector principles, sector regulators, UK GDPR Article 22 |
+Every document, summary, change, and horizon item carries a `domain` field (`ai` | `privacy` | `both`). Every data view has a three-pill domain filter (All / AI Regulation / Data Privacy) that is independent and persisted per view — Documents can be filtered to Privacy while Changes shows All. The domain filter on Run Agents defaults to the most recently used domain across all views.
 
-### Canada
-| Baseline | Status | Covers |
-|----------|--------|--------|
-| Canada AIDA (Bill C-27) | Proposed | High-impact AI obligations, risk assessment, incident notification |
+### Domain keyword scoring
 
-### Asia-Pacific
-| Baseline | Jurisdiction | Status | Covers |
-|----------|-------------|--------|--------|
-| Singapore AI Governance Framework | Singapore | Active | 11 governance areas, AI Verify, PDPA obligations |
-| Australia AI Governance Framework | Australia | Active | 8 ethics principles, 10 safety guardrails |
-| Japan AI Guidelines | Japan | Active | METI 7 principles, APPI obligations, AISI rules |
+AI documents are scored using AI-vocabulary keyword matching. Privacy documents are scored using a separate `is_privacy_relevant()` function against ~130 privacy terms. Documents in the wrong scoring track were previously silently filtered; they now receive a `Skipped` stub with the reason visible in the Documents view.
 
-### Latin America
-| Baseline | Jurisdiction | Status | Covers |
-|----------|-------------|--------|--------|
-| Brazil AI (LGPD + PL 2338/2023) | Brazil | Mixed | LGPD Article 20, AI Bill risk classification, worker rights |
+---
 
-### International
-| Baseline | Status | Covers |
-|----------|--------|--------|
-| OECD AI Principles + G7 Hiroshima Code | Active | 5 OECD pillars, G7 11-point code for advanced AI |
+## Baseline Coverage (31 baselines — no API calls required)
+
+### AI Regulation (19 baselines)
+
+| Jurisdiction | Baseline | Status |
+|-------------|----------|--------|
+| EU | EU AI Act (Regulation 2024/1689) | In Force |
+| EU | EU GDPR — AI Provisions (Article 22) | In Force |
+| EU | EU DSA/DMA — AI Provisions | In Force |
+| EU | EU AI Liability + Product Liability Directives | Mixed |
+| Federal | Executive Order 14110 | In Force |
+| Federal | NIST AI RMF 1.0 | Published |
+| Federal | FTC AI Guidance | Active |
+| Federal | US Sector AI Rules (CFPB, EEOC, FDA, OCC) | Active |
+| GB | UK AI Framework + ICO AI Guidance | Active |
+| CA_STATE | California AI Laws | Multiple |
+| CO | Colorado AI Act | In Force (Feb 2026) |
+| IL | Illinois AI Policy Act | In Force |
+| NY | NYC Local Law 144 | In Force |
+| CA | Canada AIDA (Bill C-27) | Proposed |
+| JP | Japan AI Guidelines | Active |
+| AU | Australia AI Governance Framework | Active |
+| BR | Brazil AI (LGPD + PL 2338/2023) | Mixed |
+| SG | Singapore AI Governance Framework | Active |
+| INTL | OECD AI Principles + G7 Hiroshima Code | Active |
+
+### Data Privacy (12 baselines)
+
+| Jurisdiction | Baseline | Status |
+|-------------|----------|--------|
+| EU | GDPR (full) | In Force |
+| EU | EU Data Act | In Force |
+| EU | ePrivacy / Cookie Law | In Force |
+| GB | UK GDPR / DPA 2018 | In Force |
+| CA_STATE | CCPA / CPRA | In Force |
+| Federal | US State Privacy Laws (consolidated) | Multiple |
+| Federal | US Federal Privacy (HIPAA, COPPA, GLBA, FERPA) | In Force |
+| CA | PIPEDA / CPPA (Bill C-27) | Mixed |
+| BR | LGPD | In Force |
+| JP | Japan APPI | In Force |
+| AU | Australia Privacy Act | In Force |
+| SG | Singapore PDPA | In Force |
 
 ---
 
 ## Live API Sources
 
-**US Federal** — Federal Register, Regulations.gov, Congress.gov (free API keys)
+**US Federal** — Federal Register, Regulations.gov, Congress.gov (free API keys required)
 
-**US States** — LegiScan API (50-state coverage); Pennsylvania also uses PA General Assembly XML feed
+**US States** — LegiScan API (50-state coverage, free key required). Pennsylvania additionally uses the PA General Assembly ZIP archive (`palegis.us/data/bill-history/YEAR.zip`, updated hourly, no key needed).
 
 **International** — EU (EUR-Lex SPARQL + EU AI Office RSS), UK (Parliament Bills API + legislation.gov.uk), Canada (OpenParliament + Canada Gazette RSS)
 
-**Horizon** — Unified Regulatory Agenda (reginfo.gov, no key), Congress.gov hearing schedules (existing key), EU Commission Work Programme (EUR-Lex SPARQL, no key), UK Parliament whatson API (no key)
+**Enforcement** — FTC, SEC, CFPB, EEOC, DOJ press releases; ICO enforcement (UK); CourtListener federal courts (optional key)
+
+**Horizon** — Unified Regulatory Agenda (no key), Congress.gov hearing schedules, EU Commission Work Programme (no key), UK Parliament whatson API (no key)
 
 ---
 
@@ -124,15 +140,15 @@ pip install -r requirements.txt
 pip install pdfplumber pypdf   # optional, for PDF extraction
 
 # 2. Configure API keys
-copy config\keys.env.example config\keys.env   # Windows
-# cp config/keys.env.example config/keys.env   # Mac/Linux
-# edit config/keys.env and fill in your keys
+cp config/keys.env.example config/keys.env   # Mac/Linux
+# copy config\keys.env.example config\keys.env   # Windows
+# Edit config/keys.env — at minimum set ANTHROPIC_API_KEY
 
-# 3. Build the UI (requires Node.js)
-cd ui && npm install && npm run build && cd ..
-
-# 4. Run database migration (creates all tables)
+# 3. Run database migration
 python migrate.py
+
+# 4. Build the UI (requires Node.js 18+)
+cd ui && npm install && npm run build && cd ..
 
 # 5. Verify installation
 python main.py status
@@ -148,20 +164,28 @@ python server.py
 
 ```bash
 # ── Fetch & analyse ───────────────────────────────────────────────────────────
-python main.py run                           # fetch all sources + summarise
-python main.py fetch                         # fetch only (no Claude)
-python main.py fetch --source federal        # specific source: federal | states | international | horizon
-python main.py fetch --days 90              # longer lookback
-python main.py summarize                     # summarise pending documents
-python main.py summarize --limit 10         # limit to 10 documents
+python main.py run                              # fetch all sources + summarise
+python main.py run --domain both                # explicit: both AI and privacy
+python main.py run --domain ai                  # AI regulation only
+python main.py run --domain privacy             # data privacy only
+python main.py fetch                            # fetch only (no Claude)
+python main.py fetch --source federal           # federal | states | international | horizon
+python main.py fetch --days 90                  # longer lookback window
+python main.py summarize                        # summarise pending documents
+python main.py summarize --force                # bypass pre-filter (clears Skipped docs)
+python main.py summarize --limit 10
 
 # ── Baselines (no API calls) ──────────────────────────────────────────────────
-python main.py baselines                     # list all 19 baselines
-python main.py baselines --jurisdiction EU  # filter by jurisdiction
+python main.py baselines                        # list all 31 baselines
+python main.py baselines --jurisdiction EU
 
 # ── Changes ───────────────────────────────────────────────────────────────────
-python main.py changes [--severity X] [--unreviewed]
+python main.py changes [--severity Critical] [--unreviewed]
 python main.py diff DOC_A DOC_B
+
+# ── Comparison ────────────────────────────────────────────────────────────────
+# Via the browser: Research → Compare
+# Or via API: POST /api/compare {"source_id_a": "eu_ai_act", "source_id_b": "eu_gdpr_full", "focus": "automated decision-making"}
 
 # ── Synthesis ─────────────────────────────────────────────────────────────────
 python main.py synthesise "topic" [-j JURS]
@@ -176,11 +200,11 @@ python main.py pdf-download [--limit N]
 python main.py pdf-inbox
 
 # ── Monitoring ────────────────────────────────────────────────────────────────
-python main.py watch [--interval 24]         # run every N hours continuously
+python main.py watch [--interval 24]            # run every N hours continuously
 
 # ── System ────────────────────────────────────────────────────────────────────
 python main.py status
-python migrate.py                            # safe to re-run; adds missing tables/columns
+python migrate.py                               # safe to re-run; adds missing columns
 ```
 
 ---
@@ -197,51 +221,40 @@ ai-reg-tracker/
 ├── config/
 │   ├── keys.env                     ← Your API keys (never commit this)
 │   ├── keys.env.example             ← Template
-│   ├── settings.py                  ← Global settings, AI keywords, paths
+│   ├── settings.py                  ← Global settings, keywords, ACTIVE_DOMAINS
 │   └── jurisdictions.py             ← Toggle which jurisdictions are monitored
 │
 ├── data/
-│   └── baselines/                   ← 19 static JSON baseline files (no API)
+│   └── baselines/                   ← 31 static JSON baseline files (no API)
 │       ├── index.json
-│       ├── eu_ai_act.json
-│       ├── eu_gdpr_ai.json
-│       ├── eu_dsa_dma.json
-│       ├── eu_ai_liability.json
-│       ├── us_eo_14110.json
-│       ├── us_nist_ai_rmf.json
-│       ├── us_ftc_ai.json
-│       ├── us_sector_ai.json
-│       ├── uk_ai_framework.json
-│       ├── canada_aida.json
-│       ├── illinois_aipa.json
-│       ├── colorado_ai.json
-│       ├── nyc_ll144.json
-│       ├── california_ai.json
-│       ├── singapore_ai.json
-│       ├── australia_ai.json
-│       ├── japan_ai.json
-│       ├── brazil_ai.json
-│       └── oecd_ai_principles.json
+│       ├── [19 AI regulation baselines]
+│       └── [12 data privacy baselines]
 │
 ├── agents/
-│   ├── baseline_agent.py            ← Loads and queries baselines (no API)
-│   ├── consolidation_agent.py       ← De-duplicated obligation register (optional Claude)
+│   ├── baseline_agent.py            ← Loads and queries baselines (domain-aware)
+│   ├── compare_agent.py             ← Side-by-side regulation comparison
+│   ├── consolidation_agent.py       ← De-duplicated obligation register
 │   ├── diff_agent.py                ← Baseline-aware version comparison
 │   ├── gap_analysis_agent.py        ← Company-profile compliance gap analysis
-│   ├── interpreter.py               ← Claude document analysis + pre-filter
-│   ├── learning_agent.py            ← Adaptive keyword/source scoring from feedback
-│   ├── orchestrator.py              ← Coordinates all four fetch tracks
+│   ├── interpreter.py               ← Claude analysis + domain-aware pre-filter
+│   ├── learning_agent.py            ← Adaptive scoring (domain-aware)
+│   ├── orchestrator.py              ← Coordinates all fetch and analysis tracks
 │   ├── scheduler.py                 ← Watch mode / recurring runs
-│   ├── synthesis_agent.py           ← Cross-document synthesis + conflict detection
-│   └── trend_agent.py               ← Velocity analytics, heatmap, alerts (no API)
+│   ├── synthesis_agent.py           ← Cross-document synthesis
+│   └── trend_agent.py               ← Velocity analytics, heatmap (no API)
 │
 ├── sources/
+│   ├── enforcement_agent.py         ← FTC, SEC, CFPB, ICO, CourtListener
 │   ├── federal_agent.py             ← Federal Register, Regulations.gov, Congress.gov
-│   ├── horizon_agent.py             ← Regulatory horizon scanning (no API key needed)
-│   ├── pdf_agent.py                 ← PDF extraction, auto-download, drop folder
-│   ├── state_agent_base.py
+│   ├── horizon_agent.py             ← Regulatory horizon scanning
+│   ├── pdf_agent.py                 ← PDF extraction and auto-download
+│   ├── state_agent_base.py          ← LegiScan + native XML base class
 │   ├── states/
-│   │   └── pennsylvania.py
+│   │   ├── pennsylvania.py          ← PA ZIP archive (palegis.us, hourly)
+│   │   ├── virginia.py
+│   │   ├── colorado.py
+│   │   ├── illinois.py
+│   │   └── california.py
 │   └── international/
 │       ├── eu.py
 │       ├── uk.py
@@ -249,38 +262,55 @@ ai-reg-tracker/
 │       └── stubs.py
 │
 ├── utils/
-│   ├── db.py                        ← SQLite tables + CRUD (17 tables)
-│   ├── cache.py                     ← HTTP cache, keyword scoring helpers
+│   ├── db.py                        ← SQLite (17 tables, domain column on 4 tables)
+│   ├── cache.py                     ← HTTP cache, keyword scoring, is_privacy_relevant()
+│   ├── llm.py                       ← LLM abstraction layer
+│   ├── rag.py                       ← RAG passage index for Ask ARIS
+│   ├── search.py                    ← Full-text search + PRIVACY_TERMS_EXPANDED
 │   └── reporter.py
 │
-├── tests/
-│   ├── test_suite.py                ← Federal + PA agent tests
+├── tests/                           ← 636 tests across 18 files
+│   ├── test_suite.py                ← Federal + PA agent
 │   ├── test_international.py        ← EU, UK, Canada
 │   ├── test_diff.py                 ← Diff agent + change detection
 │   ├── test_learning.py             ← Learning agent + feedback
 │   ├── test_synthesis.py            ← Synthesis agent
 │   ├── test_pdf.py                  ← PDF extraction
 │   ├── test_gap_analysis.py         ← Gap analysis agent
-│   ├── test_baselines.py            ← All 19 baseline files
+│   ├── test_baselines.py            ← All 31 baseline files
 │   ├── test_consolidation.py        ← Consolidation agent
 │   ├── test_trends.py               ← Trend/velocity agent
-│   └── test_horizon.py              ← Horizon scanning agent
+│   ├── test_horizon.py              ← Horizon scanning
+│   ├── test_search.py               ← Full-text search
+│   ├── test_qa.py                   ← Q&A / RAG
+│   ├── test_graph.py                ← Knowledge graph
+│   ├── test_concepts.py             ← Concept mapping
+│   ├── test_intelligence.py         ← Intelligence / brief agent
+│   ├── test_enforcement.py          ← Enforcement agent
+│   └── test_domain_foundation.py   ← Privacy domain taxonomy + scoring
 │
 └── ui/src/views/
-    ├── Dashboard.jsx                ← Setup guide, baseline coverage, horizon preview
-    ├── Documents.jsx                ← Active + Archive tabs, review badges
-    ├── Changes.jsx                  ← Version diffs with severity
-    ├── Baselines.jsx                ← Browse all 19 baselines
-    ├── Trends.jsx                   ← Velocity charts, heatmap, alerts
-    ├── Horizon.jsx                  ← Forward calendar, timeline/list views
+    ├── Dashboard.jsx                ← Alert rail, regulatory pulse, system health
+    ├── Documents.jsx                ← Active/Archive tabs, Skipped indicator
+    ├── Changes.jsx                  ← Keyword search, version diffs
+    ├── Baselines.jsx                ← Domain tabs, jurisdiction filter
+    ├── Compare.jsx                  ← Side-by-side regulation comparison
+    ├── Trends.jsx                   ← Velocity sparklines, heatmap, alerts
+    ├── Horizon.jsx                  ← Forward calendar with domain filter
+    ├── ObligationRegister.jsx       ← Standalone obligation register
+    ├── AskAris.jsx                  ← RAG Q&A with citations
+    ├── Brief.jsx                    ← One-page jurisdiction briefs
     ├── Synthesis.jsx                ← Cross-document narratives
-    ├── GapAnalysis.jsx              ← Profiles, gaps, Register tab, roadmap
-    ├── PDFIngest.jsx
-    ├── RunAgents.jsx
-    ├── Watchlist.jsx
+    ├── GapAnalysis.jsx              ← Profiles, domain-scoped gaps, roadmap
+    ├── Enforcement.jsx              ← FTC/SEC/ICO enforcement actions
     ├── Graph.jsx
-    ├── Learning.jsx                 ← Feedback buttons exported from here
-    └── Settings.jsx
+    ├── ConceptMap.jsx
+    ├── Timeline.jsx
+    ├── Watchlist.jsx
+    ├── PDFIngest.jsx
+    ├── RunAgents.jsx                ← Live log, Force Summarize option
+    ├── Learning.jsx
+    └── Settings.jsx                 ← Key impact descriptions, domain-aware stats
 ```
 
 ---
@@ -289,75 +319,66 @@ ai-reg-tracker/
 
 | Table | Purpose |
 |-------|---------|
-| `documents` | Raw documents fetched from sources |
-| `summaries` | Claude-generated summaries with urgency, requirements, impact areas |
-| `document_diffs` | Version comparisons with severity and requirement changes |
-| `document_links` | Relationships between documents (supersedes, amends, etc.) |
-| `pdf_metadata` | PDF extraction records |
-| `feedback_events` | Human relevance feedback (relevant / not_relevant / partially_relevant) |
-| `source_profiles` | Rolling quality scores per source and agency |
-| `keyword_weights` | Learned keyword multipliers from feedback |
-| `prompt_adaptations` | Claude-generated prompt notes for problematic sources |
-| `fetch_history` | Fetch run log |
-| `thematic_syntheses` | Cross-document synthesis results |
-| `company_profiles` | Company profiles for gap analysis |
-| `gap_analyses` | Gap analysis results (history preserved) |
-| `regulatory_horizon` | Forward-looking horizon items from regulatory calendars |
-| `trend_snapshots` | Cached velocity / heatmap / alert data (refreshed daily) |
-| `obligation_register_cache` | Cached consolidation register results |
+| `documents` | Raw documents fetched from sources. Has `domain` column (`ai`/`privacy`/`both`). |
+| `summaries` | Claude-generated summaries. `urgency='Skipped'` marks pre-filter rejections with reason. |
+| `document_diffs` | Version comparisons with severity and requirement changes. Has `domain` column. |
+| `document_links` | Relationships between documents (supersedes, amends, clarifies). |
+| `pdf_metadata` | PDF extraction records. |
+| `feedback_events` | Human relevance feedback (relevant / not_relevant / partially_relevant). |
+| `source_profiles` | Rolling quality scores per source and agency. |
+| `keyword_weights` | Learned keyword multipliers from feedback. |
+| `prompt_adaptations` | Claude-generated prompt notes for problematic sources. |
+| `fetch_history` | Fetch run log. |
+| `thematic_syntheses` | Cross-document synthesis results. |
+| `company_profiles` | Company profiles for gap analysis. |
+| `gap_analyses` | Gap analysis results (history preserved). |
+| `regulatory_horizon` | Forward-looking horizon items. Has `domain` column. |
+| `trend_snapshots` | Cached velocity / heatmap / alert data. |
+| `obligation_register_cache` | Cached consolidation register results. |
+| `knowledge_graph_edges` | Document relationship graph edges. |
 
 ---
 
 ## Key Concepts
 
-### Four Fetch Tracks
+### Pending vs Skipped documents
 
-**Track 1 — US Federal:** Federal Register rules, proposed rules, and notices. Regulations.gov dockets. Congress.gov bills.
+Documents that fail the relevance pre-filter no longer stay permanently in the pending queue. Instead, a stub summary with `urgency='Skipped'` is written, and the skip reason appears in the Documents view (e.g. "pre-filter score 0.03 below threshold 0.08"). To process skipped documents regardless of score, use **Force Summarize** in Run Agents or `python main.py summarize --force`.
 
-**Track 2 — US States:** LegiScan 50-state API. Pennsylvania additionally uses the PA General Assembly XML feed.
+### Domain system
 
-**Track 3 — International:** EUR-Lex SPARQL for EU legislation. UK Parliament Bills API. OpenParliament and Canada Gazette for Canada.
+`ACTIVE_DOMAINS` in `config/keys.env` controls which domains are fetched (default: `both`). The CLI `--domain` flag overrides per-run. All four primary database tables carry a `domain` column so filtering is cheap. The domain filter in each UI view is stored independently in `localStorage` (e.g. `aris_domain_documents`, `aris_domain_changes`) so each view remembers its own setting.
 
-**Track 4 — Horizon:** Unified Regulatory Agenda (planned US federal rulemakings with anticipated dates), congressional committee hearing schedules, EU Commission Work Programme, UK Parliament upcoming bill stages. No additional API keys required. Documents that have not yet been published but are planned or advancing.
+### Jurisdiction comparison
 
-### How Baseline Integration Works
+`POST /api/compare` accepts two baseline or document IDs plus an optional focus topic. The `CompareAgent` loads both sources, extracts the most relevant sections (with focus filtering), and sends a single Claude call that returns structured divergences, agreements, strictness comparison by topic, and practical notes for organisations subject to both frameworks. Results are rendered in the Compare view with collapsible side-by-side cards per divergence area. 12 suggested comparison pairs are pre-loaded on the placeholder screen.
 
-Before any Claude analysis, the relevant baseline for a document's jurisdiction is loaded and prepended to the prompt. This means:
+### Obligation Register
 
-- **Diff agent** — compares a new document against what the Act *requires*, not just against a prior version. Flags when a change adds, removes, or contradicts a baseline obligation.
-- **Gap analysis** — scope mapping includes the full settled body of law regardless of how many documents are in the database. A company profile against the EU AI Act gets all 40+ baseline obligations even if only 5 EU documents have been fetched.
-- **Consolidation** — the register is built from baseline obligations as its foundation, with live documents augmenting it.
+The `ConsolidationAgent` produces a de-duplicated list of what must actually be done across a set of jurisdictions. Accessible as a standalone top-level view (Research → Obligations) or embedded inside Gap Analysis results. Two modes:
 
-### Consolidation Register
-
-The `ConsolidationAgent` produces a single de-duplicated list of what you must actually do across all your jurisdictions. Two modes:
-
-- **Fast** (no API) — structural consolidation using fuzzy title matching and keyword-based category assignment. Runs in under 100ms. Always available.
+- **Fast** (no API) — structural consolidation from baselines using fuzzy title matching and keyword category assignment. Under 100ms.
 - **Full** (one Claude call, cached 24h) — semantic deduplication catches near-identical obligations phrased differently across jurisdictions.
 
-Each register entry has: a clear action-verb title, category, description, strictest scope version, sources list (all regulations that impose it), earliest deadline, and universality (Universal / Majority / Single jurisdiction).
+Each entry: action-verb title, category, description, strictest scope, source list, earliest deadline, universality (Universal / Majority / Single).
 
-### Regulatory Velocity
+### Four Fetch Tracks
 
-The `TrendAgent` computes, from your local database with no API calls:
+**Track 1 — US Federal:** Federal Register rules, proposed rules, and notices. Regulations.gov dockets. Congress.gov bills. Both AI and privacy terms searched.
 
-- **Velocity** — documents per jurisdiction per 30-day window over 12 months, with trend labels (accelerating / stable / decelerating)
-- **Heatmap** — impact areas ranked by activity score combining recent volume and urgency weighting
-- **Alerts** — jurisdictions and impact areas whose document count has increased ≥50% vs 6 months prior
+**Track 2 — US States:** LegiScan 50-state API with AI + privacy keyword search. Pennsylvania additionally uses the PA General Assembly ZIP archive (`palegis.us/data/bill-history/YEAR.zip`, updated hourly Monday–Friday, no key needed).
 
-Results are cached in `trend_snapshots` and refreshed automatically after every `python main.py run`.
+**Track 3 — International:** EUR-Lex SPARQL for EU legislation. UK Parliament Bills API. OpenParliament and Canada Gazette for Canada. Japan, Australia, Singapore, Brazil via configured stubs.
 
-### Document Review Workflow
+**Track 4 — Horizon:** Unified Regulatory Agenda, congressional committee hearing schedules, EU Commission Work Programme, UK Parliament upcoming bill stages. No additional API keys required.
 
-Documents flow through three states:
+### Dashboard — alert-first design
 
-1. **Unreviewed** — no badge shown in the list
-2. **Reviewed** — green check (Relevant) or yellow minus (Partially Relevant) badge shown on the list row; the feedback section shows "Marked Relevant" when you re-open the document
-3. **Archived** — marked Not Relevant; removed from the active list immediately; accessible under the Archive tab; feedback buttons hidden in the detail panel
+The dashboard answers "what needs my attention right now?" rather than listing documents. It renders three zones:
 
-### Learning System
-
-Every Not Relevant mark does three things: decreases the source's quality score, decreases the agency's score separately, and reduces the weights of matched keywords. After 5+ false positives from one source within 30 days, Claude generates a targeted instruction prepended to all future prompts for that source. These adaptations are viewable and toggleable in the Learning view.
+1. **Alert rail** — only renders when something is actionable: unreviewed critical changes, upcoming horizon deadlines within 30 days, critical-urgency documents, large pending summarisation backlog. When everything is clear, a single green confirmation line renders instead.
+2. **Insight grid** — regulatory pulse (velocity sparklines per jurisdiction with trend arrows and acceleration alerts) + coverage/deadline/enforcement summary panels.
+3. **System health** — data coverage %, domain split, baselines loaded, API key status with red border if the Anthropic key is missing.
 
 ---
 
@@ -369,21 +390,28 @@ python -m pytest tests/ -v
 python -m unittest discover tests -v
 ```
 
-**288 tests across 11 test files.** All tests run without API calls. Database-dependent tests are skipped when running without a live database but pass in full integration runs.
+**636 tests across 18 test files.** All tests run without live API calls. Database-dependent tests are skipped unless a live database is present.
 
-| File | Tests | Covers |
-|------|-------|--------|
-| `test_baselines.py` | ~30 | Baseline loading, JSON validity, all 19 files present |
-| `test_consolidation.py` | 49 | Category inference, clustering, merging, cache, register |
-| `test_trends.py` | 34 | Velocity computation, heatmap, alerts, date windows |
-| `test_horizon.py` | 46 | Date parsing, RSS parsing, agenda entry parsing, persistence |
-| `test_gap_analysis.py` | ~40 | Gap identification, scope mapping, profile handling |
-| `test_diff.py` | ~30 | Diff detection, severity scoring, baseline-aware diffs |
-| `test_learning.py` | ~25 | Feedback recording, score adjustment, keyword weights |
-| `test_synthesis.py` | ~20 | Synthesis generation, conflict detection |
-| `test_suite.py` | ~25 | Federal agent, PA agent |
-| `test_international.py` | ~25 | EU, UK, Canada agents |
-| `test_pdf.py` | ~20 | PDF extraction, metadata |
+| File | Covers |
+|------|--------|
+| `test_suite.py` | Federal agent, PA agent (ZIP feed, URL format) |
+| `test_international.py` | EU, UK, Canada agents |
+| `test_baselines.py` | All 31 baseline files — JSON validity, required fields, domain tags |
+| `test_consolidation.py` | Category inference, clustering, merging, cache, register structure |
+| `test_trends.py` | Velocity computation, heatmap, alerts, date windows |
+| `test_horizon.py` | Date parsing, RSS parsing, agenda entry parsing, persistence |
+| `test_gap_analysis.py` | Gap identification, scope mapping, profile handling |
+| `test_diff.py` | Diff detection, severity scoring, baseline-aware diffs |
+| `test_learning.py` | Feedback recording, score adjustment, keyword weights |
+| `test_synthesis.py` | Synthesis generation, conflict detection |
+| `test_search.py` | Full-text search and ranking |
+| `test_qa.py` | Q&A RAG pipeline |
+| `test_graph.py` | Knowledge graph edges |
+| `test_concepts.py` | Concept mapping |
+| `test_intelligence.py` | Brief generation |
+| `test_enforcement.py` | Enforcement agent — FTC, ICO, domain detection |
+| `test_pdf.py` | PDF extraction and metadata |
+| `test_domain_foundation.py` | Privacy taxonomy, `is_privacy_relevant()`, domain detection, 57 tests |
 
 ---
 
@@ -403,23 +431,23 @@ Add `"NY"` to `ENABLED_US_STATES` in `config/jurisdictions.py`.
 
 **New country:**
 ```python
-# sources/international/singapore.py
+# sources/international/south_korea.py
 from sources.international.base import InternationalAgentBase
 
-class SingaporeAgent(InternationalAgentBase):
-    jurisdiction_code = "SG"
-    jurisdiction_name = "Singapore"
+class SouthKoreaAgent(InternationalAgentBase):
+    jurisdiction_code = "KR"
+    jurisdiction_name = "South Korea"
     region            = "Asia-Pacific"
 
     def fetch_native(self, lookback_days=30):
-        return []   # implement fetch from PDPC or equivalent
+        return []   # implement PIPC / ISMS-P feed
 ```
 Add to `ENABLED_INTERNATIONAL` in `config/jurisdictions.py`.
 
 **New baseline:**
-Create a JSON file in `data/baselines/` with at minimum: `id`, `jurisdiction`, `title`, `short_name`, `status`, `overview`. Add an entry to `data/baselines/index.json`. Restart the server — no migration required.
+Create a JSON file in `data/baselines/` with at minimum: `id`, `jurisdiction`, `title`, `short_name`, `status`, `overview`, `domain` (`ai` or `privacy`). Add an entry to `data/baselines/index.json`. Restart the server — no migration required.
 
-**Manual PDF from any jurisdiction:**
+**Manual PDF:**
 Use PDF Ingest → Upload, or drop a file in `output/pdf_inbox/`. Jurisdiction is free text.
 
 ---
@@ -428,12 +456,13 @@ Use PDF Ingest → Upload, or drop a file in `output/pdf_inbox/`. Jurisdiction i
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `ANTHROPIC_API_KEY` | — | Required for AI features (summarise, diff, gap analysis, synthesis) |
-| `REGULATIONS_GOV_KEY` | — | Free — Regulations.gov rulemaking dockets |
-| `CONGRESS_GOV_KEY` | — | Free — Congress.gov bills + hearing schedules |
-| `LEGISCAN_KEY` | — | Free — US state legislation (30k calls/month) |
+| `ANTHROPIC_API_KEY` | — | Required for all AI features (summarise, diff, gap, synthesis, compare) |
+| `REGULATIONS_GOV_KEY` | — | Free — federal rulemaking dockets |
+| `CONGRESS_GOV_KEY` | — | Free — US bills and hearing schedules |
+| `LEGISCAN_KEY` | — | Free — all US state legislation |
+| `COURTLISTENER_KEY` | — | Optional — federal court opinions and litigation |
+| `ACTIVE_DOMAINS` | `both` | `ai` / `privacy` / `both` — which regulatory domains to fetch |
 | `LOOKBACK_DAYS` | `30` | Days back for document searches |
-| `MIN_RELEVANCE_SCORE` | `0.5` | Minimum Claude relevance score to store a summary |
 | `DB_PATH` | `./output/aris.db` | SQLite database location |
 | `LOG_LEVEL` | `INFO` | DEBUG / INFO / WARNING / ERROR |
 
@@ -441,11 +470,11 @@ Use PDF Ingest → Upload, or drop a file in `output/pdf_inbox/`. Jurisdiction i
 
 ## After Updating Files
 
-Any time you receive updated ARIS files, run:
+Any time you receive updated ARIS files:
 
 ```bash
 python migrate.py          # adds any new tables or columns safely
-cd ui && npm run build     # only needed if UI files changed
+cd ui && npm run build     # only if UI files changed
 python server.py           # restart the server
 ```
 
@@ -455,12 +484,16 @@ python server.py           # restart the server
 
 ## Design Principles
 
-**Baselines are the starting point, documents are updates.** ARIS knows what the EU AI Act requires before any implementing act arrives. Every analysis is grounded in the settled body of law.
+**Baselines are the starting point, documents are updates.** ARIS knows what the EU AI Act requires and what GDPR demands before any implementing act or enforcement decision arrives. Every analysis is grounded in the settled body of law.
 
-**Everything runs locally.** Database, cache, PDFs, learning state, all 19 baselines, velocity analytics, and the horizon calendar live on your machine. The only external calls are to government APIs (for documents) and Anthropic (for AI interpretation).
+**Two domains, one system.** AI regulation and data privacy share infrastructure but have separate vocabularies, scoring functions, and LLM prompts. A GDPR breach notification article won't be silently dropped by an AI-keyword filter.
 
-**Zero-cost features first.** You can browse 19 baselines, view the consolidation register, check regulatory velocity, and see the horizon calendar without spending a single API token. Claude calls are gated behind the keyword filter and only run on documents that pass relevance scoring.
+**Everything runs locally.** Database, cache, PDFs, learning state, all 31 baselines, velocity analytics, and the horizon calendar live on your machine. The only external calls are to government APIs (for documents) and Anthropic (for AI interpretation).
+
+**Zero-cost features first.** You can browse 31 baselines, view the consolidation register, check regulatory velocity, and see the horizon calendar without spending a single API token. Claude calls are gated behind the relevance filter and only run on documents that pass scoring.
+
+**Transparency over silence.** Documents rejected by the pre-filter are recorded as `Skipped` with the reason visible in the UI, not silently dropped. API key status in Settings shows exactly which features each missing key disables.
 
 **Full history preserved.** Every diff, gap analysis, synthesis, feedback event, and trend snapshot is stored as a new record. Nothing is overwritten.
 
-**Graceful degradation.** Every agent wraps its calls in try/except. A failed horizon source does not block the document fetch. A failed learning call does not block summarisation. The browser UI shows a clear diagnostic when baseline files are missing rather than silently failing.
+**Graceful degradation.** Every agent wraps its calls in try/except. A failed state source does not block the federal fetch. A failed horizon source does not block document fetching. The UI shows clear diagnostics rather than silently failing.

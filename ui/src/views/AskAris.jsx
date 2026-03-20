@@ -19,12 +19,17 @@ const api = {
 const JURISDICTIONS = ['', 'EU', 'Federal', 'PA', 'GB', 'CA', 'JP', 'AU', 'SG', 'BR']
 
 const STARTER_QUESTIONS = [
+  // AI Regulation
   'What are the prohibited AI practices under the EU AI Act?',
-  'How does NIST AI RMF define the four core functions?',
   'Which US states have specific requirements for automated hiring tools?',
   'How do the EU AI Act and Colorado AI Act differ in their risk-tier approach?',
-  'What are the transparency obligations for foundation model providers?',
-  'What constitutes a "high-risk AI system" under EU law?',
+  // Data Privacy
+  'What are the GDPR requirements for data breach notification?',
+  'How does CCPA/CPRA define the right to opt out of data sales?',
+  'What lawful bases exist for processing personal data under GDPR?',
+  // Cross-domain
+  'How does GDPR Article 22 on automated decisions interact with the EU AI Act?',
+  'What transparency obligations apply to AI systems that process personal data?',
 ]
 
 // ── Citation badge inline ─────────────────────────────────────────────────────

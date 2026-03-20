@@ -195,9 +195,24 @@ class LearningAgent:
         source    = doc.get("source", "")
         agency    = (doc.get("agency") or "")[:80]
 
-        kw_score    = keyword_score(combined)
+        # Privacy documents use privacy relevance scoring, not AI keyword scoring
+        doc_domain = doc.get("domain", "ai")
+        if doc_domain == "privacy":
+            from utils.cache import is_privacy_relevant
+            priv_relevant = is_privacy_relevant(combined)
+            base_kw = 0.6 if priv_relevant else 0.05
+        else:
+            kw_score   = keyword_score(combined)
+            base_kw    = kw_score
+
         title_kw_count = sum(1 for kw in AI_KEYWORDS if kw in title)
-        title_boost = min(title_kw_count * 0.1, 0.3)
+        title_boost    = min(title_kw_count * 0.1, 0.3)
+
+        # Privacy title boost — check privacy terms in title
+        if doc_domain == "privacy":
+            from utils.search import PRIVACY_TERMS_EXPANDED
+            priv_title_kws = sum(1 for kw in PRIVACY_TERMS_EXPANDED if kw in title)
+            title_boost    = min(priv_title_kws * 0.08, 0.3)
 
         src_profile = get_source_profile(source)
         src_quality = src_profile["quality_score"] if src_profile else 0.7
@@ -209,12 +224,21 @@ class LearningAgent:
         kw_weights  = self._get_keyword_weights()
         weighted_kw = _weighted_keyword_score(combined, kw_weights)
 
-        composite = (
-            (weighted_kw * 0.40) +
-            (title_boost  * 0.25) +
-            (src_quality  * 0.20) +
-            (ag_quality   * 0.15)
-        )
+        # For privacy docs weight keyword score less (different vocabulary)
+        if doc_domain == "privacy":
+            composite = (
+                (base_kw     * 0.50) +
+                (title_boost * 0.25) +
+                (src_quality * 0.15) +
+                (ag_quality  * 0.10)
+            )
+        else:
+            composite = (
+                (weighted_kw * 0.40) +
+                (title_boost * 0.25) +
+                (src_quality * 0.20) +
+                (ag_quality  * 0.15)
+            )
         return min(composite, 1.0)
 
     def should_skip(self, doc: Dict[str, Any],

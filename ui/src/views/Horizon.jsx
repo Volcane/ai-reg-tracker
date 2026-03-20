@@ -3,7 +3,7 @@ import {
   CalendarDays, RefreshCw, X, ExternalLink,
   ChevronDown, ChevronUp, Clock, Zap,
 } from 'lucide-react'
-import { Spinner, EmptyState, Badge } from '../components.jsx'
+import { Spinner, EmptyState, Badge, DomainFilter, ViewHeader } from '../components.jsx'
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,14 @@ const ALL_JURS   = ['Federal','EU','GB','CA','IL','CO','NY']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function Horizon({ domain }) {
+export default function Horizon() {
+  const [domain, setDomain] = useState(() => {
+    try { return localStorage.getItem('aris_domain_horizon') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_horizon', d ?? '') } catch {}
+  }
   const [items,    setItems]    = useState([])
   const [stats,    setStats]    = useState(null)
   const [loading,  setLoading]  = useState(true)
@@ -104,14 +111,12 @@ export default function Horizon({ domain }) {
     <div style={{ padding: '28px 32px', maxWidth: 1000 }}>
       {/* Header */}
       <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
-        <div>
-          <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 4 }}>
-            Regulatory Horizon
-          </h2>
-          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
-            Planned and advancing regulations — before they publish
-          </div>
-        </div>
+        <ViewHeader
+          title="Regulatory Horizon"
+          subtitle={`${stats?.total || 0} items tracked · ${stats?.upcoming_90_days || 0} next 90 days`}
+          domain={domain}
+          onDomainChange={handleDomainChange}
+        />
         <button className="btn-primary btn-sm" onClick={triggerFetch} disabled={fetching || loading}>
           <RefreshCw size={12} style={{ animation: fetching ? 'spin 1s linear infinite' : 'none' }} />
           {fetching ? 'Scanning…' : 'Scan Sources'}
@@ -164,7 +169,7 @@ export default function Horizon({ domain }) {
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={22} /></div>
       ) : !hasItems ? (
-        <HorizonEmptyState onFetch={triggerFetch} />
+        <HorizonEmptyState onFetch={triggerFetch} domain={domain} />
       ) : view === 'timeline' ? (
         <TimelineView grouped={grouped} onDismiss={dismiss} />
       ) : (
@@ -331,23 +336,31 @@ function HorizonCard({ item, onDismiss }) {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
-function HorizonEmptyState({ onFetch }) {
+function HorizonEmptyState({ onFetch, domain }) {
   return (
     <div style={{ maxWidth: 480 }}>
       <CalendarDays size={32} style={{ color: 'var(--accent)', marginBottom: 16 }} />
-      <h3 style={{ fontWeight: 400, fontSize: '1.1rem', marginBottom: 12 }}>No horizon items yet</h3>
-      <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 24 }}>
-        Horizon scanning monitors forward-looking regulatory calendars — the Unified
-        Regulatory Agenda, congressional committee hearings, EU Work Programme, and
-        UK Parliament upcoming business. Click Scan Sources to fetch the latest entries.
+      <h3 style={{ fontWeight: 400, fontSize: '1.1rem', marginBottom: 12 }}>
+        {domain === 'privacy' ? 'No data privacy horizon items yet'
+          : domain === 'ai' ? 'No AI regulation horizon items yet'
+          : 'No horizon items yet'}
+      </h3>
+      <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 16 }}>
+        {domain
+          ? `No upcoming ${domain === 'privacy' ? 'data privacy' : 'AI regulation'} regulatory events found. You can clear the domain filter to see all horizon items, or scan sources to fetch the latest entries.`
+          : 'Horizon scanning monitors forward-looking regulatory calendars — the Unified Regulatory Agenda, congressional committee hearings, EU Work Programme, and UK Parliament upcoming business.'
+        }
       </p>
-      <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 24 }}>
-        Items are filtered by AI relevance using keyword scoring — only regulations likely
-        to affect AI systems appear here. No Claude API calls are used.
-      </p>
-      <button className="btn-primary" onClick={onFetch}>
-        <RefreshCw size={13} /> Scan Sources Now
-      </button>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="btn-primary" onClick={onFetch}>
+          <RefreshCw size={13} /> Scan Sources Now
+        </button>
+        {domain && (
+          <button className="btn-secondary btn-sm" onClick={() => window.location.reload()}>
+            Clear domain filter
+          </button>
+        )}
+      </div>
     </div>
   )
 }

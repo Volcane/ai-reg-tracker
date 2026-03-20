@@ -17,6 +17,7 @@ import anthropic  # kept for backward compat; actual calls go through utils.llm
 from config.settings import ANTHROPIC_API_KEY, CLAUDE_MODEL, MAX_TOKENS
 from utils.llm import call_llm, is_configured, LLMError
 from utils.cache import get_logger, keyword_score
+from utils.search import is_privacy_relevant
 
 log = get_logger("aris.interpreter")
 
@@ -87,6 +88,75 @@ Rules:
 - urgency should reflect both the regulatory force (final rule > proposed rule) and timeline
 """
 
+
+PRIVACY_SYSTEM_PROMPT = """You are a regulatory intelligence analyst specializing in data privacy law and compliance.
+Your job is to read privacy legislation, regulations, and guidance and produce structured, actionable
+business intelligence summaries for companies that collect or process personal data.
+
+You must be precise, neutral, and prioritize information that helps a legal or privacy team
+determine what obligations a company has, what rights data subjects have, and what actions are required.
+
+Always respond with valid JSON only — no markdown, no extra commentary."""
+
+PRIVACY_ANALYSIS_PROMPT_TEMPLATE = """Analyze the following {doc_type} from {jurisdiction} ({source}).
+
+TITLE: {title}
+AGENCY / REGULATOR: {agency}
+STATUS: {status}
+PUBLISHED: {published_date}
+URL: {url}
+
+DOCUMENT TEXT:
+{text}
+
+---
+
+Return a JSON object with exactly these keys:
+
+{{
+  "relevance_score": <float 0.0–1.0, how directly this applies to data privacy regulation>,
+  "plain_english": "<2–3 sentence plain English summary of what this document requires or establishes>",
+  "requirements": [
+    "<specific mandatory obligation — use action verbs like 'Must', 'Shall', 'Required to'>",
+    ...
+  ],
+  "recommendations": [
+    "<non-mandatory guidance or best practice suggestion>",
+    ...
+  ],
+  "action_items": [
+    "<concrete, specific step a privacy/legal team should take in response to this document>",
+    ...
+  ],
+  "data_subject_rights": [
+    "<right granted to individuals under this regulation, e.g. right to erasure, right to access>",
+    ...
+  ],
+  "legal_bases": [
+    "<lawful basis for processing personal data mentioned, e.g. consent, legitimate interest, contract>",
+    ...
+  ],
+  "breach_notification_timeline": "<timeline for breach notification if specified, else null>",
+  "penalty_summary": "<brief description of maximum penalties, else null>",
+  "deadline": "<ISO date or human-readable deadline if one exists, else null>",
+  "impact_areas": [
+    "<business area affected — e.g. 'Marketing', 'HR/Employment', 'Healthcare', 'Finance', 'Product Development', 'IT/Security'>",
+    ...
+  ],
+  "urgency": "<one of: Low | Medium | High | Critical>",
+  "doc_classification": "<one of: Final Rule | Proposed Rule | Enacted Law | Guidance | Notice | Bill (Introduced) | Bill (Passed) | Executive Order | Other>"
+}}
+
+Rules:
+- requirements should only contain things that are LEGALLY MANDATORY
+- recommendations should only contain VOLUNTARY or advisory items
+- data_subject_rights: list each distinct right granted (leave empty array if no rights are established)
+- legal_bases: list each processing basis mentioned or implied (leave empty array if not specified)
+- breach_notification_timeline: e.g. "72 hours to supervisory authority, without undue delay to individuals"
+- relevance_score: 0.0 if unrelated to data privacy; 1.0 if directly and comprehensively about data privacy
+- urgency should reflect regulatory force and timeline urgency
+"""
+
 # ── Interpreter class ─────────────────────────────────────────────────────────
 
 class InterpreterAgent:
@@ -102,40 +172,64 @@ class InterpreterAgent:
                 "Set the appropriate API key in config/keys.env."
             )
 
-    def analyse(self, doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def analyse(self, doc: Dict[str, Any],
+                force: bool = False) -> Optional[Dict[str, Any]]:
         """
         Analyse a single document dict.
         Returns a summary dict ready to be stored in the `summaries` table,
         or None if the document is not AI-relevant.
 
-        Uses the LearningAgent to:
-          1. Pre-filter using learned source quality and keyword weights
-          2. Inject domain-specific prompt additions from past adaptations
+        force=True bypasses the learning pre-filter entirely.
         """
         # ── Stage 1: Learning-aware pre-filter ───────────────────────────────
         learner = _get_learning_agent()
 
-        if learner:
-            skip, pre_score, reason = learner.should_skip(doc)
-            if skip:
-                log.debug("Learning pre-filter skipped %s: %s", doc.get("id"), reason)
-                return None
-        else:
-            # Fallback to basic keyword score
-            text_blob = f"{doc.get('title','')} {doc.get('full_text','')}"
-            if keyword_score(text_blob) < 0.05:
-                log.debug("Skipping low-relevance document: %s", doc["id"])
-                return None
+        if not force:
+            if learner:
+                skip, pre_score, reason = learner.should_skip(doc)
+                if skip:
+                    log.warning(
+                        "Pre-filter skipped '%s' (%s): %s — run with --force to override",
+                        doc.get("title", doc.get("id", ""))[:60],
+                        doc.get("source", ""),
+                        reason,
+                    )
+                    # Write a stub summary so this doc leaves the pending queue
+                    # and the user can see why it was filtered.
+                    _write_skipped_stub(doc, reason)
+                    return None
+            else:
+                # Fallback to basic keyword/privacy score
+                text_blob  = f"{doc.get('title','')} {doc.get('full_text','')}"
+                doc_domain_check = doc.get("domain", "ai")
+                if doc_domain_check == "privacy":
+                    if not is_privacy_relevant(text_blob):
+                        log.debug("Skipping low-relevance privacy document: %s", doc["id"])
+                        _write_skipped_stub(doc, "low privacy relevance score (no learner)")
+                        return None
+                elif keyword_score(text_blob) < 0.05:
+                    log.debug("Skipping low-relevance document: %s", doc["id"])
+                    _write_skipped_stub(doc, "low keyword relevance score (no learner)")
+                    return None
 
         # ── Stage 2: Build prompt with any domain-specific adaptations ────────
         text_blob = f"{doc.get('title','')} {doc.get('full_text','')}"
+        doc_domain = doc.get("domain", "ai")
+
+        # Select prompt template based on document domain
+        if doc_domain == "privacy":
+            chosen_system   = PRIVACY_SYSTEM_PROMPT
+            chosen_template = PRIVACY_ANALYSIS_PROMPT_TEMPLATE
+        else:
+            chosen_system   = SYSTEM_PROMPT
+            chosen_template = ANALYSIS_PROMPT_TEMPLATE
 
         # Get learned prompt additions for this source/agency/jurisdiction
         prompt_additions = ""
         if learner:
             prompt_additions = learner.get_adapted_prompt_additions(doc)
 
-        prompt = ANALYSIS_PROMPT_TEMPLATE.format(
+        prompt = chosen_template.format(
             doc_type      = doc.get("doc_type", "Document"),
             jurisdiction  = doc.get("jurisdiction", "Unknown"),
             source        = doc.get("source", "Unknown"),
@@ -153,7 +247,7 @@ class InterpreterAgent:
 
         # ── Stage 3: LLM analysis ─────────────────────────────────────────────
         try:
-            raw  = call_llm(prompt=prompt, system=SYSTEM_PROMPT, max_tokens=MAX_TOKENS)
+            raw  = call_llm(prompt=prompt, system=chosen_system, max_tokens=MAX_TOKENS)
             data = _safe_parse_json(raw)
         except LLMError as e:
             log.error("LLM error for doc %s: %s", doc["id"], e)
@@ -171,7 +265,7 @@ class InterpreterAgent:
                       doc["id"], data.get("relevance_score", 0))
             return None
 
-        return {
+        summary = {
             "document_id":     doc["id"],
             "plain_english":   data.get("plain_english", ""),
             "requirements":    data.get("requirements", []),
@@ -182,24 +276,55 @@ class InterpreterAgent:
             "urgency":         data.get("urgency", "Medium"),
             "relevance_score": float(data.get("relevance_score", 0.5)),
             "model_used":      CLAUDE_MODEL,
+            "domain":          doc_domain,
         }
 
+        # Preserve privacy-specific extracted fields as additional impact_areas entries
+        # when the document is privacy-domain
+        if doc_domain == "privacy":
+            rights = data.get("data_subject_rights", [])
+            if rights:
+                summary["action_items"] = (
+                    summary["action_items"] +
+                    [f"Data subject right to implement: {r}" for r in rights[:3]]
+                )
+            breach_timeline = data.get("breach_notification_timeline")
+            if breach_timeline:
+                summary["requirements"] = (
+                    [f"Breach notification: {breach_timeline}"] +
+                    summary["requirements"]
+                )
+
+        return summary
+
     def analyse_batch(self, docs: List[Dict[str, Any]],
-                      progress_callback=None) -> List[Dict[str, Any]]:
+                      progress_callback=None,
+                      force: bool = False) -> List[Dict[str, Any]]:
         """
         Analyse a list of documents. Returns list of successful summary dicts.
         progress_callback(current, total) is called if provided.
+
+        force=True bypasses the learning pre-filter so every document is sent
+        to the LLM regardless of source quality scores.
         """
-        summaries = []
+        summaries  = []
+        skipped    = 0
         for i, doc in enumerate(docs):
             if progress_callback:
                 progress_callback(i + 1, len(docs))
             try:
-                result = self.analyse(doc)
+                result = self.analyse(doc, force=force)
                 if result:
                     summaries.append(result)
+                else:
+                    skipped += 1
             except Exception as e:
                 log.error("Unexpected error analysing doc %s: %s", doc.get("id"), e)
+        if skipped:
+            log.warning(
+                "%d/%d documents skipped by pre-filter (run with --force to override)",
+                skipped, len(docs)
+            )
         return summaries
 
 

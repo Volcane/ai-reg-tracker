@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react'
-import { CheckCheck, GitCompare, Filter, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { CheckCheck, GitCompare, Filter, ChevronDown, ChevronUp, ExternalLink, Search } from 'lucide-react'
 import { api } from '../api.js'
-import { Badge, Spinner, EmptyState, SectionHeader, RequirementList } from '../components.jsx'
+import { Badge, Spinner, EmptyState, SectionHeader, RequirementList, DomainFilter, ViewHeader } from '../components.jsx'
 
 const SEVERITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
-export default function Changes({ domain }) {
+export default function Changes() {
+  const [domain, setDomain] = useState(() => {
+    try { return localStorage.getItem('aris_domain_changes') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_changes', d ?? '') } catch {}
+  }
   const [changes,    setChanges]    = useState([])
   const [loading,    setLoading]    = useState(true)
   const [expanded,   setExpanded]   = useState({})
@@ -13,6 +20,7 @@ export default function Changes({ domain }) {
   const [diffType,   setDiffType]   = useState('')
   const [unreviewed, setUnreviewed] = useState(false)
   const [days,       setDays]       = useState(30)
+  const [search,     setSearch]     = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -31,24 +39,42 @@ export default function Changes({ domain }) {
 
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
 
+  // Client-side keyword search across change summary text
+  const filteredChanges = search.trim()
+    ? changes.filter(c => {
+        const q = search.toLowerCase()
+        return (c.change_summary || '').toLowerCase().includes(q)
+          || (c.base_document_id || '').toLowerCase().includes(q)
+          || (c.new_document_id  || '').toLowerCase().includes(q)
+          || (c.overall_assessment || '').toLowerCase().includes(q)
+      })
+    : changes
+
   const unreviewedCount = changes.filter(c => !c.reviewed).length
 
   return (
     <div style={{ padding: '28px 32px', maxWidth: 900 }}>
-      <SectionHeader
+      <ViewHeader
         title="Regulatory Changes"
         subtitle={`${changes.length} changes · ${unreviewedCount} unreviewed`}
-        action={
-          unreviewedCount > 0 && (
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-              {unreviewedCount} pending review
-            </span>
-          )
-        }
+        domain={domain}
+        onDomainChange={handleDomainChange}
+        action={unreviewedCount > 0 && (
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{unreviewedCount} pending review</span>
+        )}
       />
 
       {/* Filters */}
       <div className="flex gap-3" style={{ marginBottom: 24, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+          <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+          <input
+            placeholder="Search changes…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ paddingLeft: 28, width: '100%', boxSizing: 'border-box' }}
+          />
+        </div>
         <select value={days} onChange={e => setDays(Number(e.target.value))} style={{ width: 110 }}>
           <option value={7}>7 days</option>
           <option value={14}>14 days</option>
@@ -80,15 +106,18 @@ export default function Changes({ domain }) {
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={24} /></div>
-      ) : changes.length === 0 ? (
+      ) : filteredChanges.length === 0 ? (
         <EmptyState
           icon={GitCompare}
-          title="No changes detected"
-          message="Changes appear automatically when a regulation is updated or an addendum is linked."
+          title={search ? `No changes matching "${search}"` : "No changes detected"}
+          message={search
+            ? "Try a different search term, or clear the search to see all changes."
+            : "Changes appear automatically when a regulation is updated or an addendum is linked. Run agents to check for updates."
+          }
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {changes.map(c => (
+          {filteredChanges.map(c => (
             <ChangeCard
               key={c.id}
               change={c}

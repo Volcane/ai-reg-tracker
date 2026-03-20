@@ -3,7 +3,7 @@ import {
   Shield, RefreshCw, ExternalLink, AlertTriangle, Scale,
   FileText, Globe, Filter, ChevronDown, ChevronUp, Sparkles,
 } from 'lucide-react'
-import { Spinner, EmptyState, SectionHeader, Badge } from '../components.jsx'
+import { Spinner, EmptyState, SectionHeader, Badge, DomainFilter, ViewHeader } from '../components.jsx'
 import { useNavigate } from 'react-router-dom'
 
 const enfApi = {
@@ -256,7 +256,14 @@ function DetailPanel({ action, onClose }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Enforcement({ domain }) {
+export default function Enforcement() {
+  const [domain, setDomain] = useState(() => {
+    try { return localStorage.getItem('aris_domain_enforcement') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_enforcement', d ?? '') } catch {}
+  }
   const [items,       setItems]       = useState([])
   const [stats,       setStats]       = useState(null)
   const [loading,     setLoading]     = useState(true)
@@ -380,9 +387,11 @@ export default function Enforcement({ domain }) {
 
         {/* Header */}
         <div style={{ padding:'20px 24px 0', flexShrink:0 }}>
-          <SectionHeader
+          <ViewHeader
             title="Enforcement & Litigation"
-            subtitle={stats ? `${stats.total} AI-related actions tracked` : ''}
+            subtitle={stats ? `${stats.total} actions tracked` : ''}
+            domain={domain}
+            onDomainChange={handleDomainChange}
             action={
               <button className="btn-secondary btn-sm" onClick={triggerFetch}
                       disabled={fetching}>

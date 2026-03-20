@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Shield, AlertTriangle, Clock, ChevronDown,
          ChevronUp, ExternalLink, RefreshCw, Globe } from 'lucide-react'
-import { Spinner, EmptyState, SectionHeader, Badge } from '../components.jsx'
+import { Spinner, EmptyState, SectionHeader, Badge, DomainFilter, ViewHeader } from '../components.jsx'
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,14 @@ const STATUS_STYLE = {
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function Baselines({ domain }) {
+export default function Baselines() {
+  const [domain, setDomain] = useState(() => {
+    try { return localStorage.getItem('aris_domain_baselines') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_baselines', d ?? '') } catch {}
+  }
   const [summaries,  setSummaries]  = useState([])
   const [coverage,   setCoverage]   = useState(null)
   const [diagStatus, setDiagStatus] = useState(null)
@@ -43,7 +50,7 @@ export default function Baselines({ domain }) {
     setLoading(true)
     try {
       const [all, cov, diag] = await Promise.all([
-        baselineApi.all(domain ? { domain } : {}),
+        baselineApi.all(),
         baselineApi.coverage(),
         baselineApi.status(),
       ])
@@ -63,9 +70,12 @@ export default function Baselines({ domain }) {
     finally { setLoadingDetail(false) }
   }
 
-  const filtered = jurFilter
-    ? summaries.filter(b => b.jurisdiction === jurFilter)
-    : summaries
+  const filtered = summaries.filter(b => {
+    if (jurFilter && b.jurisdiction !== jurFilter) return false
+    if (domain === 'ai' && b.domain !== 'ai') return false
+    if (domain === 'privacy' && b.domain !== 'privacy') return false
+    return true
+  })
 
   const jurisdictions = [...new Set(summaries.map(b => b.jurisdiction))].sort()
 
@@ -73,26 +83,57 @@ export default function Baselines({ domain }) {
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
       {/* Left panel */}
       <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid var(--border)', overflow: 'auto', padding: '20px 16px' }}>
-        <div style={{ marginBottom: 16 }}>
+        {/* Header */}
+        <div style={{ marginBottom: 12 }}>
           <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 2 }}>Regulatory Baselines</div>
-          <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-            {summaries.length} regulations · no API calls required
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
+            {summaries.length} regulations loaded · no API calls required
+            {coverage && ` · reviewed ${coverage.last_reviewed}`}
           </div>
-          {coverage && (
-            <div style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
-              Last reviewed: {coverage.last_reviewed}
-            </div>
-          )}
+
+          {/* Domain tabs — primary filter */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 10 }}>
+            {[
+              { value: null,      label: 'All',       count: summaries.length },
+              { value: 'ai',      label: 'AI Reg',    count: summaries.filter(b => b.domain === 'ai').length },
+              { value: 'privacy', label: 'Privacy',   count: summaries.filter(b => b.domain === 'privacy').length },
+            ].map(({ value, label, count }) => (
+              <button key={String(value)} onClick={() => { handleDomainChange(value); setJurFilter('') }}
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', cursor: 'pointer',
+                  padding: '6px 4px', fontSize: 11.5, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 4, marginBottom: -1,
+                  fontWeight: domain === value ? 500 : 400,
+                  color: domain === value
+                    ? (value === 'privacy' ? '#7c9ef7' : 'var(--accent)')
+                    : 'var(--text-3)',
+                  borderBottom: domain === value
+                    ? `2px solid ${value === 'privacy' ? '#7c9ef7' : 'var(--accent)'}`
+                    : '2px solid transparent',
+                }}>
+                {label}
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)',
+                  background: domain === value ? (value === 'privacy' ? '#7c9ef720' : 'var(--accent-glow)') : 'var(--bg-4)',
+                  color: domain === value ? (value === 'privacy' ? '#7c9ef7' : 'var(--accent)') : 'var(--text-3)',
+                  padding: '0 4px', borderRadius: 3 }}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Jurisdiction filter */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 14 }}>
-          <button
-            className={!jurFilter ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
-            onClick={() => setJurFilter('')}>All</button>
-          {jurisdictions.map(j => (
+        {/* Jurisdiction filter — secondary, only shows relevant jurs for active tab */}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button className={!jurFilter ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+            style={{ fontSize: 11 }} onClick={() => setJurFilter('')}>All</button>
+          {jurisdictions.filter(j => {
+            if (!domain) return true
+            return filtered.some(b => b.jurisdiction === j)
+          }).map(j => (
             <button key={j}
               className={jurFilter === j ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
+              style={{ fontSize: 11 }}
               onClick={() => setJurFilter(j)}>{j}</button>
           ))}
         </div>

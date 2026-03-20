@@ -3,7 +3,7 @@ import { Layers, Play, Star, StarOff, Trash2, ChevronDown, ChevronUp,
          AlertTriangle, CheckCircle2, TrendingUp, Globe, Plus, X } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { api } from '../api.js'
-import { Badge, Spinner, EmptyState, Modal, SectionHeader, RequirementList } from '../components.jsx'
+import { Badge, Spinner, EmptyState, Modal, SectionHeader, RequirementList, DomainFilter } from '../components.jsx'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -39,6 +39,13 @@ export default function Synthesis() {
   const [syntheses,  setSyntheses]  = useState([])
   const [suggestions,setSuggestions]= useState([])
   const [loading,    setLoading]    = useState(true)
+  const [domain,     setDomain]     = useState(() => {
+    try { return localStorage.getItem('aris_domain_synthesis') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_synthesis', d ?? '') } catch {}
+  }
   const [selected,   setSelected]   = useState(null)
   const [detail,     setDetail]     = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(false)

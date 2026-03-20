@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Cell, CartesianGrid, Legend,
 } from 'recharts'
 import { TrendingUp, TrendingDown, Minus, RefreshCw, AlertTriangle, Zap } from 'lucide-react'
-import { Spinner, EmptyState, Badge } from '../components.jsx'
+import { Spinner, EmptyState, Badge, DomainFilter } from '../components.jsx'
 
 // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -41,6 +41,13 @@ export default function Trends() {
   const [refreshing,setRefreshing]= useState(false)
   const [tab,       setTab]       = useState('velocity')
   const [jurFilter, setJurFilter] = useState('')
+  const [domain,    setDomain]    = useState(() => {
+    try { return localStorage.getItem('aris_domain_trends') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_trends', d ?? '') } catch {}
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -70,10 +77,22 @@ export default function Trends() {
 
   const noData = !loading && (!data || (data.total_docs === 0))
 
+  // Domain-filter velocity data client-side
+  // velocity entries have jurisdiction; we use domain tags if available,
+  // otherwise fall back to known privacy-centric jurisdictions
+  const PRIVACY_JURS = new Set(['EU', 'GB', 'BR', 'SG', 'JP', 'AU', 'CA'])
+  const filteredVelocity = (data?.velocity || []).filter(v => {
+    if (!domain) return true
+    const isPrivacy = PRIVACY_JURS.has(v.jurisdiction)
+    if (domain === 'privacy') return isPrivacy
+    if (domain === 'ai')      return !isPrivacy
+    return true
+  })
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
       {/* Header */}
-      <div className="flex items-start justify-between" style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 4 }}>
             Regulatory Velocity &amp; Trends
@@ -83,10 +102,13 @@ export default function Trends() {
             {data?.last_updated && ` · last updated ${data.last_updated.slice(0,16).replace('T',' ')}`}
           </div>
         </div>
-        <button className="btn-secondary btn-sm" onClick={refresh} disabled={refreshing || loading}>
-          <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          {refreshing ? 'Refreshing…' : 'Refresh'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <DomainFilter domain={domain} onChange={handleDomainChange} />
+          <button className="btn-secondary btn-sm" onClick={refresh} disabled={refreshing || loading}>
+            <RefreshCw size={12} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -127,7 +149,7 @@ export default function Trends() {
             ))}
           </div>
 
-          {tab === 'velocity' && <VelocityTab velocity={data?.velocity || []} />}
+          {tab === 'velocity' && <VelocityTab velocity={filteredVelocity} />}
           {tab === 'heatmap'  && <HeatmapTab  heatmap={data?.heatmap  || []} />}
           {tab === 'alerts'   && <AlertsTab   alerts={data?.alerts    || []} />}
         </>
@@ -416,11 +438,15 @@ function TrendsEmptyState() {
       <TrendingUp size={32} style={{ color: 'var(--accent)', marginBottom: 16 }} />
       <h3 style={{ fontWeight: 400, fontSize: '1.1rem', marginBottom: 12 }}>No trend data yet</h3>
       <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7 }}>
-        Trends are computed from your document database. Fetch some documents
-        first with <strong>Run Agents</strong>, then come back here to see velocity
-        charts, impact area activity, and acceleration alerts — all without any
-        additional API calls.
+        Trends are computed from your document database. Fetch documents first with{' '}
+        <strong>Run Agents</strong>, then return here to see velocity charts, impact area
+        activity, and acceleration alerts — all without any additional API calls.
       </p>
+      <a href="/run" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
+        padding: '7px 14px', background: 'var(--accent)', color: 'var(--bg)',
+        borderRadius: 'var(--radius)', fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+        Go to Run Agents →
+      </a>
     </div>
   )
 }

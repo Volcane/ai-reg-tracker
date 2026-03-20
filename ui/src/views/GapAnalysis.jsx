@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, AlertTriangle, CheckCircle2,
   Edit3, RefreshCw, X, Bot, Shield, BarChart3, ListChecks
 } from 'lucide-react'
-import { Spinner, EmptyState, SectionHeader, Badge } from '../components.jsx'
+import { Spinner, EmptyState, SectionHeader, Badge, DomainFilter } from '../components.jsx'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -78,6 +78,13 @@ export default function GapAnalysis() {
   const [logLines,   setLogLines]   = useState([])
   const [logOffset,  setLogOffset]  = useState(0)
   const [lastResult, setLastResult] = useState(null)
+  const [domain,     setDomain]     = useState(() => {
+    try { return localStorage.getItem('aris_domain_gap') ?? null } catch { return null }
+  })
+  const handleDomainChange = (d) => {
+    setDomain(d)
+    try { localStorage.setItem('aris_domain_gap', d ?? '') } catch {}
+  }
 
   const load = async () => {
     setLoading(true)
@@ -121,7 +128,7 @@ export default function GapAnalysis() {
 
   const runAnalysis = async (profileId, opts = {}) => {
     setRunning(true); setLogLines([]); setLogOffset(0); setLastResult(null)
-    await gapApi.runAnalysis({ profile_id: profileId, ...opts })
+    await gapApi.runAnalysis({ profile_id: profileId, domain: domain || undefined, ...opts })
   }
 
   const editProfile = (profile) => {
@@ -143,12 +150,20 @@ export default function GapAnalysis() {
   // Left panel: profile + analysis list
   const leftPanel = (
     <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid var(--border)', overflow: 'auto', padding: '20px 16px' }}>
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 14 }}>Gap Analysis</div>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{profiles.length} profiles</div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 14 }}>Gap Analysis</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{profiles.length} profiles</div>
+          </div>
+          <button className="btn-primary btn-sm" onClick={newProfile}><Plus size={13} /> New</button>
         </div>
-        <button className="btn-primary btn-sm" onClick={newProfile}><Plus size={13} /> New</button>
+        <DomainFilter domain={domain} onChange={handleDomainChange} />
+        {domain && (
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6, fontStyle: 'italic' }}>
+            Analysis will focus on {domain === 'privacy' ? 'data privacy' : 'AI regulation'} documents
+          </div>
+        )}
       </div>
 
       {/* Live log */}
@@ -166,7 +181,12 @@ export default function GapAnalysis() {
               message='Click "New" to create your first company profile.' />
           ) : profiles.map(p => (
             <ProfileCard key={p.id} profile={p}
-              analyses={analyses.filter(a => a.profile_id === p.id)}
+  analyses={analyses.filter(a => {
+                if (a.profile_id !== p.id) return false
+                if (!domain) return true
+                // Match analysis domain if stored, otherwise show all
+                return !a.domain || a.domain === domain || a.domain === 'both'
+              })}
               onEdit={() => editProfile(p)}
               onRun={() => runAnalysis(p.id)}
               onOpenAnalysis={openAnalysis}
@@ -194,6 +214,7 @@ export default function GapAnalysis() {
       {view === 'results' && selected && (
         <GapResults
           analysis={selected}
+          domain={domain}
           onStar={async (id, on) => { await gapApi.starAnalysis(id, on); openAnalysis(id) }}
           onAnnotate={async (id, n) => { await gapApi.annotate(id, n); openAnalysis(id) }}
           onRerun={() => runAnalysis(selected.profile_id, { jurisdictions: selected.jurisdictions })}
@@ -251,7 +272,7 @@ function ProfileCard({ profile, analyses, onEdit, onRun, onOpenAnalysis, running
 
 // ── Gap results view ──────────────────────────────────────────────────────────
 
-function GapResults({ analysis, onStar, onAnnotate, onRerun, running }) {
+function GapResults({ analysis, domain, onStar, onAnnotate, onRerun, running }) {
   const [tab,          setTab]          = useState('gaps')
   const [expanded,     setExpanded]     = useState({})
   const [showAnnotate, setShowAnnotate] = useState(false)
@@ -287,9 +308,18 @@ function GapResults({ analysis, onStar, onAnnotate, onRerun, running }) {
           <h2 style={{ fontWeight: 300, fontSize: '1.2rem', marginBottom: 4 }}>
             Compliance Gap Analysis
           </h2>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-            {analysis.docs_examined} docs examined · {(analysis.jurisdictions||[]).join(', ')} ·{' '}
-            {analysis.generated_at?.slice(0,10)} · ID {analysis.id}
+          <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>{analysis.docs_examined} docs examined · {(analysis.jurisdictions||[]).join(', ')} · {analysis.generated_at?.slice(0,10)}</span>
+            {domain && (
+              <span style={{
+                fontSize: 9, padding: '1px 5px', borderRadius: 3,
+                background: domain === 'privacy' ? 'rgba(124,158,247,0.15)' : 'var(--accent-glow)',
+                color: domain === 'privacy' ? '#7c9ef7' : 'var(--accent)',
+                border: `1px solid ${domain === 'privacy' ? '#7c9ef730' : 'var(--accent-dim)'}`,
+              }}>
+                {domain === 'privacy' ? 'DATA PRIVACY' : 'AI REGULATION'}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2 items-center">
@@ -996,6 +1026,7 @@ function GapAnalysisPlaceholder({ onNew, analyses, onOpen }) {
         Create a company profile describing your AI systems and current governance practices.
         ARIS will compare them against the regulatory documents in your database and identify
         specific gaps — anchored to real documents, not generic advice.
+        Use the domain filter in the sidebar to focus on AI regulation or data privacy obligations.
       </p>
       <button className="btn-primary" onClick={onNew}>
         <Plus size={14} /> Create Company Profile

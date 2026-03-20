@@ -6,6 +6,7 @@ export function Badge({ level, children }) {
     High:     'badge-high',
     Medium:   'badge-medium',
     Low:      'badge-low',
+    Skipped:  'badge-neutral',
     Federal:  'badge-blue',
     EU:       'badge-blue',
     GB:       'badge-neutral',
@@ -143,6 +144,94 @@ export function RequirementList({ items = [], color = 'var(--red)', label }) {
           <li key={i} style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>{item}</li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+// ── DomainFilter — 3-pill strip for per-view domain filtering ─────────────
+// domain: null = All, 'ai' = AI Regulation, 'privacy' = Data Privacy
+// Persisted to localStorage with a per-view key.
+
+export function DomainFilter({ domain, onChange, counts = {} }) {
+  const AI_COLOR      = 'var(--accent)'
+  const PRIVACY_COLOR = '#7c9ef7'
+  const BOTH_COLOR    = 'var(--text-2)'
+
+  const pills = [
+    { value: null,      label: 'All',            color: BOTH_COLOR    },
+    { value: 'ai',      label: 'AI Regulation',  color: AI_COLOR      },
+    { value: 'privacy', label: 'Data Privacy',   color: PRIVACY_COLOR },
+  ]
+
+  return (
+    <div style={{
+      display: 'inline-flex', gap: 4, padding: '3px',
+      background: 'var(--bg-3)', borderRadius: 8,
+      border: '1px solid var(--border)',
+    }}>
+      {pills.map(({ value, label, color }) => {
+        const active = domain === value
+        const count  = value === null
+          ? (counts.ai || 0) + (counts.privacy || 0) + (counts.both || 0)
+          : value === 'ai'
+          ? (counts.ai || 0) + (counts.both || 0)
+          : (counts.privacy || 0) + (counts.both || 0)
+
+        return (
+          <button
+            key={String(value)}
+            onClick={() => onChange(value)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 6, fontSize: 12,
+              fontWeight: active ? 500 : 400,
+              background: active ? 'var(--bg-2)' : 'transparent',
+              border: active ? `1px solid ${color}44` : '1px solid transparent',
+              color: active ? color : 'var(--text-3)',
+              cursor: 'pointer', transition: 'all 0.12s',
+              boxShadow: active ? `0 1px 3px rgba(0,0,0,0.2)` : 'none',
+            }}
+            onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-2)' }}
+            onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-3)' }}
+          >
+            {label}
+            {count > 0 && (
+              <span style={{
+                fontSize: 10, fontFamily: 'var(--font-mono)',
+                background: active ? color + '22' : 'var(--bg-4)',
+                color: active ? color : 'var(--text-3)',
+                padding: '0 4px', borderRadius: 3,
+                transition: 'all 0.12s',
+              }}>{count}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── ViewHeader — consistent header with optional domain filter ────────────
+export function ViewHeader({ title, subtitle, action, domain, onDomainChange, counts }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+      marginBottom: 20, gap: 16, flexWrap: 'wrap',
+    }}>
+      <div>
+        <h1 style={{ fontSize: '1.2rem', fontWeight: 300, marginBottom: subtitle ? 3 : 0 }}>{title}</h1>
+        {subtitle && (
+          <div style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+            {subtitle}
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {onDomainChange && (
+          <DomainFilter domain={domain} onChange={onDomainChange} counts={counts} />
+        )}
+        {action}
+      </div>
     </div>
   )
 }
