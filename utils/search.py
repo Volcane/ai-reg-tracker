@@ -325,17 +325,73 @@ def expand_query(query: str) -> str:
     return expanded
 
 
+# Known non-AI acronyms that appear in state legislation and cause false positives.
+# These are checked before the main relevance test.
+_NOT_AI_CONTEXTS = re.compile(
+    r"""\b(naic|medicaid|maid|paid leave|said act|brain initiative)\b""",
+    re.IGNORECASE,
+)
+
+# Unambiguous AI signals — any single one is sufficient to pass
+_STRONG_AI_SIGNALS = [
+    "artificial intelligence", "machine learning", "deep learning",
+    "neural network", "large language model", "generative ai",
+    "automated decision", "algorithmic decision", "ai system",
+    "ai governance", "ai regulation", "ai policy", "ai act",
+    "ai safety", "ai risk", "ai audit", "ai disclosure",
+    "facial recognition", "biometric", "deepfake", "synthetic media",
+    "explainability", "explainable ai", "high-risk ai",
+    "llm", "chatbot", "autonomous vehicle", "recommendation algorithm",
+]
+
+
 def is_ai_relevant(text: str, threshold: float = 0.08) -> bool:
     """
     Return True if text is likely related to AI regulation.
-    Uses the expanded 150+ term taxonomy.
-    Replaces the simple 30-term exact match in utils/cache.py.
+    Uses the expanded 150+ term taxonomy with false-positive protection.
+
+    Two-stage check:
+    1. Strong unambiguous AI signals pass immediately (avoids false negatives
+       from the threshold when the term is clearly AI-specific).
+    2. Scored check against full taxonomy, with known-false-positive guard.
+       Non-AI acronyms like NAIC, MAID, PAID leave are rejected unless
+       at least 2 additional AI terms are present.
     """
     if not text:
         return False
     lower = text.lower()
-    hits  = sum(1 for term in AI_TERMS_EXPANDED if term in lower)
-    score = min(hits / 10.0, 1.0)   # normalise to 0-1
+
+    # Stage 1: unambiguous signals — always pass
+    for signal in _STRONG_AI_SIGNALS:
+        if signal in lower:
+            return True
+
+    # Stage 2: false-positive guard for known non-AI acronyms
+    if _NOT_AI_CONTEXTS.search(lower):
+        extra = sum(1 for term in AI_TERMS_EXPANDED
+                    if term in lower and term != "aida")
+        if extra < 2:
+            return False
+
+    # Stage 3: scored match
+    # 'aida' alone is ambiguous (non-AI uses: opera character, agricultural programs,
+    # county districts). Only count it if another AI term is also present.
+    ambiguous = {'aida'}
+    hits = 0
+    has_unambiguous = False
+    for term in AI_TERMS_EXPANDED:
+        if term in lower:
+            if term in ambiguous:
+                pass   # count below only if unambiguous hit found
+            else:
+                hits += 1
+                has_unambiguous = True
+    # Add ambiguous hits only when backed by at least one unambiguous term
+    if has_unambiguous:
+        for term in ambiguous:
+            if term in lower:
+                hits += 1
+    score = min(hits / 10.0, 1.0)
     return score >= threshold
 
 

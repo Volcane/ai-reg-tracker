@@ -157,6 +157,41 @@ Rules:
 - urgency should reflect regulatory force and timeline urgency
 """
 
+# ── Skipped stub helper ───────────────────────────────────────────────────────
+
+def _write_skipped_stub(doc: dict, reason: str,
+                        claude_score: float = 0.0) -> Optional[Dict]:
+    """
+    Write a minimal summary row with urgency='Skipped' so the document
+    leaves the pending queue and the reason is visible in the Documents view.
+
+    Returns the stub dict so callers can return it from analyse() and the
+    orchestrator can feed it into the autonomous learning loop.
+    claude_score: the relevance score that triggered the skip (0.0 if pre-filter).
+    """
+    stub = {
+        "document_id":    doc.get("id", ""),
+        "plain_english":  reason,
+        "urgency":        "Skipped",
+        "relevance_score": claude_score,
+        "requirements":   [],
+        "action_items":   [],
+        "impact_areas":   [],
+        "domain":         doc.get("domain", "ai"),
+        # Carry source fields so the orchestrator learning loop has context
+        "_source":        doc.get("source", ""),
+        "_agency":        doc.get("agency", ""),
+        "_jurisdiction":  doc.get("jurisdiction", ""),
+        "_doc_type":      doc.get("doc_type", ""),
+    }
+    try:
+        from utils.db import upsert_summary
+        upsert_summary({k: v for k, v in stub.items() if not k.startswith("_")})
+    except Exception as e:
+        log.debug("Could not write skipped stub for %s: %s", doc.get("id", ""), e)
+    return stub
+
+
 # ── Interpreter class ─────────────────────────────────────────────────────────
 
 class InterpreterAgent:
@@ -196,8 +231,7 @@ class InterpreterAgent:
                     )
                     # Write a stub summary so this doc leaves the pending queue
                     # and the user can see why it was filtered.
-                    _write_skipped_stub(doc, reason)
-                    return None
+                    return _write_skipped_stub(doc, reason)
             else:
                 # Fallback to basic keyword/privacy score
                 text_blob  = f"{doc.get('title','')} {doc.get('full_text','')}"
@@ -205,12 +239,10 @@ class InterpreterAgent:
                 if doc_domain_check == "privacy":
                     if not is_privacy_relevant(text_blob):
                         log.debug("Skipping low-relevance privacy document: %s", doc["id"])
-                        _write_skipped_stub(doc, "low privacy relevance score (no learner)")
-                        return None
+                        return _write_skipped_stub(doc, "low privacy relevance score (no learner)")
                 elif keyword_score(text_blob) < 0.05:
                     log.debug("Skipping low-relevance document: %s", doc["id"])
-                    _write_skipped_stub(doc, "low keyword relevance score (no learner)")
-                    return None
+                    return _write_skipped_stub(doc, "low keyword relevance score (no learner)")
 
         # ── Stage 2: Build prompt with any domain-specific adaptations ────────
         text_blob = f"{doc.get('title','')} {doc.get('full_text','')}"
@@ -259,11 +291,22 @@ class InterpreterAgent:
         if not data:
             return None
 
-        # Final gate: if Claude itself rated relevance < 0.3, skip
-        if data.get("relevance_score", 0) < 0.3:
-            log.debug("Claude rated doc %s as low relevance (%.2f) — skipping",
-                      doc["id"], data.get("relevance_score", 0))
-            return None
+        # Final gate: if Claude rated relevance low, write a Skipped stub
+        # so the document is visible in Documents view with the reason.
+        # Threshold 0.35 — below this Claude is saying "this isn't about AI/privacy".
+        relevance = data.get("relevance_score", 0)
+        if relevance < 0.35:
+            log.info("Claude rated doc %s as low relevance (%.2f) — writing Skipped stub",
+                     doc["id"], relevance)
+            # Return a Skipped stub so the document leaves the pending queue
+            # and appears in Documents view with a clear reason
+            return _write_skipped_stub(
+                doc,
+                reason=f"Claude relevance score {relevance:.2f} — document does not appear to "
+                       f"be about AI regulation or data privacy (possible false positive from "
+                       f"keyword search)",
+                claude_score=relevance,
+            )
 
         summary = {
             "document_id":     doc["id"],

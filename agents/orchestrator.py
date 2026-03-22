@@ -454,20 +454,98 @@ class Orchestrator:
         summaries = self.interpreter.analyse_batch(doc_dicts, progress_callback,
                                                     force=force)
         saved = 0
+        auto_archived = 0
         for summary in summaries:
             upsert_summary(summary)
             saved += 1
+
+            # ── Autonomous learning from Claude's relevance score ──────────
+            doc_id        = summary.get("document_id", "")
+            claude_score  = float(summary.get("relevance_score", 0.5))
+            urgency       = summary.get("urgency", "")
+
+            # Find the source doc dict for context (title, source, agency, domain)
+            src_doc = next((d for d in doc_dicts if d.get("id") == doc_id), {})
+
+            # ── Autonomous learning (runs for ALL summaries, including Skipped) ──
+            # Skipped stubs carry _source/_agency/_jurisdiction from the interpreter
+            # so the learner has context even when we never called Claude.
+            # For Gate 1/2 skips, claude_score is 0.0 (strong negative signal).
+            # For Gate 3 skips, claude_score is Claude's actual low score.
+            # For normal summaries, claude_score reflects Claude's confidence.
+            effective_source = summary.get("_source") or src_doc.get("source", "")
+            effective_doc = src_doc if src_doc else {
+                "id":           doc_id,
+                "source":       summary.get("_source", ""),
+                "agency":       summary.get("_agency", ""),
+                "jurisdiction": summary.get("_jurisdiction", ""),
+                "doc_type":     summary.get("_doc_type", ""),
+                "domain":       summary.get("domain", "ai"),
+            }
+
+            if learner:
+                try:
+                    learner.record_auto_feedback(effective_doc, claude_score)
+                except Exception as e:
+                    log.debug("Auto-feedback failed for %s: %s", doc_id, e)
+
+            # ── Auto-archive clearly irrelevant documents ──────────────────
+            # Score <= 0.15: Claude read the content and rated it near-zero,
+            # or the pre-filter rejected it before Claude was called (score = 0.0).
+            # Either way, write a not_relevant feedback event so the document
+            # moves to Archive and stays out of the active Documents list.
+            if claude_score <= 0.15:
+                try:
+                    from utils.db import save_feedback
+                    if urgency == "Skipped":
+                        archive_reason = (
+                            f"Auto-archived: pre-filter or Claude relevance score "
+                            f"{claude_score:.2f} ≤ 0.15 — document not related to "
+                            f"AI regulation or data privacy"
+                        )
+                    else:
+                        archive_reason = (
+                            f"Auto-archived: Claude relevance score {claude_score:.2f} "
+                            f"≤ 0.15 — document not related to AI regulation or data privacy"
+                        )
+                    save_feedback({
+                        "document_id":      doc_id,
+                        "feedback":         "not_relevant",
+                        "reason":           archive_reason,
+                        "source":           effective_doc.get("source", ""),
+                        "agency":           effective_doc.get("agency", ""),
+                        "jurisdiction":     effective_doc.get("jurisdiction", ""),
+                        "doc_type":         effective_doc.get("doc_type", ""),
+                        "matched_keywords": [],
+                        "claude_score":     claude_score,
+                        "user":             "aris_auto",
+                        "recorded_at":      __import__("datetime").datetime.utcnow(),
+                    })
+                    auto_archived += 1
+                    log.info(
+                        "Auto-archived doc %s (score %.2f ≤ 0.15, urgency=%s)",
+                        doc_id[:40], claude_score, urgency
+                    )
+                except Exception as e:
+                    log.debug("Auto-archive failed for %s: %s", doc_id, e)
+
             # Re-index this document's passages so it's immediately Q&A searchable
-            try:
-                from utils.rag import index_document_passages
-                from utils.db import get_summary, get_document
-                doc_id  = summary.get("document_id", "")
-                full_doc = get_document(doc_id) or {}
-                summ     = get_summary(doc_id) or {}
-                combined = {**full_doc, **summ, "id": doc_id}
-                index_document_passages(combined)
-            except Exception:
-                pass   # never block summarisation
+            if urgency != "Skipped" and claude_score > 0.15:
+                try:
+                    from utils.rag import index_document_passages
+                    from utils.db import get_summary, get_document
+                    full_doc = get_document(doc_id) or {}
+                    summ     = get_summary(doc_id) or {}
+                    combined = {**full_doc, **summ, "id": doc_id}
+                    index_document_passages(combined)
+                except Exception:
+                    pass   # never block summarisation
+
+        if auto_archived:
+            log.info(
+                "Auto-archived %d document(s) with Claude relevance ≤ 0.15",
+                auto_archived
+            )
         skipped_count = len(doc_dicts) - saved
         if skipped_count > 0:
             log.info(
@@ -477,7 +555,8 @@ class Orchestrator:
             )
         else:
             log.info("Summarization complete — %d summaries saved", saved)
-        return {"saved": saved, "skipped": skipped_count, "first_run": is_first_run}
+        return {"saved": saved, "skipped": skipped_count,
+                "first_run": is_first_run, "auto_archived": auto_archived}
 
     # ── Full run ──────────────────────────────────────────────────────────────
 

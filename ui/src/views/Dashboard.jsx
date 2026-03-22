@@ -309,13 +309,13 @@ function AlertCard({ alert: a }) {
 
 // ── Zone 2a: Regulatory Pulse ─────────────────────────────────────────────────
 
-const STAGE_COLORS = {
+const PULSE_STAGE_COLORS = {
   final: 'var(--red)', hearing: 'var(--orange)',
   proposed: 'var(--yellow)', enacted: 'var(--green)',
   'pre-rule': 'var(--accent)', planned: 'var(--text-3)',
 }
 
-const JUR_COLORS = ['#1A5EAB', '#e05252', '#52a878', '#d4a843', '#e0834a', '#7b52ab']
+const PULSE_JUR_COLORS = ['#1A5EAB', '#e05252', '#52a878', '#d4a843', '#e0834a', '#7b52ab']
 
 function PulsePanel({ trends, stats, navigate }) {
   const velocity = trends?.velocity || []
@@ -352,7 +352,7 @@ function PulsePanel({ trends, stats, navigate }) {
               const maxCount = Math.max(...sparkData.map(d => d.count), 1)
               const trend    = v.trend
               const trendColor = trend === 'accelerating' ? 'var(--red)' : trend === 'stable' ? 'var(--text-3)' : 'var(--text-3)'
-              const lineColor  = JUR_COLORS[i % JUR_COLORS.length]
+              const lineColor  = PULSE_JUR_COLORS[i % PULSE_JUR_COLORS.length]
 
               return (
                 <div key={v.jurisdiction} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

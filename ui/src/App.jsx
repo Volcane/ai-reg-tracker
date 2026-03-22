@@ -407,6 +407,52 @@ function AppInner() {
           <Route path="/learning"    element={<Learning />} />
           <Route path="/settings"    element={<SettingsView status={status} />} />
         </Routes>
+
+        {/* ── Disclaimer footer ── */}
+        <footer style={{
+          borderTop: '1px solid var(--border)',
+          padding: '10px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexShrink: 0,
+          background: 'var(--bg-1)',
+        }}>
+          <p style={{
+            margin: 0,
+            fontSize: 10,
+            color: 'var(--text-3)',
+            lineHeight: 1.5,
+            maxWidth: 820,
+          }}>
+            <strong style={{ color: 'var(--text-2)', fontWeight: 500 }}>Not legal, compliance, or regulatory advice.</strong>
+            {' '}ARIS is an informational research tool only. Nothing in this system — including
+            summaries, gap analyses, jurisdiction comparisons, or any other output — constitutes
+            legal, compliance, or regulatory advice, and should not be relied upon as such.
+            Regulatory requirements vary by jurisdiction, industry, organisation type, and the
+            specific facts of your situation. Always consult qualified legal counsel before making
+            compliance or regulatory decisions.
+          </p>
+          <p style={{
+            margin: 0,
+            fontSize: 10,
+            color: 'var(--text-3)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            textAlign: 'right',
+            lineHeight: 1.6,
+          }}>
+            © {new Date().getFullYear()} Mitch Kwiatkowski
+            {' '}·{' '}<a
+              href="https://www.elastic.co/licensing/elastic-license"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--text-3)', textDecoration: 'underline', textDecorationColor: 'var(--border)' }}
+            >Elastic License 2.0</a>
+            {' '}·{' '}Non-commercial use only
+          </p>
+        </footer>
       </main>
 
       {/* Global search overlay */}

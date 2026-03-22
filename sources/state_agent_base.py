@@ -112,16 +112,21 @@ class StateAgentBase(ABC):
                     if bill_id in seen:
                         continue
                     title = item.get("title", "")
-                    blob = f"{title} {kw}"
+                    # IMPORTANT: validate against title only, NOT title+keyword.
+                    # Concatenating the search keyword into the blob causes every
+                    # bill LegiScan returns for "algorithmic" to pass is_ai_relevant,
+                    # even bills about NAIC insurance or A1 highways that happen
+                    # to be in the result set due to full-text matches in their body.
+                    title_only = title
                     _dom = getattr(self, '_domain', 'both')
-                    if _dom == 'privacy' and not is_privacy_relevant(blob):
+                    if _dom == 'privacy' and not is_privacy_relevant(title_only):
                         continue
-                    elif _dom == 'ai' and not is_ai_relevant(blob):
+                    elif _dom == 'ai' and not is_ai_relevant(title_only):
                         continue
-                    elif _dom == 'both' and not (is_ai_relevant(blob) or is_privacy_relevant(blob)):
+                    elif _dom == 'both' and not (is_ai_relevant(title_only) or is_privacy_relevant(title_only)):
                         continue
                     seen.add(bill_id)
-                    doc_domain = detect_domain(blob)
+                    doc_domain = detect_domain(title_only)
                     doc = self._normalise_legiscan(item)
                     doc['domain'] = doc_domain
                     results.append(doc)
