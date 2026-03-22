@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) 2026 Mitch Kwiatkowski
+# ARIS — Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS â€” Jurisdiction Registry
 
@@ -85,12 +89,12 @@ INTERNATIONAL_CLASS_MAP = {
 # Used by the reporter to group jurisdictions into sections.
 
 REGION_LABELS = {
-    "Federal":       "ğŸ›  US Federal",
-    "PA":            "ğŸ¢  Pennsylvania (US)",
-    "VA":            "ğŸ¢  Virginia (US)",
-    "NY":            "ğŸ¢  New York (US)",
-    "CA":            "ğŸ¢  California (US)",   # note: state code, not Canada
-    "TX":            "ğŸ¢  Texas (US)",
+    "Federal":       "ğŸ›  US Federal",
+    "PA":            "ğŸ¢  Pennsylvania (US)",
+    "VA":            "ğŸ¢  Virginia (US)",
+    "NY":            "ğŸ¢  New York (US)",
+    "CA":            "ğŸ¢  California (US)",   # note: state code, not Canada
+    "TX":            "ğŸ¢  Texas (US)",
     "EU":            "ğŸ‡ªğŸ‡º  European Union",
     "GB":            "ğŸ‡¬ğŸ‡§  United Kingdom",
     "CA_INTL":       "ğŸ‡¨ğŸ‡¦  Canada",            # disambiguated in reporter

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) 2026 Mitch Kwiatkowski
+# ARIS — Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS â€” Reporter
 Renders the console dashboard and exports results to Markdown / JSON.
@@ -87,7 +91,7 @@ def print_report(days: int = 30, jurisdiction: Optional[str] = None,
 
 
 def _print_jurisdiction_section(jurisdiction: str, items: List[Dict]):
-    label = "ğŸ›  Federal" if jurisdiction == "Federal" else f"ğŸ¢  {jurisdiction}"
+    label = "ğŸ›  Federal" if jurisdiction == "Federal" else f"ğŸ¢  {jurisdiction}"
     console.print(f"\n[bold blue]{label}[/bold blue]  ({len(items)} item{'s' if len(items)!=1 else ''})")
 
     table = Table(

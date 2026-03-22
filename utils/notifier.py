@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) 2026 Mitch Kwiatkowski
+# ARIS � Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — Notification System
 
@@ -200,7 +204,7 @@ def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
 def _build_critical_alert(change_summary: str, severity: str) -> tuple[str, str, str]:
     """Build alert for a single critical/high change."""
     date_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    emoji    = "🚨" if severity == "Critical" else "⚠️"
+    emoji    = "🚨" if severity == "Critical" else "⚠�"
     subject  = f"{emoji} ARIS: {severity} regulatory change detected"
     text     = (
         f"{emoji} {severity} Regulatory Change\n"

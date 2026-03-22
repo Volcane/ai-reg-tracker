@@ -7,8 +7,8 @@ license = { file = "LICENSE" }
 readme = "README.md"
 
 [project.urls]
-Repository = "https://github.com/[YOUR-GITHUB-USERNAME]/aris"
-Issues     = "https://github.com/[YOUR-GITHUB-USERNAME]/aris/issues"
+Repository = "https://github.com/volcane/aris"
+Issues     = "https://github.com/volcane/aris/issues"
 
 [tool.pytest.ini_options]
 testpaths   = ["tests"]

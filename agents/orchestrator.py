@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) 2026 Mitch Kwiatkowski
+# ARIS — Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS â€” Orchestrator (updated with diff pipeline)
 
@@ -207,15 +211,15 @@ class Orchestrator:
                     result = future.result()
                     if label == "Horizon":
                         horizon_result = result
-                        log.info("â•â•â• %s complete: %s â•â•â•", label, result)
+                        log.info("â•â•â• %s complete: %s â•â•â•", label, result)
                     elif label == "Enforcement":
                         enforcement_result = result
-                        log.info("â•â•â• %s complete: %s â•â•â•", label, result)
+                        log.info("â•â•â• %s complete: %s â•â•â•", label, result)
                     elif isinstance(result, list):
                         all_docs.extend(result)
-                        log.info("â•â•â• %s complete: %d docs â•â•â•", label, len(result))
+                        log.info("â•â•â• %s complete: %d docs â•â•â•", label, len(result))
                     else:
-                        log.info("â•â•â• %s complete â•â•â•", label)
+                        log.info("â•â•â• %s complete â•â•â•", label)
                 except Exception as e:
                     log.warning("Track %s failed (continuing): %s", label, e)
 

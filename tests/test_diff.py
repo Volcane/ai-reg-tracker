@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Elastic-2.0
+# Copyright (c) 2026 Mitch Kwiatkowski
+# ARIS — Automated Regulatory Intelligence System
+# Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS â€” Diff Agent & Change Detection Tests
 Run with: python -m unittest tests.test_diff -v
