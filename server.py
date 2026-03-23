@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
 # ARIS — Automated Regulatory Intelligence System
@@ -38,7 +39,7 @@ except ImportError:
 # Ensure project root is on path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config.settings import ANTHROPIC_API_KEY, LEGISCAN_KEY, REGULATIONS_GOV_KEY, CONGRESS_GOV_KEY
+from config.settings import ANTHROPIC_API_KEY, LEGISCAN_KEY, REGULATIONS_GOV_KEY, CONGRESS_GOV_KEY, COURTLISTENER_KEY
 from config.jurisdictions import ENABLED_US_STATES, ENABLED_INTERNATIONAL
 from utils.db import (
     get_stats, get_recent_summaries, get_document, get_all_documents,
@@ -353,6 +354,7 @@ def get_status():
             "regulations_gov":  bool(REGULATIONS_GOV_KEY),
             "congress_gov":     bool(CONGRESS_GOV_KEY),
             "legiscan":         bool(LEGISCAN_KEY),
+            "courtlistener":    bool(COURTLISTENER_KEY),
         },
         "enabled_states":        ENABLED_US_STATES,
         "enabled_international": ENABLED_INTERNATIONAL,
