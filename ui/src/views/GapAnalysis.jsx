@@ -849,7 +849,7 @@ function ProfileEditor({ profile, onSave, onCancel }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>Profile name <span style={{ color: 'var(--red)' }}>*</span></label>
-            <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Acme Corp — Healthcare Division" />
+            <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Acme Corp - Healthcare Division" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
@@ -913,8 +913,8 @@ function ProfileEditor({ profile, onSave, onCancel }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input placeholder="System name (e.g. HR Resume Screener)" value={sys.name} onChange={e => updateSystem(i, 'name', e.target.value)} />
-                <input placeholder="Purpose — what decision or task does it support?" value={sys.purpose} onChange={e => updateSystem(i, 'purpose', e.target.value)} />
-                <textarea placeholder="Description — how does it work, what model/vendor?" value={sys.description} onChange={e => updateSystem(i, 'description', e.target.value)} style={{ height: 55, resize: 'vertical' }} />
+                <input placeholder="Purpose - what decision or task does it support?" value={sys.purpose} onChange={e => updateSystem(i, 'purpose', e.target.value)} />
+                <textarea placeholder="Description - how does it work, what model/vendor?" value={sys.description} onChange={e => updateSystem(i, 'description', e.target.value)} style={{ height: 55, resize: 'vertical' }} />
                 <input placeholder="Affected population (e.g. job applicants, loan customers, patients)" value={sys.affected_population} onChange={e => updateSystem(i, 'affected_population', e.target.value)} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
@@ -1030,7 +1030,7 @@ function GapAnalysisPlaceholder({ onNew, analyses, onOpen }) {
       <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 28 }}>
         Create a company profile describing your AI systems and current governance practices.
         ARIS will compare them against the regulatory documents in your database and identify
-        specific gaps — anchored to real documents, not generic advice.
+        specific gaps - anchored to real documents, not generic advice.
         Use the domain filter in the sidebar to focus on AI regulation or data privacy obligations.
       </p>
       <button className="btn-primary" onClick={onNew}>

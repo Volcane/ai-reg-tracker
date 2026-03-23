@@ -168,7 +168,7 @@ function AutoDownloadTab({ onComplete }) {
     <div>
       <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 20, lineHeight: 1.65 }}>
         These documents are already in your database from API fetches. The system has located a PDF
-        version of each one — downloading it will extract the full text, which gives the AI agents
+        version of each one - downloading it will extract the full text, which gives the AI agents
         significantly more content to analyse than the abstract alone.
       </div>
 
@@ -228,7 +228,7 @@ function AutoDownloadTab({ onComplete }) {
                 <a href={c.pdf_url} target="_blank" rel="noopener noreferrer"
                   style={{ color: 'var(--accent)', fontSize: 11, flexShrink: 0 }}
                   onClick={e => e.stopPropagation()}>
-                  PDF ↗
+                  PDF  -
                 </a>
               </div>
             </div>
@@ -299,7 +299,7 @@ function UploadTab({ onComplete }) {
   return (
     <div style={{ maxWidth: 680 }}>
       <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 20, lineHeight: 1.65 }}>
-        Upload any PDF regulation document. Fill in the metadata below — the document will be
+        Upload any PDF regulation document. Fill in the metadata below - the document will be
         treated identically to a document fetched via the API and will be available for AI
         summarization, change detection, and synthesis.
       </div>
@@ -325,7 +325,7 @@ function UploadTab({ onComplete }) {
             <CheckCircle2 size={28} style={{ color: 'var(--green)', marginBottom: 8 }} />
             <div style={{ fontSize: 14, fontWeight: 500 }}>{file.name}</div>
             <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 4 }}>
-              {(file.size / 1024).toFixed(0)} KB — click to change
+              {(file.size / 1024).toFixed(0)} KB - click to change
             </div>
           </div>
         ) : (
@@ -543,7 +543,7 @@ function MetadataForm({ form, onChange }) {
         <textarea
           value={form.notes}
           onChange={e => set('notes', e.target.value)}
-          placeholder="Internal notes — e.g. 'Obtained from ministry website, covers AI Act implementation in Singapore'"
+          placeholder="Internal notes - e.g. 'Obtained from ministry website, covers AI Act implementation in Singapore'"
           style={{ height: 60, resize: 'vertical' }}
         />
       </div>

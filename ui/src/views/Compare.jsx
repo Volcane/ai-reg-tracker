@@ -1,5 +1,5 @@
 /**
- * ARIS — Jurisdiction Comparison View
+ * ARIS - Jurisdiction Comparison View
  *
  * Side-by-side structured comparison of any two regulations (baselines or documents).
  * Uses the existing /api/compare endpoint and CompareAgent.
@@ -536,7 +536,7 @@ function CompareResult({ result, metaA, metaB, onRerun, loading }) {
         </div>
       )}
 
-      {/* Divergences — the main section */}
+      {/* Divergences - the main section */}
       {result.divergences?.length > 0 && (
         <Section title="Divergences" count={result.divergences.length} icon={Scale} defaultOpen>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -583,7 +583,7 @@ function CompareResult({ result, metaA, metaB, onRerun, loading }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {result.practical_notes.map((note, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
-                <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2, fontSize: 10 }}>◆</span>
+                <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2, fontSize: 10 }}> - </span>
                 {note}
               </div>
             ))}
@@ -743,12 +743,12 @@ function DivergenceCard({ div, labelA, labelB, colorA, colorB, expanded, onToggl
 // ── Placeholder ───────────────────────────────────────────────────────────────
 
 const SUGGESTED_PAIRS = [
-  { idA: 'eu_ai_act',    idB: 'us_nist_ai_rmf',  focus: 'risk classification',  label: 'EU AI Act vs NIST RMF — risk tiers' },
-  { idA: 'eu_gdpr_full', idB: 'ccpa_cpra',        focus: 'consent requirements', label: 'GDPR vs CCPA — consent' },
-  { idA: 'eu_ai_act',    idB: 'eu_gdpr_full',     focus: 'automated decision-making', label: 'EU AI Act vs GDPR — automated decisions' },
-  { idA: 'eu_gdpr_full', idB: 'uk_gdpr_dpa',      focus: 'data transfers',       label: 'GDPR vs UK GDPR — transfers post-Brexit' },
-  { idA: 'eu_ai_act',    idB: 'colorado_ai',      focus: 'risk classification',  label: 'EU AI Act vs Colorado — risk approach' },
-  { idA: 'ccpa_cpra',    idB: 'us_state_privacy', focus: 'individual rights',    label: 'CCPA vs US State Privacy — rights scope' },
+  { idA: 'eu_ai_act',    idB: 'us_nist_ai_rmf',  focus: 'risk classification',  label: 'EU AI Act vs NIST RMF - risk tiers' },
+  { idA: 'eu_gdpr_full', idB: 'ccpa_cpra',        focus: 'consent requirements', label: 'GDPR vs CCPA - consent' },
+  { idA: 'eu_ai_act',    idB: 'eu_gdpr_full',     focus: 'automated decision-making', label: 'EU AI Act vs GDPR - automated decisions' },
+  { idA: 'eu_gdpr_full', idB: 'uk_gdpr_dpa',      focus: 'data transfers',       label: 'GDPR vs UK GDPR - transfers post-Brexit' },
+  { idA: 'eu_ai_act',    idB: 'colorado_ai',      focus: 'risk classification',  label: 'EU AI Act vs Colorado - risk approach' },
+  { idA: 'ccpa_cpra',    idB: 'us_state_privacy', focus: 'individual rights',    label: 'CCPA vs US State Privacy - rights scope' },
 ]
 
 function ComparePlaceholder({ history, onLoad, onSelect }) {
@@ -758,7 +758,7 @@ function ComparePlaceholder({ history, onLoad, onSelect }) {
       <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 10 }}>Jurisdiction Comparison</h2>
       <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.75, marginBottom: 28 }}>
         Select any two regulations on the left and Claude will produce a structured
-        side-by-side analysis — where they diverge, where they agree, which is stricter,
+        side-by-side analysis - where they diverge, where they agree, which is stricter,
         and what it means for organisations subject to both.
       </p>
 

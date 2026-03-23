@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — Trend Agent
@@ -465,11 +466,28 @@ class TrendAgent:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _doc_date(doc: Dict) -> Optional[datetime]:
-    """Return the most useful date for a document."""
-    d = doc.get("fetched_at") or doc.get("published_date")
+    """
+    Return the document's publication date for trend windowing.
+
+    Uses published_date (when the regulation/rule/document was actually
+    published or enacted) rather than fetched_at (when ARIS retrieved it).
+    This prevents a spike on the day of the initial fetch and instead shows
+    a true picture of regulatory activity volume over time.
+
+    Falls back to fetched_at only when published_date is absent or unparseable.
+    """
+    # Prefer published_date — the date the regulation was actually issued
+    d = doc.get("published_date") or doc.get("fetched_at")
     if isinstance(d, str):
         try:
             return datetime.fromisoformat(d.replace("Z", "+00:00")).replace(tzinfo=None)
         except Exception:
-            return None
+            # published_date unparseable — fall back to fetched_at
+            fallback = doc.get("fetched_at")
+            if isinstance(fallback, str):
+                try:
+                    return datetime.fromisoformat(fallback.replace("Z", "+00:00")).replace(tzinfo=None)
+                except Exception:
+                    return None
+            return fallback
     return d

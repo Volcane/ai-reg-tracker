@@ -125,20 +125,20 @@ function OverviewTab({ summary, source_quality, keyword_learning }) {
       <div className="card">
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Keyword Weight Drift</div>
         {boosted.length === 0 && penalised.length === 0
-          ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No keyword drift yet — weights start at 1.0 and adjust with feedback.</div>
+          ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No keyword drift yet - weights start at 1.0 and adjust with feedback.</div>
           : <>
               {boosted.map(([kw, w]) => (
                 <div key={kw} className="flex items-center gap-2" style={{ marginBottom: 5 }}>
                   <TrendingUp size={13} style={{ color: 'var(--green)', flexShrink: 0 }} />
                   <span style={{ flex: 1, fontSize: 12, fontFamily: 'var(--font-mono)' }}>{kw}</span>
-                  <span style={{ fontSize: 12, color: 'var(--green)' }}>{w.toFixed(2)}×</span>
+                  <span style={{ fontSize: 12, color: 'var(--green)' }}>{w.toFixed(2)} -</span>
                 </div>
               ))}
               {penalised.map(([kw, w]) => (
                 <div key={kw} className="flex items-center gap-2" style={{ marginBottom: 5 }}>
                   <TrendingDown size={13} style={{ color: 'var(--red)', flexShrink: 0 }} />
                   <span style={{ flex: 1, fontSize: 12, fontFamily: 'var(--font-mono)' }}>{kw}</span>
-                  <span style={{ fontSize: 12, color: 'var(--red)' }}>{w.toFixed(2)}×</span>
+                  <span style={{ fontSize: 12, color: 'var(--red)' }}>{w.toFixed(2)} -</span>
                 </div>
               ))}
             </>
@@ -380,7 +380,7 @@ export function FeedbackButtons({ documentId, initialStatus, onFeedback }) {
   if (sent) {
     const label = sent === 'relevant'           ? '✓ Marked Relevant'
                 : sent === 'partially_relevant' ? '✓ Marked Partially Relevant'
-                : sent === 'not_relevant'       ? '✓ Marked Not Relevant — moving to archive'
+                : sent === 'not_relevant'       ? '✓ Marked Not Relevant - moving to archive'
                 : '✓ Feedback recorded'
     const color = sent === 'relevant'           ? 'var(--green)'
                 : sent === 'partially_relevant' ? 'var(--yellow)'
@@ -423,7 +423,7 @@ export function FeedbackButtons({ documentId, initialStatus, onFeedback }) {
           />
           <div className="flex gap-2">
             <button className="btn-danger btn-sm" onClick={() => submit('not_relevant')} disabled={loading}>
-              {loading ? 'Submitting…' : 'Confirm — Not Relevant'}
+              {loading ? 'Submitting…' : 'Confirm - Not Relevant'}
             </button>
             <button className="btn-ghost btn-sm" onClick={() => setShowReason(false)}>Cancel</button>
           </div>

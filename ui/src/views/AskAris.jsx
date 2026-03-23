@@ -380,7 +380,7 @@ export default function AskAris() {
               display: 'flex', gap: 16, flexWrap: 'wrap',
             }}>
               <span style={{ color: indexStatus.ready ? 'var(--green)' : 'var(--yellow)' }}>
-                ● {indexStatus.ready ? 'Index ready' : 'Index not ready — click Rebuild'}
+                 -  {indexStatus.ready ? 'Index ready' : 'Index not ready - click Rebuild'}
               </span>
               {indexStatus.passage_count > 0 && (
                 <span>{indexStatus.passage_count} passages</span>
@@ -430,7 +430,7 @@ export default function AskAris() {
                   Ask about AI regulation
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}>
-                  Every answer is grounded in your corpus — 19 baseline regulations plus
+                  Every answer is grounded in your corpus - 19 baseline regulations plus
                   all summarised documents. Sources are cited inline so you can verify
                   every claim.
                 </div>

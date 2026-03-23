@@ -4,11 +4,11 @@ import { CheckCircle2, XCircle, ExternalLink, AlertTriangle, Info,
 import { Spinner } from '../components.jsx'
 import { SectionHeader } from '../components.jsx'
 
-// What you lose without each key — shown when key is not configured
+// What you lose without each key - shown when key is not configured
 const KEY_IMPACT = {
   anthropic: {
     loses: [
-      'AI summarisation — documents fetched but never interpreted',
+      'AI summarisation - documents fetched but never interpreted',
       'Plain-English summaries, urgency ratings, requirements lists',
       'Compliance checklists and change detection (diffs)',
       'Ask ARIS Q&A, Briefs, Synthesis, Gap Analysis',
@@ -18,7 +18,7 @@ const KEY_IMPACT = {
   regulations_gov: {
     loses: [
       'Federal rulemaking dockets (proposed rules, public comments)',
-      'NPRM tracking — rules in progress before they finalise',
+      'NPRM tracking - rules in progress before they finalise',
     ],
     severity: 'moderate',
   },
@@ -116,14 +116,14 @@ export default function SettingsView({ status }) {
       label:    'Anthropic API Key',
       url:      'https://console.anthropic.com/settings/keys',
       required: true,
-      note:     'Powers all AI analysis — summarisation, diffs, Q&A, briefs, gap analysis',
+      note:     'Powers all AI analysis - summarisation, diffs, Q&A, briefs, gap analysis',
     },
     {
       key:      'legiscan',
       label:    'LegiScan API Key',
       url:      'https://legiscan.com/legiscan',
       required: false,
-      note:     'US state legislature monitoring — all 5 enabled states require this',
+      note:     'US state legislature monitoring - all 5 enabled states require this',
     },
     {
       key:      'regulations_gov',
@@ -182,7 +182,7 @@ export default function SettingsView({ status }) {
           <Info size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>
             {configuredCount}/{apiKeyDefs.length} keys configured.{' '}
-            {missingOptional.length} optional {missingOptional.length === 1 ? 'key' : 'keys'} not set —
+            {missingOptional.length} optional {missingOptional.length === 1 ? 'key' : 'keys'} not set -
             click any unconfigured key to see what you're missing.
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function SettingsView({ status }) {
                   </div>
                 </div>
 
-                {/* Impact panel — shown when unconfigured and expanded */}
+                {/* Impact panel - shown when unconfigured and expanded */}
                 {!configured && isExpanded && impact && (
                   <div style={{
                     padding: '12px 15px',
@@ -287,7 +287,7 @@ export default function SettingsView({ status }) {
         <div style={{ marginTop: 12, fontSize: 12, color: 'var(--text-3)', lineHeight: 1.6 }}>
           All keys are set in{' '}
           <code style={{ background: 'var(--bg-4)', padding: '1px 5px', borderRadius: 3 }}>config/keys.env</code>{' '}
-          — never committed to version control. Restart the server after changes.
+          - never committed to version control. Restart the server after changes.
         </div>
       </div>
 
@@ -326,7 +326,7 @@ export default function SettingsView({ status }) {
         </div>
       </div>
 
-      {/* Database stats — split by domain */}
+      {/* Database stats - split by domain */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           Database
@@ -345,7 +345,7 @@ export default function SettingsView({ status }) {
           ].map(([label, val, color]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
               <span style={{ color: 'var(--text-2)' }}>{label}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text)' }}>{val ?? '—'}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text)' }}>{val ?? '-'}</span>
             </div>
           ))}
         </div>
@@ -492,7 +492,7 @@ export default function SettingsView({ status }) {
         </div>
       </div>
 
-      {/* CLI quick reference — updated with domain flag */}
+      {/* CLI quick reference - updated with domain flag */}
       <div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
           CLI Quick Reference

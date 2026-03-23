@@ -1,10 +1,10 @@
 /**
- * ARIS Dashboard — "What needs my attention right now?"
+ * ARIS Dashboard - "What needs my attention right now?"
  *
  * Three zones:
- *   1. Alert rail  — actionable items only (critical changes, upcoming deadlines, skipped docs)
- *   2. Insight grid — regulatory pulse (velocity sparklines) + what's active (impact areas, enforcement, horizon)
- *   3. System health — coverage, freshness, API key readiness
+ *   1. Alert rail  - actionable items only (critical changes, upcoming deadlines, skipped docs)
+ *   2. Insight grid - regulatory pulse (velocity sparklines) + what's active (impact areas, enforcement, horizon)
+ *   3. System health - coverage, freshness, API key readiness
  */
 
 import { useState, useEffect } from 'react'
@@ -214,7 +214,7 @@ function AlertRail({ unreviewedCritical, unreviewedHigh, urgentHorizon, pendingC
       bg: d < 14 ? 'rgba(224,82,82,0.08)' : 'rgba(224,131,74,0.08)',
       border: d < 14 ? 'rgba(224,82,82,0.3)' : 'rgba(224,131,74,0.3)',
       label: `${urgentHorizon.length} deadline${urgentHorizon.length > 1 ? 's' : ''} within 30 days`,
-      sub: `${next.title?.slice(0, 65)} — ${d}d`,
+      sub: `${next.title?.slice(0, 65)} - ${d}d`,
       action: () => navigate('/horizon'),
       cta: 'View →',
     })
@@ -258,7 +258,7 @@ function AlertRail({ unreviewedCritical, unreviewedHigh, urgentHorizon, pendingC
       }}>
         <CheckCircle2 size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
-          No critical items — system is up to date
+          No critical items - system is up to date
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
           {(stats?.total_documents || 0)} docs · {(stats?.total_summaries || 0)} summarised
@@ -383,7 +383,7 @@ function PulsePanel({ trends, stats, navigate }) {
                       fontSize: 9, fontFamily: 'var(--font-mono)', padding: '1px 5px',
                       borderRadius: 3, background: trendColor + '18', color: trendColor,
                     }}>
-                      {trend === 'accelerating' ? '↑' : trend === 'decelerating' ? '↓' : '—'}
+                      {trend === 'accelerating' ? '↑' : trend === 'decelerating' ? '↓' : '-'}
                     </span>
                   </div>
                 </div>

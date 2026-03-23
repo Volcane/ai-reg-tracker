@@ -197,7 +197,7 @@ function WatchCard({ item, expanded, matchList, onToggle, onDelete, domain }) {
               ))}
               {matchList.length > 20 && (
                 <div style={{ padding: '10px 16px', fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>
-                  +{matchList.length - 20} more — narrow your search or add jurisdiction filters
+                  +{matchList.length - 20} more - narrow your search or add jurisdiction filters
                 </div>
               )}
             </div>
@@ -266,7 +266,7 @@ function AddWatchModal({ onClose, onSaved }) {
         </div>
         <div>
           <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>
-            Jurisdictions (optional — leave empty to match all)
+            Jurisdictions (optional - leave empty to match all)
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {JURISDICTIONS.map(j => (

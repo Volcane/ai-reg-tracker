@@ -657,7 +657,7 @@ function RunSynthesisModal({ initial = {}, suggestions = [], onClose, onRun }) {
         )}
 
         <div>
-          <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>Jurisdictions (optional — leave empty for all)</label>
+          <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 8 }}>Jurisdictions (optional - leave empty for all)</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {ALL_JURS.map(j => (
               <button key={j}
@@ -709,7 +709,7 @@ function SynthesisPlaceholder({ suggestions, onSelect }) {
       <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 12 }}>Cross-Document Intelligence</h2>
       <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 28 }}>
         Select a synthesis from the list, or create a new one. Synthesis reads across all relevant
-        documents in your database on a topic — producing a coherent regulatory landscape narrative
+        documents in your database on a topic - producing a coherent regulatory landscape narrative
         and identifying specific conflicts between jurisdictions.
       </p>
       {suggestions.length > 0 && (

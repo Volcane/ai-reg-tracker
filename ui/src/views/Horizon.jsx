@@ -348,7 +348,7 @@ function HorizonEmptyState({ onFetch, domain }) {
       <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 16 }}>
         {domain
           ? `No upcoming ${domain === 'privacy' ? 'data privacy' : 'AI regulation'} regulatory events found. You can clear the domain filter to see all horizon items, or scan sources to fetch the latest entries.`
-          : 'Horizon scanning monitors forward-looking regulatory calendars — the Unified Regulatory Agenda, congressional committee hearings, EU Work Programme, and UK Parliament upcoming business.'
+          : 'Horizon scanning monitors forward-looking regulatory calendars - the Unified Regulatory Agenda, congressional committee hearings, EU Work Programme, and UK Parliament upcoming business.'
         }
       </p>
       <div style={{ display: 'flex', gap: 10 }}>

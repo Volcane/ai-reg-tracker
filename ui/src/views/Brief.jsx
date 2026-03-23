@@ -33,7 +33,7 @@ function CitationPill({citation}) {
       background:'var(--bg-3)',border:'1px solid var(--border)',
       borderRadius:3,padding:'2px 7px',margin:'0 3px 4px 0',
     }}>
-      <span style={{color:typeColor}}>●</span>
+      <span style={{color:typeColor}}> - </span>
       <span style={{color:'var(--text-2)'}}>{citation.source_title||citation.source_id}</span>
       {citation.jurisdiction&&<span style={{color:'var(--text-3)'}}>{citation.jurisdiction}</span>}
     </div>
@@ -180,7 +180,7 @@ export default function Brief() {
           {generating ? (
             <div style={{display:'flex',alignItems:'center',justifyContent:'center',
                          height:200,gap:12,color:'var(--text-3)',fontSize:13}}>
-              <Spinner/>Generating brief — retrieving passages and analysing…
+              <Spinner/>Generating brief - retrieving passages and analysing…
             </div>
           ) : selected ? (
             selected.error ? (
@@ -208,7 +208,7 @@ export default function Brief() {
               </div>
               <div style={{fontSize:13,color:'var(--text-3)',lineHeight:1.6,marginBottom:28}}>
                 Enter any regulatory topic above to generate a structured 5-minute brief
-                grounded in your corpus — baselines and summarised documents.
+                grounded in your corpus - baselines and summarised documents.
                 Results are cached for 14 days.
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,textAlign:'left'}}>

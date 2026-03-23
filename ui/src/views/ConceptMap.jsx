@@ -221,12 +221,12 @@ function ConceptSidebar({ concepts, selected, onSelect, loading }) {
               {c.cached ? (
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
                                color: 'var(--green)' }}>
-                  ● {c.entry_count} jurisdictions
+                   -  {c.entry_count} jurisdictions
                 </span>
               ) : (
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)',
                                color: 'var(--text-3)' }}>
-                  ○ Not built
+                   -  Not built
                 </span>
               )}
             </div>
@@ -491,7 +491,7 @@ export default function ConceptMap() {
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}>
                 Choose a regulatory concept from the sidebar to see how every
-                jurisdiction in your corpus addresses it — with specific obligations,
+                jurisdiction in your corpus addresses it - with specific obligations,
                 scope, triggers, and cross-jurisdiction comparisons.
               </div>
             </div>

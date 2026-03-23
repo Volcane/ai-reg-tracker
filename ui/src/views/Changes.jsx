@@ -167,7 +167,7 @@ function ChangeCard({ change: c, expanded, onToggle, onReview }) {
             {isVersionUpdate ? 'VERSION UPDATE' : 'ADDENDUM'}
           </span>
           {!c.reviewed && (
-            <span style={{ fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>● NEW</span>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}> -  NEW</span>
           )}
           <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
             {c.detected_at?.slice(0, 10)}
@@ -233,7 +233,7 @@ function ChangeCard({ change: c, expanded, onToggle, onReview }) {
               {c.deadline_changes.map((d, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 4 }}>
                   {d.description}
-                  {d.old_deadline && <span> — <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span></span>}
+                  {d.old_deadline && <span> - <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span></span>}
                 </div>
               ))}
             </div>

@@ -14,12 +14,12 @@ const REVIEW_BADGE = {
   relevant: {
     icon:  CheckCircle2,
     color: 'var(--green)',
-    label: 'Reviewed — Relevant',
+    label: 'Reviewed - Relevant',
   },
   partially_relevant: {
     icon:  MinusCircle,
     color: 'var(--yellow)',
-    label: 'Reviewed — Partially Relevant',
+    label: 'Reviewed - Partially Relevant',
   },
 }
 
@@ -39,7 +39,7 @@ function ReviewBadge({ status }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Documents() {
-  // Domain filter — local, persisted per view
+  // Domain filter - local, persisted per view
   const [domain, setDomain] = useState(() => {
     try { return localStorage.getItem('aris_domain_documents') ?? null } catch { return null }
   })
@@ -228,7 +228,7 @@ export default function Documents() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Left panel — list ── */}
+      {/* ── Left panel - list ── */}
       <div style={{ flex: selected ? '0 0 55%' : '1', overflow: 'auto', padding: '28px 32px', borderRight: selected ? '1px solid var(--border)' : 'none' }}>
 
         <ViewHeader
@@ -327,7 +327,7 @@ export default function Documents() {
         )}
       </div>
 
-      {/* ── Right panel — detail ── */}
+      {/* ── Right panel - detail ── */}
       {selected && (
         <div style={{ flex: '0 0 45%', overflow: 'auto', padding: '28px 24px', background: 'var(--bg)' }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
@@ -384,7 +384,7 @@ export default function Documents() {
                 </>
               )}
 
-              {/* Feedback — hidden for archived docs (already reviewed as not_relevant) */}
+              {/* Feedback - hidden for archived docs (already reviewed as not_relevant) */}
               {tab !== 'archived' && (
                 <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   <FeedbackButtons
@@ -399,7 +399,7 @@ export default function Documents() {
               {tab === 'archived' && (
                 <div style={{ marginTop: 20, padding: '10px 14px', background: 'rgba(224,82,82,0.07)', border: '1px solid rgba(224,82,82,0.25)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Archive size={13} style={{ color: 'var(--red)', flexShrink: 0 }} />
-                  Archived — marked Not Relevant. Feedback recorded.
+                  Archived - marked Not Relevant. Feedback recorded.
                 </div>
               )}
 
@@ -530,7 +530,7 @@ function DocRow({ doc, selected, onClick, archived = false }) {
           </div>
         </div>
 
-        {/* Review badge — shown when doc has been marked relevant/partially */}
+        {/* Review badge - shown when doc has been marked relevant/partially */}
         <ReviewBadge status={doc.review_status} />
 
         <Badge level={doc.jurisdiction}>{doc.jurisdiction}</Badge>
@@ -557,7 +557,7 @@ function DocRow({ doc, selected, onClick, archived = false }) {
         </div>
       ) : !archived ? (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, fontStyle: 'italic' }}>
-          Awaiting AI summarization — run agents to generate summary
+          Awaiting AI summarization - run agents to generate summary
         </div>
       ) : null}
     </div>
@@ -589,7 +589,7 @@ function DiffResultView({ result }) {
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: 6 }}>Deadline Changes</div>
           {result.deadline_changes.map((d, i) => (
             <div key={i} style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 4 }}>
-              {d.description} — <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span>
+              {d.description} - <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span>
             </div>
           ))}
         </div>

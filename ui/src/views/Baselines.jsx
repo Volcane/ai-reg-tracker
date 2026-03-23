@@ -91,7 +91,7 @@ export default function Baselines() {
             {coverage && ` · reviewed ${coverage.last_reviewed}`}
           </div>
 
-          {/* Domain tabs — primary filter */}
+          {/* Domain tabs - primary filter */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 10 }}>
             {[
               { value: null,      label: 'All',       count: summaries.length },
@@ -123,7 +123,7 @@ export default function Baselines() {
           </div>
         </div>
 
-        {/* Jurisdiction filter — secondary, only shows relevant jurs for active tab */}
+        {/* Jurisdiction filter - secondary, only shows relevant jurs for active tab */}
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
           <button className={!jurFilter ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}
             style={{ fontSize: 11 }} onClick={() => setJurFilter('')}>All</button>
@@ -373,18 +373,18 @@ function OverviewTab({ b }) {
 function ObligationsTab({ b }) {
   const sections = []
 
-  // EU AI Act style — grouped by actor
+  // EU AI Act style - grouped by actor
   if (b.obligations_by_actor) {
     for (const [actor, obls] of Object.entries(b.obligations_by_actor)) {
       sections.push({ label: actor.replace(/_/g, ' '), items: obls })
     }
   }
 
-  // GDPR style — ai_relevant_provisions
+  // GDPR style - ai_relevant_provisions
   if (b.ai_relevant_provisions) {
     sections.push({ label: 'AI-relevant provisions', items: b.ai_relevant_provisions.map(p => ({
       id:          p.article,
-      title:       `${p.article} — ${p.title}`,
+      title:       `${p.article} - ${p.title}`,
       description: p.ai_relevance,
       obligations: p.obligations,
     })) })
@@ -675,7 +675,7 @@ function BaselinePlaceholder({ summaries, coverage, diagStatus, onSelect }) {
           <strong>Fix:</strong>
           <ol style={{ marginTop: 6, paddingLeft: 20 }}>
             <li>In your <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>ai-reg-tracker/</code> project root, create a folder: <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>data/baselines/</code></li>
-            <li>Copy <strong>all 20 JSON files</strong> from the outputs into that folder — <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>index.json</code> plus the 19 regulation files</li>
+            <li>Copy <strong>all 20 JSON files</strong> from the outputs into that folder - <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>index.json</code> plus the 19 regulation files</li>
             <li>Restart <code style={{ background:'var(--bg-3)',padding:'1px 5px',borderRadius:3 }}>python server.py</code></li>
           </ol>
         </div>
@@ -699,7 +699,7 @@ function BaselinePlaceholder({ summaries, coverage, diagStatus, onSelect }) {
       <BookOpen size={32} style={{ color: 'var(--accent)', marginBottom: 16 }} />
       <h2 style={{ fontWeight: 300, fontSize: '1.4rem', marginBottom: 12 }}>Regulatory Baselines</h2>
       <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.7, marginBottom: 28 }}>
-        The settled body of AI law, authored once and shipped with ARIS. No API calls required —
+        The settled body of AI law, authored once and shipped with ARIS. No API calls required -
         all 19 baselines load from local JSON files. Select any regulation in the sidebar to browse
         its obligations, prohibited practices, compliance timeline, key definitions, and penalties.
       </p>

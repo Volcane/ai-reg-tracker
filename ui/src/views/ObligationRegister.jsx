@@ -1,13 +1,13 @@
 /**
- * ARIS — Obligation Register
+ * ARIS - Obligation Register
  *
  * Top-level view for the consolidated obligation register.
  * Shows every distinct compliance obligation across all loaded baselines
- * for the selected jurisdictions — deduplicated, categorised, and sortable.
+ * for the selected jurisdictions - deduplicated, categorised, and sortable.
  *
  * Two modes:
- *   Fast  — structural consolidation from baselines only, instant, no API call
- *   Full  — Claude-verified semantic deduplication, one API call, cached 24h
+ *   Fast  - structural consolidation from baselines only, instant, no API call
+ *   Full  - Claude-verified semantic deduplication, one API call, cached 24h
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -73,7 +73,7 @@ const PRIVACY_COLOR = '#7c9ef7'
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function ObligationRegister() {
-  // Jurisdiction selection — persisted
+  // Jurisdiction selection - persisted
   const [selectedJurs, setSelectedJurs] = useState(() => {
     try {
       const s = localStorage.getItem('aris_register_jurs')
@@ -199,7 +199,7 @@ export default function ObligationRegister() {
     if (sortBy === 'sources') {
       return (b.source_count || 0) - (a.source_count || 0)
     }
-    // category — Prohibition first
+    // category - Prohibition first
     if (a.category === 'Prohibition' && b.category !== 'Prohibition') return -1
     if (b.category === 'Prohibition' && a.category !== 'Prohibition') return 1
     return (a.category || '').localeCompare(b.category || '') ||
@@ -223,7 +223,7 @@ export default function ObligationRegister() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Left panel — jurisdiction selector ── */}
+      {/* ── Left panel - jurisdiction selector ── */}
       <aside style={{
         width: 220, flexShrink: 0,
         borderRight: '1px solid var(--border)',
@@ -320,7 +320,7 @@ export default function ObligationRegister() {
         {loadedFor && (
           <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
             {mode === 'fast'
-              ? '⚡ Structural mode — instant from baselines'
+              ? '⚡ Structural mode - instant from baselines'
               : '✓ Claude-verified semantic deduplication'}
             {mode === 'fast' && (
               <button
@@ -342,7 +342,7 @@ export default function ObligationRegister() {
         )}
       </aside>
 
-      {/* ── Right panel — register ── */}
+      {/* ── Right panel - register ── */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {!loadedFor && !loading ? (
@@ -358,7 +358,7 @@ export default function ObligationRegister() {
                 </h2>
                 <div style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
                   {loading ? 'Loading…' : `${filtered.length} of ${register.length} obligations · ${selectedJurs.join(', ')}`}
-                  {mode === 'full' && <span style={{ color: 'var(--green)', marginLeft: 8 }}>● Claude-verified</span>}
+                  {mode === 'full' && <span style={{ color: 'var(--green)', marginLeft: 8 }}> -  Claude-verified</span>}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -552,7 +552,7 @@ function ObligationCard({ obl, expanded, onToggle, domain }) {
             {univMeta.label}
           </span>
 
-          {/* Domain tag — only show when viewing "All" */}
+          {/* Domain tag - only show when viewing "All" */}
           {!domain && domainTag !== 'ai' && (
             <span style={{
               fontSize: 9, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
@@ -575,7 +575,7 @@ function ObligationCard({ obl, expanded, onToggle, domain }) {
           }
         </div>
 
-        {/* Jurisdiction pills — always visible */}
+        {/* Jurisdiction pills - always visible */}
         {(obl.jurisdictions?.length > 0) && (
           <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
             {obl.jurisdictions.map(j => (
@@ -656,12 +656,12 @@ function RegisterPlaceholder({ onLoad, hasJurs }) {
       </h2>
       <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.75, marginBottom: 28 }}>
         Select jurisdictions in the left panel and load the register to see every distinct
-        compliance obligation — deduplicated across all overlapping regulations — with source
+        compliance obligation - deduplicated across all overlapping regulations - with source
         citations, deadlines, and scope comparisons.
       </p>
       <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.65, marginBottom: 28 }}>
         <strong style={{ color: 'var(--text-2)' }}>Fast mode</strong> runs instantly from
-        baseline files — no API call needed.{' '}
+        baseline files - no API call needed.{' '}
         <strong style={{ color: 'var(--text-2)' }}>Full mode</strong> uses Claude to
         semantically deduplicate and enrich, then caches for 24 hours.
       </p>

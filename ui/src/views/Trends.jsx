@@ -233,7 +233,7 @@ function VelocityTab({ velocity }) {
     ? velocity.filter(v => v.jurisdiction === selected)
     : velocity
 
-  // Build combined chart data — one entry per window label
+  // Build combined chart data - one entry per window label
   const allLabels = velocity[0]?.windows?.map(w => w.label) || []
   const topJurs   = velocity.slice(0, 6)
 
@@ -250,7 +250,7 @@ function VelocityTab({ velocity }) {
       {/* Combined time-series chart */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>
-          Document volume — top jurisdictions (12-month window)
+          Document volume - top jurisdictions (12-month window)
         </div>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={chartData}>
@@ -287,7 +287,7 @@ function VelocityTab({ velocity }) {
                   {v.trend === 'stable' ? 'stable' : `${pct}% ${v.trend === 'accelerating' ? '↑' : '↓'}`}
                 </span>
               </div>
-              {/* Mini bar chart — last 6 windows */}
+              {/* Mini bar chart - last 6 windows */}
               <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 36 }}>
                 {barData.map((b, bi) => (
                   <div key={bi} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -322,7 +322,7 @@ function HeatmapTab({ heatmap }) {
 
   if (!heatmap.length) return (
     <div style={{ color: 'var(--text-3)', fontSize: 13, fontStyle: 'italic' }}>
-      No impact area data yet — run summarisation to populate.
+      No impact area data yet - run summarisation to populate.
     </div>
   )
 
@@ -388,7 +388,7 @@ function HeatmapTab({ heatmap }) {
 function AlertsTab({ alerts }) {
   if (!alerts.length) return (
     <div style={{ color: 'var(--green)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0' }}>
-      <Zap size={16} /> No acceleration alerts — regulatory activity is within normal range.
+      <Zap size={16} /> No acceleration alerts - regulatory activity is within normal range.
     </div>
   )
 
@@ -440,7 +440,7 @@ function TrendsEmptyState() {
       <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.7 }}>
         Trends are computed from your document database. Fetch documents first with{' '}
         <strong>Run Agents</strong>, then return here to see velocity charts, impact area
-        activity, and acceleration alerts — all without any additional API calls.
+        activity, and acceleration alerts - all without any additional API calls.
       </p>
       <a href="/run" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
         padding: '7px 14px', background: 'var(--accent)', color: 'var(--bg)',

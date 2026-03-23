@@ -303,7 +303,7 @@ function RunResultCard({ result }) {
     {
       label: 'Summarised',
       value: summarized,
-      sub: firstRun ? 'first run — force mode' : undefined,
+      sub: firstRun ? 'first run - force mode' : undefined,
       color: 'var(--green)',
       link: '/documents',
     },
@@ -358,7 +358,7 @@ function RunResultCard({ result }) {
           </div>
         ))}
 
-        {/* Urgency pills — only if we have urgency data */}
+        {/* Urgency pills - only if we have urgency data */}
         {Object.keys(urgency).length > 0 && (
           <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['Critical','High','Medium','Low'].filter(u => urgency[u] > 0).map(u => (
