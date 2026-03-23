@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS — Automated Regulatory Intelligence System
+# ARIS â€” Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS â€” Enforcement & Litigation Agent
@@ -73,12 +74,27 @@ ENFORCEMENT_AI_TERMS = [
     "autonomous", "discriminatory algorithm", "algorithmic bias",
 ]
 
+ENFORCEMENT_PRIVACY_TERMS = [
+    "personal data", "personal information", "data protection",
+    "gdpr", "ccpa", "pipeda", "lgpd", "pdpa", "appi",
+    "data breach", "breach notification", "data subject",
+    "right to erasure", "right to be forgotten", "right of access",
+    "consent", "data controller", "data processor",
+    "privacy notice", "privacy policy", "cookie consent",
+    "data retention", "data transfer", "supervisory authority",
+    "information commissioner", "ico", "cnil", "anpd",
+    "privacy violation", "data leak", "unauthorized disclosure",
+    "sensitive data", "special category", "children's privacy",
+    "coppa", "hipaa", "ferpa", "glba", "fcra",
+]
+
+_ALL_ENFORCEMENT_TERMS = ENFORCEMENT_AI_TERMS + ENFORCEMENT_PRIVACY_TERMS
+
 # Map known regulation titles/short-names to baseline IDs for linking
 REGULATION_LINK_MAP = {
+    # AI baselines
     "ftc act":                  "us_ftc_ai",
     "section 5":                "us_ftc_ai",
-    "gdpr":                     "eu_gdpr_ai",
-    "article 22":               "eu_gdpr_ai",
     "eu ai act":                "eu_ai_act",
     "ai act":                   "eu_ai_act",
     "fcra":                     "us_sector_ai",
@@ -86,7 +102,6 @@ REGULATION_LINK_MAP = {
     "ecoa":                     "us_sector_ai",
     "equal credit opportunity": "us_sector_ai",
     "title vii":                "us_sector_ai",
-    "ada":                      "us_sector_ai",
     "nist rmf":                 "us_nist_ai_rmf",
     "eo 14110":                 "us_eo_14110",
     "executive order 14110":    "us_eo_14110",
@@ -94,20 +109,59 @@ REGULATION_LINK_MAP = {
     "illinois aipa":            "illinois_aipa",
     "nyc ll144":                "nyc_ll144",
     "local law 144":            "nyc_ll144",
-    "uk gdpr":                  "eu_gdpr_ai",
+    # Privacy baselines
+    "gdpr":                     "eu_gdpr_full",
+    "article 22":               "eu_gdpr_full",
+    "article 83":               "eu_gdpr_full",
+    "general data protection":  "eu_gdpr_full",
+    "uk gdpr":                  "uk_gdpr_dpa",
+    "data protection act":      "uk_gdpr_dpa",
+    "dpa 2018":                 "uk_gdpr_dpa",
+    "information commissioner": "uk_gdpr_dpa",
+    "ico":                      "uk_gdpr_dpa",
+    "ccpa":                     "ccpa_cpra",
+    "cpra":                     "ccpa_cpra",
+    "california consumer privacy": "ccpa_cpra",
+    "consumer privacy":         "us_state_privacy",
+    "vcdpa":                    "us_state_privacy",
+    "colorado privacy":         "us_state_privacy",
+    "pipeda":                   "canada_pipeda_c27",
+    "cppa":                     "canada_pipeda_c27",
+    "lgpd":                     "brazil_lgpd",
+    "pdpa":                     "singapore_pdpa",
+    "appi":                     "japan_appi",
+    "hipaa":                    "us_privacy_federal",
+    "coppa":                    "us_privacy_federal",
+    "glba":                     "us_privacy_federal",
+    "ferpa":                    "us_privacy_federal",
+    "eu data act":              "eu_data_act",
+    "eprivacy":                 "eu_eprivacy",
+    "cookie":                   "eu_eprivacy",
 }
 
 
 def _is_enforcement_relevant(text: str) -> bool:
-    """Check if text is relevant to AI enforcement/litigation."""
+    """Check if text is relevant to AI or privacy enforcement/litigation."""
     lower = text.lower()
-    return any(term in lower for term in ENFORCEMENT_AI_TERMS)
+    return any(term in lower for term in _ALL_ENFORCEMENT_TERMS)
+
+
+def _detect_enforcement_domain(text: str) -> str:
+    """Detect whether an enforcement action is AI, privacy, or both domain."""
+    lower     = text.lower()
+    ai_hits   = sum(1 for t in ENFORCEMENT_AI_TERMS    if t in lower)
+    priv_hits = sum(1 for t in ENFORCEMENT_PRIVACY_TERMS if t in lower)
+    if ai_hits >= 2 and priv_hits >= 2:
+        return "both"
+    if priv_hits > ai_hits:
+        return "privacy"
+    return "ai"
 
 
 def _score_relevance(text: str) -> float:
-    """Score AI relevance 0â€“1."""
+    """Score enforcement relevance 0-1 (AI + privacy combined)."""
     lower = text.lower()
-    hits  = sum(1 for t in ENFORCEMENT_AI_TERMS if t in lower)
+    hits  = sum(1 for t in _ALL_ENFORCEMENT_TERMS if t in lower)
     return min(1.0, hits / 3.0)
 
 
@@ -119,7 +173,6 @@ def _find_related_regs(text: str) -> List[str]:
         if pattern in lower:
             related.add(baseline_id)
     return sorted(related)
-
 
 def _extract_penalty(text: str) -> Optional[str]:
     """Extract monetary penalty from text if present."""
@@ -207,82 +260,39 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", text or "")
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SOURCE CLASSES
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class FTCEnforcementSource:
     """
     FTC press releases â€” enforcement actions, consent orders, AI-related cases.
 
-    FTC removed their RSS feed in 2023. We now use their JSON API:
-      https://www.ftc.gov/api/v1/news-events.json
-    No API key required.
+    The FTC JSON API (/api/v1/news-events.json and /api/v1/search.json) started
+    returning HTTPError after the FTC site restructure in 2024/2025.
+    Primary source is now the confirmed-working RSS feed (verified March 2026).
     """
-    NAME     = "ftc"
-    JSON_API = "https://www.ftc.gov/api/v1/news-events.json"
-    # Fallback: search API endpoint
-    SEARCH_API = "https://www.ftc.gov/api/v1/search.json"
+    NAME    = "ftc"
+    RSS_URL = "https://www.ftc.gov/feeds/press-release.xml"  # confirmed working Mar 2026
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
         results = []
         cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
 
-        # Primary: FTC news-events JSON API
-        for category in ["press-release", "enforcement-action"]:
-            try:
-                params = {
-                    "category": category,
-                    "limit":    50,
-                    "sort":     "-created",
-                }
-                data = http_get(self.JSON_API, params=params, use_cache=True)
-                items = data if isinstance(data, list) else data.get("items") or data.get("results") or []
-                for item in items:
-                    title   = item.get("title") or item.get("name") or ""
-                    summary = (item.get("summary") or item.get("description") or
-                               item.get("body") or "")
-                    link    = item.get("url") or item.get("link") or item.get("path") or ""
-                    if link and not link.startswith("http"):
-                        link = "https://www.ftc.gov" + link
-                    date_s  = (item.get("created") or item.get("date") or
-                               item.get("published") or "")
-                    blob    = f"{title} {summary}"
+        # Primary: FTC RSS feed (confirmed working 2026)
+        try:
+            rss = http_get_text(self.RSS_URL, use_cache=True)
+            if rss:
+                for item in _parse_rss_feed(rss):
+                    blob = f"{item['title']} {item['description']}"
                     if not _is_enforcement_relevant(blob):
                         continue
-                    pub = _parse_rss_date(str(date_s)) if date_s else None
+                    pub = _parse_rss_date(item.get("date", ""))
                     if pub and pub < cutoff:
                         continue
-                    fake_item = {"title": title, "description": summary,
-                                 "link": link, "date": str(date_s)}
-                    results.append(self._normalise(fake_item, pub))
-            except Exception as e:
-                log.debug("FTC JSON API (%s) failed: %s", category, e)
-
-        # Fallback: FTC search API filtered for AI terms
-        if not results:
-            for term in ["artificial intelligence", "algorithm", "automated decision"]:
-                try:
-                    params = {"q": term, "type": "press-release", "limit": 20}
-                    data   = http_get(self.SEARCH_API, params=params, use_cache=True)
-                    items  = data if isinstance(data, list) else data.get("results") or []
-                    for item in items:
-                        title = item.get("title") or ""
-                        link  = item.get("url") or item.get("path") or ""
-                        if link and not link.startswith("http"):
-                            link = "https://www.ftc.gov" + link
-                        summary = item.get("summary") or item.get("snippet") or ""
-                        blob = f"{title} {summary}"
-                        if not _is_enforcement_relevant(blob):
-                            continue
-                        pub = _parse_rss_date(item.get("date") or "")
-                        if pub and pub < cutoff:
-                            continue
-                        fake_item = {"title": title, "description": summary,
-                                     "link": link, "date": item.get("date", "")}
-                        results.append(self._normalise(fake_item, pub))
-                except Exception as e:
-                    log.debug("FTC search API failed for '%s': %s", term, e)
+                    results.append(self._normalise(item, pub))
+        except Exception as e:
+            log.debug("FTC RSS failed: %s", e)
 
         return self._dedup(results)
 
@@ -304,6 +314,7 @@ class FTCEnforcementSource:
             "penalty_amount": _extract_penalty(blob),
             "ai_concepts":    self._infer_concepts(blob),
             "relevance_score":_score_relevance(blob),
+            "domain":         _detect_enforcement_domain(blob),
             "raw_json":       item,
         }
 
@@ -418,6 +429,7 @@ class SECEnforcementSource:
                         "penalty_amount": None,
                         "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
                         "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
                         "raw_json":       src,
                     })
             except Exception as e:
@@ -436,8 +448,7 @@ class CFPBEnforcementSource:
     """
     NAME  = "cfpb"
     FEEDS = [
-        "https://www.consumerfinance.gov/about-us/newsroom/rss/",
-        "https://www.consumerfinance.gov/enforcement/actions/feed/",
+        "https://www.consumerfinance.gov/about-us/newsroom/feed/",    # confirmed working Mar 2026
     ]
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
@@ -445,7 +456,12 @@ class CFPBEnforcementSource:
         cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
         for feed_url in self.FEEDS:
             try:
-                raw   = http_get_text(feed_url, use_cache=True)
+                raw = http_get_text(feed_url, use_cache=True)
+                # Guard: ICO sometimes returns HTML (cookie wall or "unavailable"
+                # page) instead of XML. Detect and skip gracefully.
+                if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
+                    log.debug("ICO feed %s returned HTML, not XML â€” skipping", feed_url)
+                    continue
                 items = _parse_rss_feed(raw)
                 for item in items:
                     blob = f"{item['title']} {item['description']}"
@@ -470,6 +486,7 @@ class CFPBEnforcementSource:
                         "penalty_amount": _extract_penalty(blob),
                         "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
                         "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
                         "raw_json":       item,
                     })
             except Exception as e:
@@ -482,31 +499,67 @@ class EEOCEnforcementSource:
     EEOC press releases â€” AI employment discrimination enforcement.
     Notable cases: iTutorGroup (2023), Workday (ongoing), DHI (2023).
 
-    EEOC removed their RSS feed in 2022. We use their JSON newsroom API
-    and fall back to scraping the newsroom page for press release links.
+    Uses the EEOC newsroom JSON endpoint which returns paginated press
+    release data in a structured format.
     No API key required.
     """
     NAME     = "eeoc"
-    JSON_API = "https://www.eeoc.gov/newsroom/search"
-    # EEOC Drupal JSON API
-    DRUPAL_API = "https://www.eeoc.gov/api/newsroom"
+    # EEOC newsroom search page â€” scrape for AI-related press releases
+    NEWSROOM = "https://www.eeoc.gov/newsroom/search"
+    # EEOC JSON API â€” try multiple known endpoints
+    JSON_API = "https://www.eeoc.gov/newsroom/search?keys=artificial+intelligence&format=json"
+    RSS_URL  = "https://www.eeoc.gov/rss/newsroom"   # confirmed working Mar 2026
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
         results = []
         cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
 
-        # Try Drupal JSON API
+        # Try RSS feed first (most reliable)
+        try:
+            rss = http_get_text(self.RSS_URL, use_cache=True)
+            if rss:
+                for item in _parse_rss_feed(rss):
+                    blob = f"{item['title']} {item['description']}"
+                    if not _is_enforcement_relevant(blob):
+                        continue
+                    pub = _parse_rss_date(item.get("date", ""))
+                    if pub and pub < cutoff:
+                        continue
+                    results.append({
+                        "id":             _action_id("EEOC", item.get("link", "") or item["title"]),
+                        "source":         self.NAME,
+                        "action_type":    "press_release",
+                        "title":          item["title"],
+                        "url":            item.get("link", ""),
+                        "published_date": pub,
+                        "agency":         "EEOC",
+                        "jurisdiction":   "Federal",
+                        "respondent":     "",
+                        "summary":        item["description"][:500],
+                        "related_regs":   _find_related_regs(blob),
+                        "outcome":        FTCEnforcementSource._infer_outcome(blob),
+                        "penalty_amount": _extract_penalty(blob),
+                        "ai_concepts":    FTCEnforcementSource._infer_concepts(blob) + ["bias_fairness"],
+                        "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
+                        "raw_json":       item,
+                    })
+        except Exception as e:
+            log.debug("EEOC RSS failed: %s", e)
+
+        if results:
+            return FTCEnforcementSource._dedup(results)
+
+        # Fallback: EEOC JSON API (if RSS fails)
         for term in ["artificial intelligence", "algorithm", "automated hiring"]:
             try:
-                params = {
-                    "search_api_fulltext": term,
-                    "sort_by":             "field_date",
-                    "sort_order":          "DESC",
-                    "page[limit]":         20,
-                }
-                data  = http_get(self.DRUPAL_API, params=params, use_cache=True)
+                params = {"keys": term, "limit": 20, "offset": 0}
+                data  = http_get(self.JSON_API, params=params, use_cache=True)
+                if isinstance(data, str):
+                    log.debug("EEOC JSON API returned plain text, skipping")
+                    continue
                 items = data if isinstance(data, list) else (
-                    data.get("data") or data.get("items") or []
+                    data.get("data") or data.get("items") or data.get("results") or []
                 )
                 for item in items:
                     attrs = item.get("attributes") or item
@@ -539,6 +592,7 @@ class EEOCEnforcementSource:
                         "penalty_amount": _extract_penalty(blob),
                         "ai_concepts":    FTCEnforcementSource._infer_concepts(blob) + ["bias_fairness"],
                         "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
                         "raw_json":       attrs,
                     })
             except Exception as e:
@@ -554,8 +608,8 @@ class DOJEnforcementSource:
     """
     NAME  = "doj"
     FEEDS = [
-        "https://www.justice.gov/crt/rss",
-        "https://www.justice.gov/opa/pr/rss",   # Office of Public Affairs
+        "https://www.justice.gov/news/rss",                    # confirmed working Mar 2026
+        "https://www.justice.gov/crt/press-releases/rss",              # CRT press releases
     ]
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
@@ -588,6 +642,7 @@ class DOJEnforcementSource:
                         "penalty_amount": _extract_penalty(blob),
                         "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
                         "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
                         "raw_json":       item,
                     })
             except Exception as e:
@@ -600,14 +655,25 @@ class ICOEnforcementSource:
     UK Information Commissioner's Office â€” GDPR Article 22 automated
     decisions, AI data processing enforcement notices.
 
-    The /enforcement/rss/ path was removed. Current feeds:
-      /about-the-ico/news-and-events/rss/  â€” news and enforcement announcements
+    ICO discontinued their enforcement-specific RSS feed after a site redesign
+    (confirmed Mar 2026 â€” /global/rss-feeds/enforcement/ now returns an HTML
+    page saying "Enforcement RSS is currently unavailable").
+
+    Current strategy: use the ICO media centre news RSS, which carries
+    enforcement announcements alongside other news, filtered by
+    _is_enforcement_relevant(). The Welsh-language mirror of the enforcement
+    RSS was still serving XML as of Mar 2026 and is included as a fallback.
+
+    TODO: the POST /api/search endpoint (nodeId filter) could give
+    enforcement-specific JSON â€” wire up once the correct filter param
+    is confirmed from DevTools inspection.
+
     No API key required.
     """
     NAME  = "ico"
     FEEDS = [
-        "https://ico.org.uk/about-the-ico/news-and-events/rss/",
-        "https://ico.org.uk/feed/",
+        "https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/rss/",  # media centre with enforcement announcements
+        "https://cy.ico.org.uk/global/rss-feeds/enforcement/",                 # Welsh mirror â€” enforcement RSS
     ]
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
@@ -615,7 +681,12 @@ class ICOEnforcementSource:
         cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
         for feed_url in self.FEEDS:
             try:
-                raw   = http_get_text(feed_url, use_cache=True)
+                raw = http_get_text(feed_url, use_cache=True)
+                # Guard: ICO sometimes returns HTML (cookie wall or "unavailable"
+                # page) instead of XML. Detect and skip gracefully.
+                if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
+                    log.debug("ICO feed %s returned HTML, not XML â€” skipping", feed_url)
+                    continue
                 items = _parse_rss_feed(raw)
                 for item in items:
                     blob = f"{item['title']} {item['description']}"
@@ -640,6 +711,7 @@ class ICOEnforcementSource:
                         "penalty_amount": _extract_penalty(blob),
                         "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
                         "relevance_score":_score_relevance(blob),
+                        "domain":         _detect_enforcement_domain(blob),
                         "raw_json":       item,
                     })
             except Exception as e:
@@ -726,14 +798,15 @@ class CourtListenerSource:
             "penalty_amount": _extract_penalty(blob),
             "ai_concepts":    FTCEnforcementSource._infer_concepts(blob),
             "relevance_score":_score_relevance(blob),
+            "domain":         _detect_enforcement_domain(blob),
             "raw_json":       {k: result.get(k) for k in
                                ("caseName", "court", "dateFiled", "docketNumber", "snippet")},
         }
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # ENFORCEMENT AGENT
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class EnforcementAgent:
     """
