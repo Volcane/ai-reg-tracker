@@ -14,12 +14,12 @@ const REVIEW_BADGE = {
   relevant: {
     icon:  CheckCircle2,
     color: 'var(--green)',
-    label: 'Reviewed - Relevant',
+    label: 'Reviewed — Relevant',
   },
   partially_relevant: {
     icon:  MinusCircle,
     color: 'var(--yellow)',
-    label: 'Reviewed - Partially Relevant',
+    label: 'Reviewed — Partially Relevant',
   },
 }
 
@@ -39,7 +39,7 @@ function ReviewBadge({ status }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Documents() {
-  // Domain filter - local, persisted per view
+  // Domain filter — local, persisted per view
   const [domain, setDomain] = useState(() => {
     try { return localStorage.getItem('aris_domain_documents') ?? null } catch { return null }
   })
@@ -81,6 +81,7 @@ export default function Documents() {
   // Filters (shared across tabs)
   const [search,       setSearch]       = useState('')
   const [urgency,      setUrgency]      = useState('')
+  const [sortBy,        setSortBy]        = useState('fetched_date')
   const [jurisdiction, setJurisdiction] = useState('')
   const [days,         setDays]         = useState(365)
 
@@ -103,13 +104,13 @@ export default function Documents() {
         setTotal(res.total || 0)
         setPages(1)
       } else {
-        res = await api.documents({ urgency, jurisdiction, days, page, page_size: 30, ...(domain ? { domain } : {}) })
+        res = await api.documents({ urgency, jurisdiction, days, page, page_size: 30, sort_by: sortBy, ...(domain ? { domain } : {}) })
         setDocs(res.items || [])
         setTotal(res.total || 0)
         setPages(res.pages || 1)
       }
     } finally { setLoading(false) }
-  }, [search, urgency, jurisdiction, days, page, domain])  // domain from local state
+  }, [search, urgency, jurisdiction, days, page, domain, sortBy])  // domain from local state
 
   const loadArchived = useCallback(async () => {
     setArchivedLoading(true)
@@ -210,6 +211,12 @@ export default function Documents() {
           <select value={urgency} onChange={e => { setUrgency(e.target.value); setPage(1) }} style={{ width: 120 }}>
             {URGENCIES.map(u => <option key={u} value={u}>{u || 'All Urgencies'}</option>)}
           </select>
+          <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1) }} style={{ width: 148 }}>
+            <option value="fetched_date">Sort: Date Fetched</option>
+            <option value="published_date">Sort: Date Published</option>
+            <option value="urgency">Sort: Urgency</option>
+            <option value="jurisdiction">Sort: Jurisdiction</option>
+          </select>
           <select value={days} onChange={e => { setDays(Number(e.target.value)); setPage(1) }} style={{ width: 110 }}>
             <option value={14}>14 days</option>
             <option value={30}>30 days</option>
@@ -228,7 +235,7 @@ export default function Documents() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Left panel - list ── */}
+      {/* ── Left panel — list ── */}
       <div style={{ flex: selected ? '0 0 55%' : '1', overflow: 'auto', padding: '28px 32px', borderRight: selected ? '1px solid var(--border)' : 'none' }}>
 
         <ViewHeader
@@ -327,7 +334,7 @@ export default function Documents() {
         )}
       </div>
 
-      {/* ── Right panel - detail ── */}
+      {/* ── Right panel — detail ── */}
       {selected && (
         <div style={{ flex: '0 0 45%', overflow: 'auto', padding: '28px 24px', background: 'var(--bg)' }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
@@ -378,13 +385,13 @@ export default function Documents() {
               {/* Requirements */}
               {detail.summary && (
                 <>
-                  <RequirementList items={detail.summary.requirements}    label="Mandatory Requirements" color="var(--red)" />
+                  <RequirementList items={detail.summary.requirements    ?? []} label="Mandatory Requirements" color="var(--red)" />
                   <RequirementList items={detail.summary.recommendations ?? []} label="Recommendations"        color="var(--yellow)" />
-                  <RequirementList items={detail.summary.action_items}    label="Action Items"           color="var(--accent)" />
+                  <RequirementList items={detail.summary.action_items    ?? []} label="Action Items"           color="var(--accent)" />
                 </>
               )}
 
-              {/* Feedback - hidden for archived docs (already reviewed as not_relevant) */}
+              {/* Feedback — hidden for archived docs (already reviewed as not_relevant) */}
               {tab !== 'archived' && (
                 <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-3)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   <FeedbackButtons
@@ -399,7 +406,7 @@ export default function Documents() {
               {tab === 'archived' && (
                 <div style={{ marginTop: 20, padding: '10px 14px', background: 'rgba(224,82,82,0.07)', border: '1px solid rgba(224,82,82,0.25)', borderRadius: 'var(--radius)', fontSize: 12, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Archive size={13} style={{ color: 'var(--red)', flexShrink: 0 }} />
-                  Archived - marked Not Relevant. Feedback recorded.
+                  Archived — marked Not Relevant. Feedback recorded.
                 </div>
               )}
 
@@ -530,7 +537,7 @@ function DocRow({ doc, selected, onClick, archived = false }) {
           </div>
         </div>
 
-        {/* Review badge - shown when doc has been marked relevant/partially */}
+        {/* Review badge — shown when doc has been marked relevant/partially */}
         <ReviewBadge status={doc.review_status} />
 
         <Badge level={doc.jurisdiction}>{doc.jurisdiction}</Badge>
@@ -557,7 +564,7 @@ function DocRow({ doc, selected, onClick, archived = false }) {
         </div>
       ) : !archived ? (
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8, fontStyle: 'italic' }}>
-          Awaiting AI summarization - run agents to generate summary
+          Awaiting AI summarization — run agents to generate summary
         </div>
       ) : null}
     </div>
@@ -576,26 +583,26 @@ function DiffResultView({ result }) {
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{result.change_summary}</p>
       {result.added_requirements?.length > 0 && (
-        <RequirementList items={result.added_requirements}    label="New Requirements Added"  color="var(--red)" />
+        <RequirementList items={result.added_requirements    ?? []}    label="New Requirements Added"  color="var(--red)" />
       )}
       {result.removed_requirements?.length > 0 && (
-        <RequirementList items={result.removed_requirements}  label="Requirements Removed"    color="var(--green)" />
+        <RequirementList items={result.removed_requirements  ?? []}  label="Requirements Removed"    color="var(--green)" />
       )}
       {result.modified_requirements?.length > 0 && (
-        <RequirementList items={result.modified_requirements} label="Modified Requirements"   color="var(--yellow)" />
+        <RequirementList items={result.modified_requirements ?? []} label="Modified Requirements"   color="var(--yellow)" />
       )}
       {result.deadline_changes?.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: 6 }}>Deadline Changes</div>
           {result.deadline_changes.map((d, i) => (
             <div key={i} style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 4 }}>
-              {d.description} - <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span>
+              {d.description} — <span style={{ color: 'var(--red)' }}>{d.old_deadline}</span> → <span style={{ color: 'var(--green)' }}>{d.new_deadline}</span>
             </div>
           ))}
         </div>
       )}
       {result.new_action_items?.length > 0 && (
-        <RequirementList items={result.new_action_items} label="New Action Items" color="var(--accent)" />
+        <RequirementList items={result.new_action_items      ?? []} label="New Action Items" color="var(--accent)" />
       )}
       {result.overall_assessment && (
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, fontSize: 13, color: 'var(--text-2)', fontStyle: 'italic', lineHeight: 1.6 }}>

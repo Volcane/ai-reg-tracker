@@ -378,8 +378,11 @@ def list_documents(
     search:       Optional[str] = None,
     page:         int           = 1,
     page_size:    int           = 50,
+    sort_by:      str           = "fetched_date",
 ):
-    """Paginated document list with filters. Excludes not_relevant (archived) documents."""
+    """Paginated document list with filters. Excludes not_relevant (archived) documents.
+    sort_by options: fetched_date | published_date | urgency | jurisdiction
+    """
     from utils.db import get_document_review_statuses
     summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction, domain=domain)
 
@@ -406,6 +409,17 @@ def list_documents(
     # Attach review_status to each item
     for s in summaries:
         s["review_status"] = statuses.get(s["id"])  # relevant | partially_relevant | None
+
+    # Apply sort
+    URGENCY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3, "Skipped": 4, None: 5}
+    if sort_by == "published_date":
+        summaries.sort(key=lambda s: s.get("published_date") or "", reverse=True)
+    elif sort_by == "urgency":
+        summaries.sort(key=lambda s: URGENCY_ORDER.get(s.get("urgency"), 5))
+    elif sort_by == "jurisdiction":
+        summaries.sort(key=lambda s: (s.get("jurisdiction") or "").lower())
+    else:  # default: fetched_date
+        summaries.sort(key=lambda s: s.get("fetched_at") or "", reverse=True)
 
     total  = len(summaries)
     start  = (page - 1) * page_size
