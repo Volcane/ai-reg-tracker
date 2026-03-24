@@ -138,16 +138,17 @@ export default function RunAgents({ onJobStart }) {
     if (!running) return
     const iv = setInterval(async () => {
       try {
-        const data = await api.get(`/api/log?offset=${logOffset}&limit=50`)
+        const data = await api.runLog(logOffset)
         if (data?.lines?.length) {
           setLogLines(prev => [...prev, ...data.lines])
-          setLogOffset(prev => prev + data.lines.length)
+          setLogOffset(data.total)
         }
-        if (data?.done) {
+        const status = await api.runStatus()
+        if (!status?.running) {
           setRunning(false)
           clearInterval(iv)
-          const status = await api.status()
-          if (status?.last_result) setLastResult(status.last_result)
+          const s2 = await api.status()
+          if (s2?.last_result) setLastResult(s2.last_result)
         }
       } catch {}
     }, 1200)
@@ -170,7 +171,7 @@ export default function RunAgents({ onJobStart }) {
     setLogOffset(0)
     setLastResult(null)
     try {
-      await api.post('/api/run', {
+      await api.runAgents({
         sources: selectedSources,
         lookback_days: lookbackDays,
         summarize, run_diff: runDiff, limit,
