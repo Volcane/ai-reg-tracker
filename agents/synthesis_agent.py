@@ -1,21 +1,21 @@
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS   Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
-ARIS — Synthesis Agent
+ARIS - Synthesis Agent
 
 Two capabilities working together:
 
 1. THEMATIC SYNTHESIS
    Reads across all documents in the database on a given theme or topic
-   and produces a coherent regulatory landscape narrative — what is required,
+   and produces a coherent regulatory landscape narrative - what is required,
    how the rules are evolving, and what the cumulative compliance picture
    looks like when you read all the documents together rather than one at a time.
 
 2. JURISDICTION CONFLICT DETECTION
    After synthesising the landscape, identifies specific points where two or
-   more jurisdictions disagree — conflicting requirements, opposite obligations,
+   more jurisdictions disagree - conflicting requirements, opposite obligations,
    places where complying with one jurisdiction's rules may violate another's,
    and places where the same concept is defined differently.
 
@@ -78,7 +78,7 @@ def save_synthesis(result: dict) -> int:
     from utils.db import save_synthesis as _fn
     return _fn(result)
 
-# ── Token budget — synthesis reads many documents at once ─────────────────────
+# ── Token budget - synthesis reads many documents at once ─────────────────────
 SYNTHESIS_MAX_TOKENS   = 4096
 CONFLICT_MAX_TOKENS    = 4096
 MAX_DOCS_PER_SYNTHESIS = 30       # cap at 30 documents per synthesis run
@@ -91,7 +91,7 @@ SYNTHESIS_SYSTEM = """You are a senior regulatory intelligence analyst specialis
 
 You have access to summaries and key provisions from multiple AI regulations and legislative documents
 across different jurisdictions. Your job is to synthesise these into a coherent regulatory landscape
-narrative that a compliance team can use to understand the full picture — not just individual documents.
+narrative that a compliance team can use to understand the full picture - not just individual documents.
 
 Focus on:
 - What obligations exist in aggregate (not just per document)
@@ -99,7 +99,7 @@ Focus on:
 - What gaps or grey areas remain unaddressed
 - What a company must do to be compliant across all relevant documents
 
-Always respond with valid JSON only — no markdown, no extra commentary."""
+Always respond with valid JSON only - no markdown, no extra commentary."""
 
 
 SYNTHESIS_PROMPT = """Analyse the following {doc_count} regulatory documents related to the topic: "{topic}"
@@ -116,13 +116,13 @@ Produce a comprehensive regulatory landscape synthesis in JSON with exactly thes
 {{
   "topic": "{topic}",
   "landscape_summary": "<3-5 sentences describing the overall state of AI regulation on this topic across all jurisdictions covered>",
-  "regulatory_maturity": "<one of: Emerging | Developing | Established | Fragmented — describes how coherent and settled the regulatory landscape is>",
-  "evolution_narrative": "<2-3 sentences on how regulation of this topic has been changing — is it tightening, loosening, converging or diverging across jurisdictions?>",
+  "regulatory_maturity": "<one of: Emerging | Developing | Established | Fragmented - describes how coherent and settled the regulatory landscape is>",
+  "evolution_narrative": "<2-3 sentences on how regulation of this topic has been changing - is it tightening, loosening, converging or diverging across jurisdictions?>",
   "cumulative_obligations": [
     {{
       "obligation": "<a specific thing companies must do that emerges from reading these documents together>",
       "source_jurisdictions": ["<list of jurisdictions that impose this>"],
-      "applies_to": "<who this applies to — providers, deployers, importers, etc.>",
+      "applies_to": "<who this applies to - providers, deployers, importers, etc.>",
       "earliest_deadline": "<earliest compliance deadline across all jurisdictions, or null>",
       "universality": "<one of: Universal (all jurisdictions) | Majority | Minority | Single jurisdiction>"
     }}
@@ -143,7 +143,7 @@ Produce a comprehensive regulatory landscape synthesis in JSON with exactly thes
     "<specific aspect of AI on this topic that is not yet regulated anywhere, or regulated inconsistently>"
   ],
   "emerging_trends": [
-    "<a direction or pattern visible across documents — e.g. increasing focus on human oversight, converging on risk tiers>"
+    "<a direction or pattern visible across documents - e.g. increasing focus on human oversight, converging on risk tiers>"
   ],
   "key_definitions_compared": [
     {{
@@ -160,14 +160,14 @@ Produce a comprehensive regulatory landscape synthesis in JSON with exactly thes
 
 CONFLICT_SYSTEM = """You are a senior cross-jurisdictional regulatory compliance analyst specialising in AI law.
 
-Your job is to identify specific, concrete conflicts between AI regulations from different jurisdictions —
+Your job is to identify specific, concrete conflicts between AI regulations from different jurisdictions -
 places where complying with one jurisdiction's rules may create problems in another, or where the same
 activity is treated fundamentally differently.
 
 Be precise and practical. Only flag genuine conflicts that would require a company to make a real
-compliance decision — not merely stylistic differences or differences in terminology.
+compliance decision - not merely stylistic differences or differences in terminology.
 
-Always respond with valid JSON only — no markdown, no extra commentary."""
+Always respond with valid JSON only - no markdown, no extra commentary."""
 
 
 CONFLICT_PROMPT = """Analyse the following regulatory summaries for jurisdiction conflicts on the topic: "{topic}"
@@ -180,7 +180,7 @@ Identify all material conflicts, tensions, and overlapping obligations between t
 Return a JSON object with exactly these keys:
 
 {{
-  "conflict_summary": "<2-3 sentences describing the overall conflict landscape — are conflicts minor or fundamental?>",
+  "conflict_summary": "<2-3 sentences describing the overall conflict landscape - are conflicts minor or fundamental?>",
   "conflicts": [
     {{
       "conflict_id": "<short slug e.g. eu-federal-consent-training-data>",
@@ -207,7 +207,7 @@ Return a JSON object with exactly these keys:
       "description": "<what they agree on>"
     }}
   ],
-  "highest_common_denominator": "<description of what a company would need to do to comply with the strictest version of every requirement across all jurisdictions — the 'if you satisfy this, you satisfy all' posture>",
+  "highest_common_denominator": "<description of what a company would need to do to comply with the strictest version of every requirement across all jurisdictions - the 'if you satisfy this, you satisfy all' posture>",
   "jurisdiction_risk_ranking": [
     {{
       "jurisdiction": "<name>",
@@ -245,11 +245,11 @@ class SynthesisAgent:
         """
         Full pipeline: synthesise the landscape then detect conflicts.
 
-        topic         — free-text topic e.g. "AI in healthcare" or "automated hiring"
-        jurisdictions — list of jurisdiction codes to include; None = all in DB
-        days          — how far back to look for relevant documents
-        detect_conflicts — whether to run conflict detection after synthesis
-        force_refresh — re-run even if a recent synthesis for this topic exists
+        topic         - free-text topic e.g. "AI in healthcare" or "automated hiring"
+        jurisdictions - list of jurisdiction codes to include; None = all in DB
+        days          - how far back to look for relevant documents
+        detect_conflicts - whether to run conflict detection after synthesis
+        force_refresh - re-run even if a recent synthesis for this topic exists
 
         Returns a combined result dict with both synthesis and conflict data.
         """
@@ -331,7 +331,7 @@ class SynthesisAgent:
     def list_suggested_topics(self) -> List[Dict[str, Any]]:
         """
         Analyse the database and suggest synthesis topics based on what
-        document clusters already exist — so you know what's worth synthesising.
+        document clusters already exist - so you know what's worth synthesising.
         """
         summaries = get_recent_summaries(days=365)
         if not summaries:
@@ -353,7 +353,7 @@ class SynthesisAgent:
                 if s.get("urgency") in ("High", "Critical"):
                     area_counts[area]["has_high_urgency"] = True
 
-        # Convert sets to lists and sort by cross-jurisdictional breadth × doc count
+        # Convert sets to lists and sort by cross-jurisdictional breadth  - doc count
         suggestions = []
         for area, info in area_counts.items():
             jurs = list(info["jurisdictions"] - {""})
@@ -451,7 +451,7 @@ class SynthesisAgent:
             by_jur.setdefault(jur, []).append(doc)
 
         if len(by_jur) < 2:
-            log.info("Only one jurisdiction represented — skipping conflict detection")
+            log.info("Only one jurisdiction represented - skipping conflict detection")
             return None
 
         jur_blocks = []
