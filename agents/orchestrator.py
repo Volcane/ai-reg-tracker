@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS ó Automated Regulatory Intelligence System
+# ARIS ‚Äî Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS ‚Äî Orchestrator (updated with diff pipeline)
@@ -211,15 +212,15 @@ class Orchestrator:
                     result = future.result()
                     if label == "Horizon":
                         horizon_result = result
-                        log.info("‚ï‚ï‚ï %s complete: %s ‚ï‚ï‚ï", label, result)
+                        log.info("‚ïê‚ïê‚ïê %s complete: %s ‚ïê‚ïê‚ïê", label, result)
                     elif label == "Enforcement":
                         enforcement_result = result
-                        log.info("‚ï‚ï‚ï %s complete: %s ‚ï‚ï‚ï", label, result)
+                        log.info("‚ïê‚ïê‚ïê %s complete: %s ‚ïê‚ïê‚ïê", label, result)
                     elif isinstance(result, list):
                         all_docs.extend(result)
-                        log.info("‚ï‚ï‚ï %s complete: %d docs ‚ï‚ï‚ï", label, len(result))
+                        log.info("‚ïê‚ïê‚ïê %s complete: %d docs ‚ïê‚ïê‚ïê", label, len(result))
                     else:
-                        log.info("‚ï‚ï‚ï %s complete ‚ï‚ï‚ï", label)
+                        log.info("‚ïê‚ïê‚ïê %s complete ‚ïê‚ïê‚ïê", label)
                 except Exception as e:
                     log.warning("Track %s failed (continuing): %s", label, e)
 
@@ -425,7 +426,7 @@ class Orchestrator:
             )
             force = True
 
-        pending = get_unsummarized_documents(limit=limit * 2)  # fetch more, then priority-sort
+        pending = get_unsummarized_documents(limit=limit * 2, include_skipped=force)  # force=True re-includes Skipped stubs
         if not pending:
             log.info("No pending documents to summarize")
             return {"saved": 0, "skipped": 0, "first_run": is_first_run}

@@ -492,25 +492,31 @@ class TestNewsEnforcementFilter(unittest.TestCase):
         self.assertTrue(_is_news_enforcement_relevant(text))
 
 
-class TestIAPPNewsSource(unittest.TestCase):
+class TestGoogleNewsEnforcementSource(unittest.TestCase):
 
     def _source(self):
-        from sources.enforcement_agent import IAPPNewsSource
-        return IAPPNewsSource()
+        from sources.enforcement_agent import GoogleNewsEnforcementSource
+        return GoogleNewsEnforcementSource()
 
     def _fetch(self, days=3650):
         with patch("sources.enforcement_agent.http_get_text", return_value=NEWS_MOCK_RSS):
             return self._source().fetch(lookback_days=days)
 
     def test_filters_non_enforcement_items(self):
+        # The AI funding story should be filtered out (no enforcement signal)
         self.assertFalse(any("Series B" in r["title"] for r in self._fetch()))
 
     def test_passes_enforcement_items(self):
+        # Settlement and lawsuit items should pass
         self.assertGreater(len(self._fetch()), 0)
 
     def test_source_name(self):
         for r in self._fetch():
-            self.assertEqual(r["source"], "iapp")
+            self.assertEqual(r["source"], "google_news_enforcement")
+
+    def test_action_type_is_news(self):
+        for r in self._fetch():
+            self.assertEqual(r["action_type"], "news")
 
     def test_required_fields_present(self):
         results = self._fetch()
@@ -527,6 +533,12 @@ class TestIAPPNewsSource(unittest.TestCase):
         with patch("sources.enforcement_agent.http_get_text",
                    side_effect=Exception("Connection refused")):
             self.assertEqual(self._source().fetch(), [])
+
+    def test_deduplication_across_queries(self):
+        # Same item returned by two queries should be deduplicated
+        results = self._fetch()
+        ids = [r["id"] for r in results]
+        self.assertEqual(len(ids), len(set(ids)))
 
 
 class TestRegulatoryOversightSource(unittest.TestCase):

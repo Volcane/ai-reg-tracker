@@ -32,11 +32,11 @@ US COURTS (free REST API, optional free token for higher rate limits)
                   5,000 req/day without token, more with free token
 
 NEWS & LEGAL INTELLIGENCE (RSS, no key required)
-  IAPP            — IAPP Daily Dashboard: curated global privacy & AI
-                    governance news, editorially filtered. Covers enforcement
-                    actions, court decisions, and regulatory settlements.
-                    https://iapp.org/rss/daily-dashboard/
-                    https://iapp.org/rss/united-states-dashboard-digest/
+  Google News     — Targeted queries for AI/privacy enforcement news.
+                    Free, no key, aggregates AP/NPR/Law360 and more.
+                    Targeted queries: AI lawsuit, data privacy penalty,
+                    social media verdict, state AG enforcement, etc.
+                    https://news.google.com/rss/search?q=QUERY
 
   Regulatory      — Troutman Pepper "Regulatory Oversight" blog: dedicated
   Oversight         to tracking enforcement actions across consumer protection,
@@ -93,6 +93,13 @@ ENFORCEMENT_AI_TERMS = [
     "automated scoring", "credit scoring", "automated hiring",
     "surveillance", "content moderation", "recommendation system",
     "autonomous", "discriminatory algorithm", "algorithmic bias",
+    # Social media design / children's safety litigation (Meta/YouTube wave)
+    "addictive design", "addictive algorithm", "social media addiction",
+    "designed to addict", "engagement algorithm", "recommendation algorithm",
+    "negligent design", "defective design", "product liability",
+    "children's mental health", "minor users", "teen mental health",
+    "social media harm", "online safety", "youth safety",
+    "section 230", "platform design", "algorithmic amplification",
 ]
 
 ENFORCEMENT_PRIVACY_TERMS = [
@@ -192,6 +199,13 @@ _ENFORCEMENT_ACTION_SIGNALS = [
     "liable", "liability",
     "breach", "data breach",
     "regulatory action",
+    # Court verdict language
+    "jury finds", "jury found", "found liable", "found negligent",
+    "jury verdict", "damages awarded", "punitive damages",
+    "negligence", "negligent", "damages",
+    # Investigation/action language
+    "under investigation", "faces charges", "ordered to pay",
+    "ordered to stop", "must pay", "pay $", "pay million",
 ]
 
 
@@ -233,6 +247,18 @@ def _detect_jurisdiction(text: str) -> str:
     if any(t in lower for t in ["india", "dpdp", "meity"]):
         return "IN"
     return "Federal"   # default for US-centric news sources
+
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and decode entities from Google News RSS descriptions."""
+    if not text:
+        return ""
+    # Remove all tags
+    text = re.sub(r'<[^>]+>', ' ', text)
+    # Decode common entities
+    for ent, ch in [('&amp;','&'),('&lt;','<'),('&gt;','>'),('&quot;','"'),('&#39;',"'"),('&nbsp;',' ')]:
+        text = text.replace(ent, ch)
+    return re.sub(r'\s+', ' ', text).strip()
 
 
 def _detect_enforcement_domain(text: str) -> str:
@@ -343,10 +369,6 @@ def _parse_rss_feed(xml_text: str) -> List[Dict]:
                           "description": _strip_html(d).strip(), "date": p.strip()})
 
     return items
-
-
-def _strip_html(text: str) -> str:
-    return re.sub(r"<[^>]+>", " ", text or "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -897,60 +919,80 @@ class CourtListenerSource:
 # ENFORCEMENT AGENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class IAPPNewsSource:
+class GoogleNewsEnforcementSource:
     """
-    IAPP Daily Dashboard RSS — curated privacy & AI governance news.
+    Google News RSS — targeted queries for AI/privacy enforcement coverage.
 
-    The IAPP (International Association of Privacy Professionals) editorial
-    team publishes a daily digest of the most significant privacy and AI
-    governance stories globally. Because it is editorially curated it carries
-    a high density of enforcement actions, court decisions, regulatory
-    settlements, and agency announcements alongside some policy/legislative
-    news.
+    Google News produces valid RSS/XML and is free with no API key. Unlike
+    agency feeds which only cover their own actions, Google News aggregates
+    coverage from hundreds of sources (AP, NPR, Law360, Bloomberg Law,
+    state AG press releases, legal blogs) for a given query.
 
-    Uses the stricter _is_news_enforcement_relevant() filter (requires both
-    a domain signal and an enforcement action signal) to pass through
-    enforcement items while blocking general commentary.
+    Uses targeted enforcement-specific search queries so only enforcement
+    actions, court verdicts, settlements and investigations are returned —
+    not general AI news. The _is_news_enforcement_relevant() filter applies
+    as a secondary check.
+
+    Confirmed: the Meta/YouTube social media addiction verdict (March 25,
+    2026) appears in the "social media lawsuit verdict" query same day.
+
+    URL pattern:
+      https://news.google.com/rss/search?q=QUERY&hl=en-US&gl=US&ceid=US:en
 
     No API key required.
     """
-    NAME  = "iapp"
-    FEEDS = [
-        "https://iapp.org/rss/daily-dashboard/",         # global daily digest
-        "https://iapp.org/rss/united-states-dashboard-digest/",  # US-focused
+    NAME  = "google_news_enforcement"
+
+    # Targeted queries — each returns results from multiple news sources.
+    # Queries are scoped to enforcement actions, not general AI news.
+    QUERIES = [
+        "AI lawsuit verdict settlement",
+        "data privacy enforcement fine penalty",
+        "social media lawsuit children verdict",
+        "algorithmic discrimination lawsuit filed",
+        "FTC AI enforcement action",
+        "state attorney general AI privacy enforcement",
+        "data breach penalty settlement consent order",
     ]
+
+    BASE = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q="
 
     def fetch(self, lookback_days: int = 90) -> List[Dict]:
         results = []
         cutoff  = datetime.utcnow() - timedelta(days=lookback_days)
         seen: set = set()
-        for feed_url in self.FEEDS:
+
+        for query in self.QUERIES:
             try:
-                raw = http_get_text(feed_url, use_cache=True)
+                import urllib.parse
+                url = self.BASE + urllib.parse.quote(query)
+                raw = http_get_text(url, use_cache=True)
                 if not raw or raw.strip().startswith('<!DOCTYPE') or '<html' in raw[:200].lower():
-                    log.debug("IAPP feed %s returned HTML — skipping", feed_url)
+                    log.debug("Google News query '%s' returned HTML — skipping", query)
                     continue
                 for item in _parse_rss_feed(raw):
-                    if item["link"] in seen:
+                    link = item.get("link") or item.get("title") or ""
+                    if link in seen:
                         continue
-                    seen.add(item["link"])
+                    seen.add(link)
                     blob = f"{item['title']} {item['description']}"
+                    # Apply the strict two-signal filter
                     if not _is_news_enforcement_relevant(blob):
                         continue
-                    pub = _parse_rss_date(item["date"])
+                    pub = _parse_rss_date(item.get("date", ""))
                     if pub and pub < cutoff:
                         continue
                     results.append({
-                        "id":             _action_id("IAPP", item["link"] or item["title"]),
+                        "id":             _action_id("GN", link or item["title"]),
                         "source":         self.NAME,
                         "action_type":    "news",
                         "title":          item["title"],
-                        "url":            item["link"],
+                        "url":            link,
                         "published_date": pub,
-                        "agency":         "IAPP / Various",
+                        "agency":         "Various (via Google News)",
                         "jurisdiction":   _detect_jurisdiction(blob),
                         "respondent":     FTCEnforcementSource._extract_respondent(item["title"]),
-                        "summary":        item["description"][:500],
+                        "summary":        _strip_html(item["description"])[:500],
                         "related_regs":   _find_related_regs(blob),
                         "outcome":        FTCEnforcementSource._infer_outcome(blob),
                         "penalty_amount": _extract_penalty(blob),
@@ -960,9 +1002,9 @@ class IAPPNewsSource:
                         "raw_json":       item,
                     })
             except Exception as e:
-                log.debug("IAPP feed %s failed: %s", feed_url, e)
-        return FTCEnforcementSource._dedup(results)
+                log.debug("Google News query '%s' failed: %s", query, e)
 
+        return FTCEnforcementSource._dedup(results)
 
 class RegulatoryOversightSource:
     """
@@ -1100,7 +1142,7 @@ class EnforcementAgent:
             DOJEnforcementSource(),
             ICOEnforcementSource(),
             CourtListenerSource(),
-            IAPPNewsSource(),
+            GoogleNewsEnforcementSource(),
             RegulatoryOversightSource(),
             CourthouseNewsSource(),
         ]

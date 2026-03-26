@@ -349,19 +349,22 @@ def get_summary(doc_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_unsummarized_documents(limit: int = 50,
-                               domain: Optional[str] = None) -> List[Document]:
+                               domain: Optional[str] = None,
+                               include_skipped: bool = False) -> List[Document]:
     """
-    Return documents that have no summary yet (or only a Skipped stub).
-    Uses LEFT JOIN instead of NOT IN subquery for O(n) rather than O(n^2)
-    performance at scale.
+    Return documents that have no summary yet.
+
+    By default (include_skipped=False) Skipped stubs are treated as
+    already-processed and excluded — they were evaluated and found
+    irrelevant, so there is no reason to re-process them on every run.
+    Pass include_skipped=True (Force Summarize mode) to re-evaluate them.
+
+    Documents with any real (non-Skipped) summary are always excluded
+    regardless of include_skipped.
     """
     with get_session() as session:
-        # LEFT JOIN + IS NULL is dramatically faster than NOT IN(subquery)
-        # at large corpus sizes — avoids loading all summarized IDs into Python
-        # Subquery approach: find document IDs that have ONLY Skipped summaries
-        # or no summary at all. This avoids the outerjoin duplicate-row problem
-        # and correctly excludes documents that have any real (non-Skipped) summary.
-        from sqlalchemy import exists, and_
+        from sqlalchemy import exists
+        # Always exclude documents that already have a real summary
         real_summary_exists = (
             session.query(Summary.document_id)
             .filter(
@@ -374,12 +377,28 @@ def get_unsummarized_documents(limit: int = 50,
         )
         q = (
             session.query(Document)
-            .filter(~real_summary_exists)          # no real summary exists
+            .filter(~real_summary_exists)
         )
+
+        if not include_skipped:
+            # Also exclude documents that have a Skipped stub —
+            # they were already evaluated and did not meet the relevance
+            # threshold. They stay excluded unless force=True is requested.
+            skipped_exists = (
+                session.query(Summary.document_id)
+                .filter(
+                    Summary.document_id == Document.id,
+                    Summary.urgency == "Skipped",
+                )
+                .correlate(Document)
+                .exists()
+            )
+            q = q.filter(~skipped_exists)
+
         if domain:
             q = q.filter(Document.domain == domain)
         return (
-            q.order_by(Document.fetched_at.desc())  # most recently fetched first
+            q.order_by(Document.fetched_at.desc())
             .limit(limit)
             .all()
         )

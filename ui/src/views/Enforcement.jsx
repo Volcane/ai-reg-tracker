@@ -13,13 +13,69 @@ const enfApi = {
 }
 
 const SOURCE_META = {
-  ftc:          { label:'FTC',          color:'#4f8fe0', agency:'Federal Trade Commission'        },
-  sec:          { label:'SEC',          color:'#a06bd4', agency:'Securities & Exchange Commission' },
-  cfpb:         { label:'CFPB',         color:'#52a878', agency:'Consumer Financial Protection Bureau'},
-  eeoc:         { label:'EEOC',         color:'#d4a843', agency:'Equal Employment Opportunity Commission'},
-  doj:          { label:'DOJ',          color:'#e0834a', agency:'Department of Justice'           },
-  ico:          { label:'ICO',          color:'#4fd4c8', agency:"Information Commissioner's Office (UK)"},
-  courtlistener:{ label:'Courts',       color:'#e05252', agency:'Federal Courts (CourtListener)'  },
+  ftc:                     { label:'FTC',     color:'#4f8fe0', agency:'Federal Trade Commission'               },
+  sec:                     { label:'SEC',     color:'#a06bd4', agency:'Securities & Exchange Commission'       },
+  cfpb:                    { label:'CFPB',    color:'#52a878', agency:'Consumer Financial Protection Bureau'   },
+  eeoc:                    { label:'EEOC',    color:'#d4a843', agency:'Equal Employment Opportunity Commission' },
+  doj:                     { label:'DOJ',     color:'#e0834a', agency:'Department of Justice'                  },
+  ico:                     { label:'ICO',     color:'#4fd4c8', agency:"Information Commissioner's Office (UK)" },
+  courtlistener:           { label:'Courts',  color:'#e05252', agency:'Federal Courts (CourtListener)'         },
+  google_news_enforcement: { label:'News',    color:'#6b9fd4', agency:'Various (via Google News)'              },
+  regulatory_oversight:    { label:'RegOvr',  color:'#c47a3a', agency:'Regulatory Oversight (Troutman Pepper)' },
+  courthouse_news:         { label:'CNS',     color:'#7a6bc4', agency:'Courthouse News Service'                },
+}
+
+// Strip HTML tags and decode entities from Google News RSS summaries
+function stripHtml(html) {
+  if (!html) return ''
+  // Remove all tags
+  let text = html.replace(/<[^>]*>/g, ' ')
+  // Decode common entities
+  text = text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+             .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+  // Collapse whitespace
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+// Cluster items by story — items are in the same cluster if their titles share
+// enough common words (ignoring stopwords and source attribution after " - ").
+function clusterItems(items) {
+  const stopwords = new Set(['the','a','an','in','of','to','and','for','is','are',
+    'was','were','on','at','by','with','from','that','this','it','as','or','be',
+    'its','their','has','have','had','will','can','not','but','also','about',
+    'over','into','than','after','before','found','finds','find','jury','judge'])
+
+  function keywords(title) {
+    // Remove source attribution like "- Reuters" or "- BBC News" at end
+    const t = title.replace(/\s[-–]\s[\w\s]+$/, '').toLowerCase()
+    return new Set(t.split(/\W+/).filter(w => w.length > 3 && !stopwords.has(w)))
+  }
+
+  function similarity(a, b) {
+    const ka = keywords(a), kb = keywords(b)
+    const shared = [...ka].filter(w => kb.has(w)).length
+    const denom = Math.min(ka.size, kb.size)
+    return denom === 0 ? 0 : shared / denom
+  }
+
+  const clusters = []
+  const used = new Set()
+
+  items.forEach((item, i) => {
+    if (used.has(i)) return
+    const cluster = [item]
+    used.add(i)
+    items.forEach((other, j) => {
+      if (j <= i || used.has(j)) return
+      if (similarity(item.title || '', other.title || '') >= 0.45) {
+        cluster.push(other)
+        used.add(j)
+      }
+    })
+    clusters.push(cluster)
+  })
+
+  return clusters
 }
 
 const TYPE_META = {
@@ -46,9 +102,9 @@ const SOURCES       = ['','ftc','sec','cfpb','eeoc','doj','ico','courtlistener']
 
 // ── Action card ───────────────────────────────────────────────────────────────
 
-function ActionCard({ action, onSelect, isSelected }) {
-  const src    = SOURCE_META[action.source] || { label: action.source, color:'#607070' }
-  const typeCfg = TYPE_META[action.action_type] || { label: action.action_type, icon: FileText, color:'var(--text-3)' }
+function ActionCard({ action, onSelect, isSelected, compact=false }) {
+  const srcMeta  = SOURCE_META[action.source] || { label: action.source, color:'#607070' }
+  const typeCfg  = TYPE_META[action.action_type] || { label: action.action_type, icon: FileText, color:'var(--text-3)' }
   const TypeIcon = typeCfg.icon
 
   return (
@@ -56,44 +112,38 @@ function ActionCard({ action, onSelect, isSelected }) {
       onClick={() => onSelect(action)}
       className="card card-hover"
       style={{
-        padding:    '11px 14px',
+        padding:    compact ? '7px 12px' : '11px 14px',
         cursor:     'pointer',
-        borderLeft: `3px solid ${src.color}`,
+        borderLeft: `3px solid ${srcMeta.color}`,
         background: isSelected ? 'var(--bg-3)' : 'var(--bg-2)',
-        marginBottom: 6,
+        marginBottom: compact ? 3 : 6,
       }}
     >
       <div className="flex items-center gap-3">
-        {/* Source badge */}
         <div style={{
-          fontSize:     10, fontFamily:'var(--font-mono)', fontWeight:700,
-          color:        src.color, minWidth:44, textAlign:'center',
-          background:   `${src.color}18`,
-          padding:      '2px 5px', borderRadius:3, flexShrink:0,
+          fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700,
+          color:srcMeta.color, minWidth:44, textAlign:'center',
+          background:`${srcMeta.color}18`, padding:'2px 5px', borderRadius:3, flexShrink:0,
         }}>
-          {src.label}
+          {srcMeta.label}
         </div>
-
-        {/* Title */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:12, fontWeight:500, lineHeight:1.4 }} className="truncate">
+          <div style={{ fontSize:compact?11:12, fontWeight:500, lineHeight:1.4 }} className="truncate">
             {action.title}
           </div>
-          <div style={{ fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)', marginTop:1 }}>
-            {action.agency}
-            {action.respondent && <span> · {action.respondent.slice(0,40)}</span>}
-          </div>
+          {!compact && (
+            <div style={{ fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)', marginTop:1 }}>
+              {action.agency}
+              {action.respondent && <span> · {action.respondent.slice(0,40)}</span>}
+            </div>
+          )}
         </div>
-
-        {/* Type */}
         <div className="flex items-center gap-1" style={{
           fontSize:10, fontFamily:'var(--font-mono)', color:typeCfg.color, flexShrink:0,
         }}>
           <TypeIcon size={10} />
-          {typeCfg.label}
+          {!compact && typeCfg.label}
         </div>
-
-        {/* Penalty */}
         {action.penalty_amount && (
           <div style={{
             fontSize:10, fontFamily:'var(--font-mono)', color:'var(--red)',
@@ -102,12 +152,120 @@ function ActionCard({ action, onSelect, isSelected }) {
             {action.penalty_amount.slice(0,20)}
           </div>
         )}
-
-        {/* Date */}
         <div style={{ fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)', flexShrink:0 }}>
           {action.published_date?.slice(0,10)}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Story group — collapses N similar articles behind one header ──────────────
+
+function StoryGroup({ cluster, onSelect, selectedId }) {
+  const [open, setOpen] = useState(false)
+
+  const lead      = cluster[0]
+  const count     = cluster.length
+  const srcMeta   = SOURCE_META[lead.source] || { label: lead.source, color:'#607070' }
+  const typeCfg   = TYPE_META[lead.action_type] || { label: lead.action_type, icon:FileText, color:'var(--text-3)' }
+  const TypeIcon  = typeCfg.icon
+  const isAnySelected = cluster.some(a => a.id === selectedId)
+
+  // Pick a clean title — strip " - Source Name" attribution from lead
+  const cleanTitle = lead.title?.replace(/\s[-–]\s[\w\s.]+$/, '') || lead.title
+
+  if (count === 1) {
+    return <ActionCard action={lead} onSelect={onSelect} isSelected={lead.id === selectedId} />
+  }
+
+  // Collect unique sources in the cluster
+  const srcLabels = [...new Set(cluster.map(a =>
+    (SOURCE_META[a.source] || { label: a.source }).label
+  ))].join(', ')
+
+  // Best penalty from the cluster
+  const penalty = cluster.find(a => a.penalty_amount)?.penalty_amount
+
+  return (
+    <div style={{ marginBottom:6 }}>
+      {/* Group header — acts as primary card */}
+      <div
+        className="card card-hover"
+        style={{
+          padding:    '11px 14px',
+          cursor:     'pointer',
+          borderLeft: `3px solid ${srcMeta.color}`,
+          background: isAnySelected ? 'var(--bg-3)' : 'var(--bg-2)',
+        }}
+      >
+        <div className="flex items-center gap-3" onClick={() => onSelect(lead)}>
+          {/* Source count badge */}
+          <div style={{
+            fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700,
+            color:srcMeta.color, minWidth:44, textAlign:'center',
+            background:`${srcMeta.color}18`, padding:'2px 5px', borderRadius:3, flexShrink:0,
+          }}>
+            {srcMeta.label}
+          </div>
+
+          {/* Title + source count */}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:12, fontWeight:500, lineHeight:1.4 }} className="truncate">
+              {cleanTitle}
+            </div>
+            <div style={{ fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)', marginTop:1 }}>
+              {lead.agency} · {srcLabels}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1" style={{
+            fontSize:10, fontFamily:'var(--font-mono)', color:typeCfg.color, flexShrink:0,
+          }}>
+            <TypeIcon size={10} />{typeCfg.label}
+          </div>
+
+          {penalty && (
+            <div style={{
+              fontSize:10, fontFamily:'var(--font-mono)', color:'var(--red)',
+              background:'rgba(224,82,82,0.08)', padding:'2px 6px', borderRadius:3, flexShrink:0,
+            }}>
+              {penalty.slice(0,20)}
+            </div>
+          )}
+
+          <div style={{ fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)', flexShrink:0 }}>
+            {lead.published_date?.slice(0,10)}
+          </div>
+        </div>
+
+        {/* Expand toggle */}
+        <div
+          onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+          style={{
+            marginTop:6, paddingTop:5, borderTop:'1px solid var(--border)',
+            display:'flex', alignItems:'center', gap:4, cursor:'pointer',
+            fontSize:10, color:'var(--text-3)', fontFamily:'var(--font-mono)',
+            userSelect:'none',
+          }}
+        >
+          {open ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
+          {open ? 'Hide' : `${count - 1} more article${count > 2 ? 's' : ''} about this story`}
+        </div>
+      </div>
+
+      {/* Expanded articles */}
+      {open && (
+        <div style={{
+          marginLeft:16, marginTop:2,
+          borderLeft:'2px solid var(--border)', paddingLeft:8,
+        }}>
+          {cluster.slice(1).map(a => (
+            <ActionCard key={a.id} action={a} onSelect={onSelect}
+                        isSelected={a.id === selectedId} compact />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -189,7 +347,7 @@ function DetailPanel({ action, onClose }) {
           fontSize:12, color:'var(--text-2)', lineHeight:1.6,
           borderTop:'1px solid var(--border)', paddingTop:12, marginBottom:12,
         }}>
-          {action.summary}
+          {stripHtml(action.summary)}
         </div>
       )}
 
@@ -272,6 +430,7 @@ export default function Enforcement() {
   const [jurisdiction,setJur]         = useState('')
   const [source,      setSource]      = useState('')
   const [actionType,  setActionType]  = useState('')
+  const [groupSimilar,setGroupSimilar]= useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -300,7 +459,15 @@ export default function Enforcement() {
     } catch { setFetching(false) }
   }
 
-  const isEmpty = !loading && items.length === 0
+  // Apply domain filter client-side
+  const visibleItems = domain
+    ? items.filter(i => i.domain === domain || i.domain === 'both')
+    : items
+
+  // Cluster into story groups if groupSimilar is on
+  const displayClusters = groupSimilar ? clusterItems(visibleItems) : visibleItems.map(i => [i])
+
+  const isEmpty = !loading && visibleItems.length === 0
 
   // Source breakdown for sidebar
   const bySource = stats?.by_source || {}
@@ -415,9 +582,30 @@ export default function Enforcement() {
                     style={{ width:130, fontSize:12 }}>
               {ACTION_TYPES.map(t=><option key={t} value={t}>{t||'All Types'}</option>)}
             </select>
+
+            {/* Group similar toggle */}
+            <button
+              onClick={() => setGroupSimilar(g => !g)}
+              style={{
+                display:'flex', alignItems:'center', gap:5,
+                fontSize:11, fontFamily:'var(--font-mono)',
+                padding:'3px 9px', borderRadius:4, cursor:'pointer', flexShrink:0,
+                border: groupSimilar ? '1px solid var(--accent)' : '1px solid var(--border)',
+                background: groupSimilar ? 'var(--accent-dim)' : 'var(--bg-3)',
+                color: groupSimilar ? 'var(--accent)' : 'var(--text-3)',
+              }}
+              title={groupSimilar ? 'Showing grouped stories — click to see all articles' : 'Click to group similar stories'}
+            >
+              <Filter size={10}/>
+              {groupSimilar ? 'Grouped' : 'All articles'}
+            </button>
+
             <div style={{ marginLeft:'auto', fontSize:11, color:'var(--text-3)',
                           fontFamily:'var(--font-mono)' }}>
-              {items.length} results
+              {groupSimilar
+                ? `${displayClusters.length} stories · ${visibleItems.length} articles`
+                : `${visibleItems.length} articles`
+              }
             </div>
           </div>
         </div>
@@ -437,12 +625,12 @@ export default function Enforcement() {
               />
             </div>
           ) : (
-            items.map(item => (
-              <ActionCard
-                key={item.id}
-                action={item}
+            displayClusters.map((cluster, idx) => (
+              <StoryGroup
+                key={cluster[0].id}
+                cluster={cluster}
                 onSelect={setSelected}
-                isSelected={selected?.id === item.id}
+                selectedId={selected?.id}
               />
             ))
           )}
