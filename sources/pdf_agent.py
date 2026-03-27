@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — PDF Agent
@@ -381,12 +382,24 @@ class PDFManualIngestor:
         """
         from utils.db import upsert_document, save_pdf_metadata, get_document
 
-        # Resolve path — accept filename relative to inbox or absolute path
-        src = Path(filename_or_path)
-        if not src.is_absolute():
-            src = PDF_DROP_DIR / src
+        # F-03 fix: reject absolute paths and verify the resolved path stays
+        # inside PDF_DROP_DIR to prevent arbitrary filesystem reads.
+        candidate = Path(filename_or_path)
+        if candidate.is_absolute():
+            raise ValueError(
+                f"Absolute paths are not permitted for PDF ingest: {candidate.name!r}. "
+                f"Place the file in the PDF inbox folder and use its filename."
+            )
+        # Strip any directory traversal components from the name
+        safe_name = Path(filename_or_path).name
+        safe_name = re.sub(r"[^a-zA-Z0-9._\-]", "_", safe_name)
+        resolved  = (PDF_DROP_DIR / safe_name).resolve()
+        inbox_res = PDF_DROP_DIR.resolve()
+        if not str(resolved).startswith(str(inbox_res)):
+            raise ValueError(f"Path traversal rejected for: {safe_name!r}")
+        src = resolved
         if not src.exists():
-            raise FileNotFoundError(f"PDF not found: {src}")
+            raise FileNotFoundError(f"PDF not found in inbox: {safe_name!r}")
 
         # Extract text
         text, method, pages = extract_text_from_pdf(src)
@@ -467,7 +480,14 @@ class PDFManualIngestor:
         Ingest a PDF from raw bytes (uploaded via the browser).
         Saves the file to the drop folder first, then calls ingest().
         """
-        dest = PDF_DROP_DIR / filename
+        # F-02 fix: strip directory components and sanitize characters to
+        # prevent path traversal (e.g. filename="../../etc/passwd").
+        safe_name = Path(filename).name           # drops any directory parts
+        safe_name = re.sub(r"[^a-zA-Z0-9._\-]", "_", safe_name)  # safe chars only
+        if not safe_name.lower().endswith(".pdf"):
+            safe_name = safe_name + ".pdf"
+
+        dest = PDF_DROP_DIR / safe_name
         # Handle name collision
         if dest.exists():
             dest = PDF_DROP_DIR / f"{dest.stem}_{uuid.uuid4().hex[:6]}.pdf"

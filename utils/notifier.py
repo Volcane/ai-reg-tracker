@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — Notification System
@@ -55,18 +56,23 @@ def is_configured() -> bool:
 
 
 def get_config() -> Dict[str, Any]:
-    """Return the current notification configuration (safe to expose to UI)."""
+    """Return the current notification configuration (safe to expose to UI).
+    F-07 fix: returns only boolean flags and non-sensitive settings —
+    no email addresses, SMTP usernames, webhook URLs, or passwords.
+    """
+    email = _get("NOTIFY_EMAIL") or ""
+    smtp_user = _get("SMTP_USER") or ""
     return {
-        "email_configured":   bool(_get("NOTIFY_EMAIL")),
+        "email_configured":   bool(email),
         "slack_configured":   bool(_get("SLACK_WEBHOOK_URL")),
         "notify_critical":    _bool("NOTIFY_ON_CRITICAL", True),
         "notify_high":        _bool("NOTIFY_ON_HIGH", True),
         "notify_digest":      _bool("NOTIFY_ON_DIGEST", True),
         "deadline_days":      int(_get("NOTIFY_DEADLINE_DAYS", "14")),
-        "recipient_email":    _get("NOTIFY_EMAIL"),
-        "slack_webhook_set":  bool(_get("SLACK_WEBHOOK_URL")),
-        "smtp_host":          _get("SMTP_HOST"),
-        "smtp_user":          _get("SMTP_USER"),
+        # Masked: show only domain portion of email (e.g. "@gmail.com") not full address
+        "recipient_domain":   ("@" + email.split("@")[-1]) if "@" in email else None,
+        "smtp_configured":    bool(_get("SMTP_HOST") and smtp_user),
+        "smtp_host":          _get("SMTP_HOST"),   # host is not sensitive
     }
 
 
@@ -204,7 +210,7 @@ def _build_digest(run_result: Dict[str, Any]) -> tuple[str, str, str]:
 def _build_critical_alert(change_summary: str, severity: str) -> tuple[str, str, str]:
     """Build alert for a single critical/high change."""
     date_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    emoji    = "🚨" if severity == "Critical" else "⚠�"
+    emoji    = "🚨" if severity == "Critical" else "⚠️"
     subject  = f"{emoji} ARIS: {severity} regulatory change detected"
     text     = (
         f"{emoji} {severity} Regulatory Change\n"

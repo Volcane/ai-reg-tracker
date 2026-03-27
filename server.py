@@ -31,7 +31,7 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
-    from pydantic import BaseModel
+    from pydantic import BaseModel, Field
 except ImportError:
     print("FastAPI not installed. Run: pip install fastapi uvicorn")
     sys.exit(1)
@@ -108,11 +108,36 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# F-05 fix: security response headers on every response
+try:
+    from starlette.middleware.base import BaseHTTPMiddleware as _BaseHTTPMiddleware
+    class _SecurityHeadersMiddleware(_BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            response = await call_next(request)
+            response.headers.setdefault("X-Frame-Options",           "DENY")
+            response.headers.setdefault("X-Content-Type-Options",    "nosniff")
+            response.headers.setdefault("Referrer-Policy",           "strict-origin-when-cross-origin")
+            response.headers.setdefault("Content-Security-Policy",
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data:; "
+                "connect-src 'self'"
+            )
+            # Remove server version disclosure (MutableHeaders has no .pop())
+            if "server" in response.headers:
+                del response.headers["server"]
+            return response
+    app.add_middleware(_SecurityHeadersMiddleware)
+except Exception:
+    pass   # graceful if starlette version differs
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # F-04 fix: restrict to only the methods and headers the browser UI actually sends
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 # ── Scheduled monitoring ─────────────────────────────────────────────────────
@@ -201,10 +226,10 @@ def _log(msg: str):
 
 class RunAgentsRequest(BaseModel):
     sources:         List[str] = []          # empty = all
-    lookback_days:   int       = 30
+    lookback_days:   int       = Field(default=30,  ge=1, le=730)   # F-08: max 2 years
     summarize:       bool      = True
     run_diff:        bool      = True
-    limit:           int       = 50
+    limit:           int       = Field(default=50,  ge=1, le=500)   # F-08: cap batch size
     force_summarize: bool      = False       # bypass learning pre-filter
     domain:          str       = "both"      # ai | privacy | both
 
@@ -225,8 +250,8 @@ class WatchlistItem(BaseModel):
     notify_on:  List[str] = ["new_doc", "change"]  # "new_doc" | "change" | "checklist"
 
 class ChecklistRequest(BaseModel):
-    document_id: str
-    company_context: Optional[str] = None   # e.g. "healthcare AI startup"
+    document_id:     str
+    company_context: Optional[str] = Field(default=None, max_length=500)  # F-08
 
 
 # ── Watchlist (stored as JSON file alongside DB) ──────────────────────────────
@@ -272,7 +297,8 @@ def get_notification_config():
         from utils.notifier import get_config
         return get_config()
     except Exception as e:
-        return {"error": str(e)}
+        log.error("Request failed: %s", e, exc_info=True)
+        return {"error": "An internal error occurred — check server log"}
 
 
 @app.post("/api/notifications/test")
@@ -283,7 +309,8 @@ def test_notifications():
         results = send_test_notification()
         return {"results": results, "any_sent": any(results.values())}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/schedule")
@@ -670,9 +697,14 @@ def run_status():
 @app.get("/api/run/log")
 def run_log(since: int = 0):
     """Returns log lines since index `since`. Poll this while job is running."""
+    import re as _re
+    _ABS_PATH_RE = _re.compile(r"/[\w./\-]+(\.py|\.db|\.env|\.json|\.pdf|/[\w./\-]+){1,}")
+    def _scrub(line: str) -> str:
+        # F-10: redact absolute filesystem paths from log lines before returning
+        return _ABS_PATH_RE.sub("[path redacted]", line)
     lines = _job_state["log"]
     return {
-        "lines": lines[since:],
+        "lines": [_scrub(l) for l in lines[since:]],
         "total": len(lines),
         "running": _job_state["running"],
     }
@@ -736,7 +768,8 @@ Do not include generic advice — every item should be specific to this regulati
     try:
         checklist_md = call_llm(prompt=prompt, max_tokens=2048)
     except LLMError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable — check server log")
     return {
         "document_id": req.document_id,
         "title":       doc.get("title"),
@@ -805,7 +838,8 @@ def search_docs(
         }
     except Exception as e:
         log.error("Search error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/search/rebuild")
@@ -844,7 +878,8 @@ def search_status():
             "embedding_model":    engine._embedding.MODEL_NAME if engine._embedding.available else None,
         }
     except Exception as e:
-        return {"error": str(e)}
+        log.error("Request failed: %s", e, exc_info=True)
+        return {"error": "An internal error occurred — check server log"}
 
 
 # ·· Regulatory Horizon ·············································
@@ -915,7 +950,8 @@ def get_trends():
         return TrendAgent().get_summary()
     except Exception as e:
         log.error("Trends error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/trends/velocity")
@@ -973,7 +1009,8 @@ def baseline_status():
             "json_files":      sorted(f.name for f in json_files),
         }
     except Exception as e:
-        return {"error": str(e), "baselines_dir": None, "baselines_loaded": 0}
+        log.error("Baselines load failed: %s", e, exc_info=True)
+        return {"error": "Failed to load baselines — check server log", "baselines_dir": None, "baselines_loaded": 0}
 
 
 @app.get("/api/baselines")
@@ -1051,7 +1088,8 @@ def get_register(
         }
     except Exception as e:
         log.error("Register error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/register/refresh")
@@ -1067,7 +1105,8 @@ def refresh_register(req: RegisterRequest):
             register = agent.consolidate_fast(req.jurisdictions, force=True)
         return {"count": len(register), "items": register}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/register/categories")
@@ -1285,7 +1324,8 @@ def export_gap_analysis(analysis_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
     try:
         docx_bytes = _run_docx_generator({"type": "gap_analysis", "data": data})
@@ -1325,7 +1365,8 @@ def export_synthesis(synthesis_id: int):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
     try:
         docx_bytes = _run_docx_generator({"type": "synthesis", "data": data})
@@ -1425,7 +1466,8 @@ async def pdf_upload(
         }
     except Exception as e:
         log.error("PDF upload failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/pdf/ingest")
@@ -1451,10 +1493,12 @@ def pdf_ingest_inbox(req: PDFIngestRequest):
             "word_count":  len((doc.get("full_text") or "").split()),
         }
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as e:
         log.error("PDF ingest failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/pdf/download")
@@ -1537,11 +1581,11 @@ def pdf_download_all(
 # ·· Thematic Synthesis & Conflict Detection ····················
 
 class SynthesisRequest(BaseModel):
-    topic:            str
+    topic:            str            = Field(max_length=500)        # F-08: cap prompt size
     jurisdictions:    Optional[List[str]] = None
-    days:             int  = 365
-    detect_conflicts: bool = True
-    force_refresh:    bool = False
+    days:             int            = Field(default=365, ge=1, le=730)  # F-08: max 2 years
+    detect_conflicts: bool           = True
+    force_refresh:    bool           = False
 
 
 class AnnotateRequest(BaseModel):
@@ -1677,7 +1721,8 @@ def submit_feedback(req: FeedbackRequest):
         return {"ok": True, "source_quality": profile.get("quality_score")}
     except Exception as e:
         log.error("Feedback recording failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/learning")
@@ -1688,7 +1733,8 @@ def get_learning_report():
         learner = LearningAgent()
         return learner.get_learning_report()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/learning/feedback")
@@ -1704,7 +1750,8 @@ def get_schedule():
         from agents.learning_agent import LearningAgent
         return LearningAgent().get_optimal_fetch_schedule()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/learning/adaptation/{adapt_id}/toggle")
@@ -1834,19 +1881,26 @@ def graph_status():
             "built":             len(edges) > 0,
         }
     except Exception as e:
-        return {"built": False, "error": str(e)}
+        log.error("Build failed: %s", e, exc_info=True)
+        return {"built": False, "error": "Build failed — check server log"}
 
 
 # ·· Export ·····················································
 
 @app.get("/api/export/json")
-def export_json(days: int = 30, jurisdiction: Optional[str] = None):
+def export_json(
+    days: int = Query(default=30, ge=1, le=365, description="Lookback window in days — max 365"),  # F-09
+    jurisdiction: Optional[str] = None,
+):
     summaries = get_recent_summaries(days=days, jurisdiction=jurisdiction)
     return JSONResponse(content=summaries)
 
 
 @app.get("/api/export/markdown")
-def export_markdown(days: int = 30, jurisdiction: Optional[str] = None):
+def export_markdown(
+    days: int = Query(default=30, ge=1, le=365, description="Lookback window in days — max 365"),  # F-09
+    jurisdiction: Optional[str] = None,
+):
     from utils.reporter import export_markdown as _export
     path = _export(days=days)
     return FileResponse(path, media_type="text/markdown",
@@ -1856,7 +1910,7 @@ def export_markdown(days: int = 30, jurisdiction: Optional[str] = None):
 # ·· Q&A ·····················································
 
 class QARequest(BaseModel):
-    question:    str
+    question:    str            = Field(max_length=2000)  # F-08: prevent oversized LLM prompts
     jurisdiction: Optional[str] = None
     session_id:   Optional[int] = None   # for follow-up context (last N turns)
 
@@ -1903,7 +1957,8 @@ def ask_question(req: QARequest):
         return result
     except Exception as e:
         log.error("Q&A error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/qa/history")
@@ -1913,7 +1968,8 @@ def get_qa_history_endpoint(limit: int = 50):
         from utils.db import get_qa_history
         return {"items": get_qa_history(limit=limit)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/qa/index/rebuild")
@@ -1953,7 +2009,8 @@ def qa_index_status():
             "tfidf_built":      retriever._tfidf._built,
         }
     except Exception as e:
-        return {"ready": False, "error": str(e)}
+        log.error("Index failed: %s", e, exc_info=True)
+        return {"ready": False, "error": "Index error — check server log"}
 
 
 # ·· Enforcement & Litigation ··································
@@ -2055,7 +2112,8 @@ def generate_brief(req: BriefRequest):
         )
     except Exception as e:
         log.error("Brief generation error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.get("/api/briefs")
@@ -2082,7 +2140,7 @@ class CompareRequest(BaseModel):
     source_type_a: str = "auto"   # auto | baseline | document
     source_id_b:  str
     source_type_b: str = "auto"
-    focus:        Optional[str] = None   # specific concept to focus on
+    focus:        Optional[str] = Field(default=None, max_length=300)  # F-08: cap prompt size
 
 
 @app.post("/api/compare")
@@ -2108,7 +2166,8 @@ def deep_compare(req: CompareRequest):
         )
     except Exception as e:
         log.error("Compare error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 
@@ -2155,7 +2214,8 @@ def get_concept(concept_key: str, force: bool = False):
         raise
     except Exception as e:
         log.error("Concept map error for %s: %s", concept_key, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("Request failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal error occurred — check server log")
 
 
 @app.post("/api/concepts/{concept_key}/build")
