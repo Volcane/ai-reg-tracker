@@ -1,8 +1,8 @@
 # ARIS — Automated Regulatory Intelligence System
 
-**Monitor. Baseline. Compare. Interpret. Consolidate. Trend. Horizon. Learn. Act.**
+**Monitor. Baseline. Compare. Interpret. Consolidate. Trend. Horizon. Enforce. Learn. Act.**
 
-ARIS is a fully local, agentic system that monitors **AI regulation and data privacy law** across 18 US states, 10 international jurisdictions, and US Federal agencies. It ships with 31 curated baseline regulations, fetches live documents from official government APIs, uses Claude to interpret and analyse them, detects changes, tracks regulatory velocity, scans the regulatory horizon for planned regulations, consolidates obligations, compares jurisdictions side-by-side, and performs company-specific compliance gap analysis — all through a browser dashboard or the command line.
+ARIS is a fully local, agentic system that monitors **AI regulation and data privacy law** across all 50 US states, 10 international jurisdictions, and US Federal agencies. It ships with 32 curated baseline regulations, fetches live documents from official government APIs and enforcement feeds, uses Claude to interpret and analyse them, detects changes, tracks regulatory velocity, scans the regulatory horizon for planned regulations, consolidates obligations, compares jurisdictions side-by-side, and performs company-specific compliance gap analysis — all through a browser dashboard or the command line.
 
 Everything runs on your machine. No SaaS subscription, no data leaving your environment, no per-query costs beyond your own API key.
 
@@ -22,22 +22,23 @@ Copyright (c) 2026 Mitch Kwiatkowski
 
 | # | Feature | API Calls | Description |
 |---|---------|-----------|-------------|
-| 1 | **Baselines** | None | 31 curated baselines covering settled AI regulation and data privacy law. Always available. |
-| 2 | **Fetch** | None | Concurrent fetch from 18 US states, 10 international jurisdictions, and 5 US Federal sources. |
-| 3 | **Filter** | None | Domain-aware keyword pre-screening with false-positive protection for common non-AI acronyms (NAIC, AIDA, MAID, PAID leave). Skipped docs recorded with reason. |
+| 1 | **Baselines** | None | 32 curated baselines covering settled AI regulation and data privacy law. Always available offline. |
+| 2 | **Fetch** | None | Concurrent fetch from all 50 US states, 10 international jurisdictions, and 5 US Federal sources. |
+| 3 | **Filter** | None | Domain-aware keyword pre-screening (150+ terms) with false-positive protection. Skipped docs recorded with reason. |
 | 4 | **Interpret** | Claude | Plain-English summaries, urgency ratings, requirements, action items, deadlines. Domain-specific prompts. |
 | 5 | **Change detection** | Claude | Baseline-aware diffs — compares new documents against settled law, not just prior versions. |
-| 6 | **Consolidation** | Optional | De-duplicated obligation register from all 31 baselines. Fast mode: zero API calls. Full mode: one Claude call. |
-| 7 | **Trends & velocity** | None | Jurisdiction velocity sparklines, impact-area heatmap, acceleration alerts — all from local DB. |
-| 8 | **Horizon scanning** | None | Monitors Unified Regulatory Agenda, congressional hearings, EU Work Programme, UK Parliament, plus 17 seeded known upcoming events. Dashboard widget with urgency buckets and countdowns. |
-| 9 | **Compare** | Claude | Side-by-side structured comparison of any two of the 31 baselines. |
+| 6 | **Consolidation** | Optional | De-duplicated obligation register from all 32 baselines. Fast mode: zero API calls. Full mode: one Claude call. |
+| 7 | **Trends & velocity** | None | Jurisdiction velocity chart (rolling 12-month window), impact-area heatmap, acceleration alerts. |
+| 8 | **Horizon scanning** | None | Unified Regulatory Agenda, congressional hearings, EU Work Programme, UK Parliament, plus seeded upcoming events. |
+| 9 | **Compare** | Claude | Side-by-side structured comparison of any two of the 32 baselines. |
 | 10 | **Synthesis** | Claude | Cross-document regulatory landscape with conflict detection. Export to .docx. |
 | 11 | **Gap analysis** | Claude | Company-profile compliance gaps, phased roadmap. Export to .docx. |
-| 12 | **Document review** | None | Feedback marks documents Relevant / Partially Relevant / Not Relevant. |
-| 13 | **Autonomous learning** | Claude (periodic) | Every processed document — including Skipped stubs — feeds the relevance model. Sources producing false positives are down-weighted automatically. Documents Claude scores ≤ 0.15 auto-archive. |
-| 14 | **PDFs** | None | Auto-download PDFs from Federal Register, EUR-Lex, UK legislation; accept manual uploads. |
-| 15 | **Notifications** | None | Email (SMTP) and Slack webhook digests on critical findings and scheduled runs. |
-| 16 | **Scheduled monitoring** | None | Background scheduler with configurable interval, domain, and lookback. Survives restarts. |
+| 12 | **Enforcement** | None | 10 live sources: FTC, SEC, CFPB, EEOC, DOJ, ICO (UK), CourtListener, Google News, Regulatory Oversight, Courthouse News. Story grouping deduplicates coverage. |
+| 13 | **Document review** | None | Feedback marks documents Relevant / Partially Relevant / Not Relevant. |
+| 14 | **Autonomous learning** | Claude (periodic) | Every processed document feeds the relevance model. False-positive sources are down-weighted automatically. Documents Claude scores ≤ 0.15 auto-archive. |
+| 15 | **PDFs** | None | Auto-download PDFs from Federal Register, EUR-Lex, UK legislation; accept manual uploads. |
+| 16 | **Notifications** | None | Email (SMTP) and Slack webhook digests on critical findings and scheduled runs. |
+| 17 | **Scheduled monitoring** | None | Background scheduler with configurable interval, domain, and lookback. Survives restarts. |
 
 ---
 
@@ -45,25 +46,25 @@ Copyright (c) 2026 Mitch Kwiatkowski
 
 | View | What It Shows |
 |------|---------------|
-| **Dashboard** | Alert rail, pulse sparklines, **horizon widget** (urgency buckets + countdown list), system health |
-| **Documents** | Active document list with domain filter, review badges, Skipped indicator with exact reason |
-| **Changes** | Keyword search, version diffs with severity badges, side-by-side comparisons |
+| **Dashboard** | Alert rail, pulse sparklines, horizon widget (urgency buckets + countdown list), recent enforcement, system health |
+| **Documents** | Active document list with sort (date fetched / published / urgency / jurisdiction), domain filter, review badges |
+| **Changes** | Unreviewed change cards with document titles, severity badges, keyword search, side-by-side diffs |
 | **Baselines** | Domain tabs (AI Regulation / Data Privacy), jurisdiction filter, obligations and prohibitions |
-| **Compare** | Side-by-side Claude analysis of any two of 31 baselines |
-| **Trends** | Jurisdiction velocity sparklines, impact-area heatmap, acceleration alerts |
+| **Compare** | Side-by-side Claude analysis of any two of 32 baselines |
+| **Trends** | Jurisdiction velocity chart (rolling 12-month window ending today), impact-area heatmap, acceleration alerts |
 | **Horizon** | 12-month forward calendar with domain filter — deadlines, proposed rules, hearings |
 | **Obligations** | De-duplicated obligation register across any jurisdiction set |
 | **Ask ARIS** | RAG-powered Q&A across all documents and baselines with citations |
 | **Briefs** | One-page regulatory briefs per jurisdiction |
 | **Synthesis** | Cross-jurisdiction narratives, conflict maps, .docx export |
 | **Gap Analysis** | Company profiles, domain-scoped gap cards, roadmap, .docx export |
-| **Enforcement** | FTC, SEC, CFPB, ICO enforcement actions |
+| **Enforcement** | 10 enforcement sources with story grouping — collapses multiple articles about the same case into one expandable card |
 | **Graph** | Document relationship network |
 | **Concept Map** | Cross-jurisdiction concept analysis |
 | **Timeline** | Chronological regulatory timeline |
 | **Watchlist** | Keyword-based alerts with domain filter |
 | **PDF Ingest** | Upload PDFs or trigger auto-download |
-| **Run Agents** | Trigger fetch/summarise; first-run banner; post-run summary with auto-archived count |
+| **Run Agents** | Trigger fetch/summarise with compact 50-state regional grid; first-run banner; post-run summary |
 | **Learning** | Source quality profiles, keyword weights, prompt adaptations |
 | **Settings** | API keys, jurisdiction toggles, scheduled monitoring, notifications |
 
@@ -71,43 +72,64 @@ Copyright (c) 2026 Mitch Kwiatkowski
 
 ## Coverage
 
-### US States (18)
+### US States (50)
 
-| State | Native Feed | Key Legislation |
-|-------|-------------|-----------------|
-| Pennsylvania | palegis.us ZIP + LegiScan | Digital identity, AI deepfakes |
-| California | CA Legislature API + LegiScan | SB 53, AB 2013, SB 942 (24+ AI laws) |
-| Colorado | leg.colorado.gov API + LegiScan | AI Act SB 24-205 (effective Jun 2026) |
-| Illinois | ILGA RSS + LegiScan | AIPA enacted, BIPA |
-| Texas | TLO RSS + LegiScan | TRAIGA enacted Jan 2026 |
-| Washington | WSL web services + LegiScan | My Health My Data Act |
-| New York | NY Senate API + LegiScan | RAISE Act pending |
-| Florida | FL Senate API + LegiScan | SB 262, government AI |
-| Minnesota | MN Senate RSS + LegiScan | SF 2995 reintroducing 2026 |
-| Connecticut | LegiScan | SB 2 reintroducing 2026 |
-| Virginia | LegiScan | HB 2094 equivalent reintroducing 2026 |
-| New Jersey | LegiScan | NJ Data Privacy Law |
-| Massachusetts | LegiScan | AI employment bills |
-| Oregon | LegiScan | Consumer Privacy Act in force |
-| Maryland | LegiScan | Online Data Privacy Act |
-| Georgia | LegiScan | AI employment disclosure |
-| Arizona | LegiScan | Chatbot regulation, deepfake disclosure |
-| North Carolina | LegiScan | AI Employment Act |
+All 50 states monitored via LegiScan API. Ten states also have native legislative feeds:
+
+| Tier | States | Source |
+|------|--------|--------|
+| **Native + LegiScan** | PA, CA, CO, IL, TX, WA, NY, FL, MN, CT | State-specific XML/API feeds + LegiScan |
+| **Active pipeline** | VA, NJ, MA, OR, MD, GA, AZ, NC, MI, OH, NV, UT, IN, TN, KY, SC, WI, MO | LegiScan |
+| **Emerging activity** | LA, AL, MS, AR, IA, KS, NE, NM, OK, WV, ID, MT, ND, SD, WY, AK, HI, ME, NH, VT, RI, DE | LegiScan |
+
+**Notable enacted state laws:**
+
+| State | Law | Status |
+|-------|-----|--------|
+| Texas | TRAIGA — AI risk management | In force Jan 2026 |
+| Colorado | AI Act SB 24-205 — high-risk AI | Effective Jun 2026 |
+| Illinois | AIPA — automated employment decisions | Enacted |
+| Utah | Utah AI Policy Act | Enacted 2024 |
+| California | 24+ AI laws including SB 53, AB 2013, SB 942 | Various |
+| Montana | Consumer Data Privacy Act | In force 2024 |
+| Iowa | Consumer Data Protection Act | In force 2025 |
+| Nebraska | Data Privacy Act | In force 2025 |
+| Delaware | Personal Data Privacy Act | In force 2025 |
+| Indiana | Consumer Data Protection Act | In force 2026 |
+
+> **LegiScan quota:** The free tier allows ~30 API calls/day. Fetching all 50 states uses 50+ calls. Run states in regional batches using the Run Agents grid, or use `python diagnose_legiscan.py` to check quota status before a full run.
 
 ### International (10)
 
 | Jurisdiction | Primary Source | Key Instruments |
 |-------------|----------------|-----------------|
-| European Union | EUR-Lex + EU AI Office RSS | EU AI Act, GDPR, Data Act, DSA/DMA |
-| United Kingdom | Parliament Bills API + legislation.gov.uk | UK GDPR/DPA, AI Framework, DPDI Act |
-| Canada | OpenParliament + Canada Gazette | PIPEDA, CPPA (Bill C-27), AIDA |
+| European Union | EUR-Lex SPARQL + EU AI Office RSS | EU AI Act, GDPR, Data Act, DSA/DMA |
+| United Kingdom | Parliament Bills API + legislation.gov.uk | UK GDPR/DPA 2018, AI Framework |
+| Canada | OpenParliament + Canada Gazette + ISED | PIPEDA, CPPA (Bill C-27), AIDA |
 | Singapore | PDPC RSS + IMDA RSS | Model AI Governance Framework, PDPA |
 | India | PIB RSS (MEITY) | DPDP Act 2023, IndiaAI Mission |
 | Brazil | ANPD RSS + Senate RSS | LGPD, AI Bill PL 2338/2023 |
-| Japan | METI English RSS | AI Business Guidelines, APPI |
+| Japan | METI RSS + Google News fallback | AI Promotion Act (May 2025), AI Guidelines v1.1 |
 | South Korea | MSIT press releases | PIPA 2023 amendments, AI Promotion Act |
-| Australia | Voluntary AI Safety Standard (pinned) | AI Safety Standard, Privacy Act review |
-| China | Pinned documents | Generative AI Interim Measures |
+| Australia | Federal Register API + pinned docs | AI Safety Standard, Privacy Act review |
+| China | Pinned documents | Generative AI Interim Measures, Algorithm Recommendation Regulation |
+
+### Enforcement Sources (10)
+
+| Source | Coverage |
+|--------|----------|
+| FTC | Press releases — algorithmic bias, AI fraud, dark patterns |
+| SEC | EDGAR search — AI fraud, algorithmic manipulation |
+| CFPB | Newsroom — automated underwriting, credit scoring |
+| EEOC | Newsroom — employment AI discrimination |
+| DOJ | Press releases — civil rights AI discrimination |
+| ICO (UK) | Media centre — GDPR / data protection enforcement |
+| CourtListener | Federal court opinions and dockets (PACER/RECAP) |
+| Google News | 7 targeted queries: AI lawsuits, data privacy fines, state AG enforcement, social media verdicts |
+| Regulatory Oversight | Troutman Pepper enforcement blog — state AG and FTC actions |
+| Courthouse News | State and federal court filings the day they are filed |
+
+The Enforcement view groups articles about the same story (e.g. 28 articles about the Meta/YouTube social media addiction verdict) into a single expandable card with a "N more articles" toggle.
 
 ---
 
@@ -118,17 +140,15 @@ ARIS monitors two distinct regulatory domains with separate vocabularies, prompt
 - **AI Regulation** — risk classification, transparency, oversight, prohibited uses, conformity assessment
 - **Data Privacy** — consent, individual rights, breach notification, legal bases, international transfers
 
-Every document, summary, change, and horizon item carries a `domain` field (`ai` | `privacy` | `both`). Every data view has a three-pill domain filter persisted independently per view.
+Every document, summary, change, and horizon item carries a `domain` field (`ai` | `privacy` | `both`). Every view has a three-pill domain filter persisted independently per view.
 
-### False-Positive Protection
-
-The relevance filter uses a three-stage check designed to prevent common false positives from LegiScan searches:
+### Relevance Filtering (150+ Terms)
 
 1. **Strong-signal fast path** — unambiguous AI terms ("artificial intelligence", "automated decision", "deepfake") pass immediately
-2. **Known false-positive guard** — blocks NAIC, MAID, PAID leave, BRAIN Initiative unless 2+ additional AI terms present
-3. **Scored match** — 150+ term taxonomy; ambiguous terms (e.g. "aida") only count when backed by at least one unambiguous AI term
+2. **Known false-positive guard** — blocks NAIC, MAID, PAID leave, BRAIN Initiative unless 2+ additional AI terms are present
+3. **Scored match** — 150+ term taxonomy; ambiguous terms only count when backed by at least one unambiguous AI term
 
-Pre-filter validation runs against the **bill title only**, not `title + search_keyword` — fixing the root cause where any bill returned by a LegiScan keyword query would automatically pass relevance.
+Pre-filter validation runs against the **bill title only** — not `title + search_keyword` — preventing LegiScan result contamination.
 
 ---
 
@@ -136,15 +156,16 @@ Pre-filter validation runs against the **bill title only**, not `title + search_
 
 ARIS improves its own relevance filtering without user input:
 
-- **Skipped stubs feed the learner** — all three skip gates (pre-filter, no-learner domain check, Claude low score) return a stub dict that flows through the summarisation pipeline and calls `record_auto_feedback()` with the relevance score as signal
-- **Auto-archive** — documents Claude rates ≤ 0.15 automatically receive a `not_relevant` feedback event (`user="aris_auto"`) and move to Archive
-- **Domain-keyed profiles** — AI and privacy sources accrue quality scores independently so cross-domain noise doesn't contaminate scoring
+- **Skipped stubs feed the learner** — all three skip gates return a stub that calls `record_auto_feedback()` with the relevance score as signal
+- **Auto-archive** — documents Claude rates ≤ 0.15 automatically move to Archive
+- **Domain-keyed profiles** — AI and privacy sources accrue quality scores independently
+- **Summarization guard** — Skipped documents are excluded from re-summarization on normal runs; Force Summarize re-includes them for one pass
 
 ---
 
 ## Regulatory Horizon
 
-17 confirmed upcoming events seeded (March 2026), plus four live API sources. Key dates:
+Key upcoming dates (as of March 2026):
 
 | Event | Date |
 |-------|------|
@@ -153,8 +174,6 @@ ARIS improves its own relevance filtering without user input:
 | California SB 942 (AI transparency) effective | Aug 2, 2026 |
 | EU Data Act fully applicable | Sep 12, 2026 |
 | EU AI Act — High-Risk AI obligations | Aug 2, 2027 |
-
-The **dashboard Horizon Widget** shows urgency buckets (Within 30d / 30–180d / 180d+ / TBD), countdown badges, stage pills, and jurisdiction chips.
 
 ---
 
@@ -196,6 +215,9 @@ python main.py summarize --force      # bypass pre-filter
 python reset.py                       # interactive data reset
 python reset.py --documents --learning --yes   # clear docs + learning state
 python migrate.py                     # safe to re-run after updates
+
+python diagnose_legiscan.py           # diagnose LegiScan quota and session issues
+python diagnose_legiscan.py MI OH NV  # test specific states only
 ```
 
 ---
@@ -218,12 +240,27 @@ python server.py           # restart
 | `ANTHROPIC_API_KEY` | — | Required for all AI features |
 | `REGULATIONS_GOV_KEY` | — | Free — federal rulemaking dockets |
 | `CONGRESS_GOV_KEY` | — | Free — US bills and hearings |
-| `LEGISCAN_KEY` | — | Free — all 18 US state legislatures |
+| `LEGISCAN_KEY` | — | Free — all 50 US state legislatures (~30 calls/day free) |
+| `COURTLISTENER_KEY` | — | Optional free token — higher rate limits for court data |
 | `ACTIVE_DOMAINS` | `both` | `ai` / `privacy` / `both` |
 | `LOOKBACK_DAYS` | `30` | Days back for document searches |
 | `ARIS_HOST` | `127.0.0.1` | Set to `0.0.0.0` for LAN access (no auth — use caution) |
 | `NOTIFY_EMAIL` | — | Recipient for email notifications |
 | `SLACK_WEBHOOK_URL` | — | Slack incoming webhook URL |
+
+---
+
+## LegiScan Quota Management
+
+The free LegiScan tier allows approximately 30 API calls per day. ARIS uses `getMasterList` (1 call per state), so fetching all 50 states requires 50 calls — above the free limit.
+
+**Strategies to stay within quota:**
+- Use the Run Agents regional state grid to fetch one region per day (~10–15 states)
+- Increase the lookback window (e.g. 90 days) so each run captures more history per call
+- Run `python diagnose_legiscan.py` to confirm quota status before a large run
+- Upgrade to LegiScan paid plan ($9/month) for unrestricted calls
+
+When quota is exhausted, ARIS logs `LEGISCAN API ERROR` in the Run Agents log window, sets a session-level quota guard to stop burning further calls, and continues processing any non-LegiScan sources normally.
 
 ---
 
@@ -233,18 +270,19 @@ python server.py           # restart
 python -m pytest tests/ -v
 ```
 
-**636 tests across 18 test files.** All run without live API calls.
+288+ tests across multiple test files. All run without live API calls.
 
 ---
 
 ## Repository Files
 
 | File | Purpose |
-|------|---------|
+|------|---------| 
 | `LICENSE` | Elastic License 2.0 — non-commercial use |
 | `CHANGELOG.md` | Version history |
 | `CONTRIBUTING.md` | How to add state agents, run tests, submit PRs |
 | `SECURITY.md` | Network exposure, key storage, vulnerability reporting |
+| `diagnose_legiscan.py` | Standalone LegiScan diagnostic — run to check quota and session status |
 | `pyproject.toml` | Python 3.11+ requirement, pytest config |
 | `.gitignore` | Excludes keys.env, database, caches, build artifacts |
 
@@ -252,11 +290,9 @@ python -m pytest tests/ -v
 
 ## Windows Setup Notes
 
-ARIS is developed on Unix/macOS but runs on Windows. Two issues are known on Windows that do not occur on other platforms:
+ARIS is developed on Unix/macOS but runs on Windows. Two issues are known on Windows:
 
-**SyntaxError: Non-UTF-8 code** — Python on Windows defaults to ASCII encoding for source files. Any file containing non-ASCII characters (em dashes in comments, box-drawing characters in section dividers, special symbols) will fail to import with `SyntaxError: Non-UTF-8 code starting with '\x97'`.
-
-All ARIS Python files include `# -*- coding: utf-8 -*-` as their first line to declare UTF-8 explicitly. If you receive this error, the encoding declaration is missing from that file. Fix by running this from your project root:
+**SyntaxError: Non-UTF-8 code** — Python on Windows defaults to ASCII encoding. All ARIS Python files include `# -*- coding: utf-8 -*-` as line 1. If you receive this error, run:
 
 ```python
 import pathlib
@@ -270,9 +306,7 @@ for p in pathlib.Path('.').rglob('*.py'):
         print(f'fixed: {p}')
 ```
 
-Then restart `python server.py`.
-
-**npm run build fails with "stream did not contain valid UTF-8"** — the same issue in `.js` or `.jsx` files. The fix is the same byte-level replacement targeting JavaScript files too (add `.js` and `.jsx` to the suffix check above), or manually open the affected file in a text editor and save it as UTF-8.
+**npm run build fails with "stream did not contain valid UTF-8"** — extend the fix above to target `.js` and `.jsx` files, or save the affected file as UTF-8 in your editor.
 
 ---
 
@@ -282,10 +316,10 @@ Then restart `python server.py`.
 
 **Signal quality over coverage.** A compliance tool that surfaces noise erodes trust faster than it builds it. The pre-filter, false-positive blocklist, and autonomous learning loop all serve this goal.
 
-**Everything runs locally.** Database, cache, PDFs, learning state, all 31 baselines, and the horizon calendar live on your machine.
+**Everything runs locally.** Database, cache, PDFs, learning state, all 32 baselines, and the horizon calendar live on your machine.
 
 **Zero-cost features first.** Browse baselines, view the obligation register, check velocity, and see the horizon calendar without spending a single API token.
 
-**Transparency over silence.** Pre-filter rejections are recorded as `Skipped` with the reason visible in the UI. Auto-archived documents are stamped `user="aris_auto"`.
+**Transparency over silence.** Pre-filter rejections are recorded as `Skipped` with the reason visible in the UI. Auto-archived documents are stamped `user="aris_auto"`. LegiScan quota errors surface in the run log rather than failing silently.
 
-**Graceful degradation.** Failed source tracks don't block others. The seeded horizon dataset ensures the horizon view is never empty when live APIs are unavailable.
+**Graceful degradation.** Failed source tracks don't block others. The seeded horizon dataset ensures the horizon view is never empty when live APIs are unavailable. International sources with unreliable feeds (e.g. Japan's METI) fall back to Google News RSS automatically.
