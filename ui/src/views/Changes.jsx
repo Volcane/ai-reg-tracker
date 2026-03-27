@@ -148,7 +148,11 @@ function ChangeCard({ change: c, expanded, onToggle, onReview }) {
       borderRadius: 'var(--radius-lg)',
       overflow: 'hidden',
       opacity: c.reviewed ? 0.7 : 1,
-    }}>
+      transition: 'box-shadow 0.15s',
+    }}
+    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
+    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+    >
       {/* Header */}
       <div
         style={{ padding: '14px 18px', cursor: 'pointer' }}
@@ -175,7 +179,12 @@ function ChangeCard({ change: c, expanded, onToggle, onReview }) {
           {expanded ? <ChevronUp size={14} style={{ color: 'var(--text-3)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-3)' }} />}
         </div>
 
-        <p style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 8, lineHeight: 1.5 }}>
+        {c.doc_title && (
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginTop: 8, lineHeight: 1.4 }}>
+            {c.doc_title}
+          </div>
+        )}
+        <p style={{ fontSize: 13, color: 'var(--text-2)', marginTop: c.doc_title ? 4 : 8, lineHeight: 1.5 }}>
           {c.change_summary}
         </p>
 

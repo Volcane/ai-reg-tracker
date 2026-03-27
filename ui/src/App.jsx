@@ -109,11 +109,14 @@ function NavItem({ to, icon: Icon, label, badge, end: endProp }) {
       <Icon size={13} style={{ flexShrink: 0 }} />
       <span style={{ flex: 1 }}>{label}</span>
       {badge > 0 && (
-        <span style={{
-          background: 'var(--red)', color: '#fff', fontSize: 10,
-          borderRadius: 10, padding: '1px 5px',
-          fontFamily: 'var(--font-mono)', lineHeight: '14px',
-        }}>{badge}</span>
+        <span
+          title={`${badge} unreviewed changes`}
+          style={{
+            background: 'var(--red)', color: '#fff', fontSize: 10,
+            borderRadius: 10, padding: '1px 5px',
+            fontFamily: 'var(--font-mono)', lineHeight: '14px',
+            cursor: 'default',
+          }}>{badge}</span>
       )}
     </NavLink>
   )
@@ -298,6 +301,9 @@ function AppInner() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      <style>{`
+        .disclaimer-trigger:hover .disclaimer-tooltip { display: block !important; }
+      `}</style>
 
       {/* ── Sidebar ── */}
       <aside style={{
@@ -375,7 +381,7 @@ function AppInner() {
             )}
             {status?.job?.last_run && (
               <div style={{ marginTop: 3, fontSize: 10, fontFamily: 'var(--font-mono)' }}>
-                Last run: {new Date(status.job.last_run).toLocaleTimeString()}
+                Last run: {new Date(status.job.last_run).toLocaleDateString(undefined,{month:'short',day:'numeric'})} {new Date(status.job.last_run).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}
               </div>
             )}
           </div>
@@ -408,49 +414,59 @@ function AppInner() {
           <Route path="/settings"    element={<SettingsView status={status} />} />
         </Routes>
 
-        {/* ── Disclaimer footer ── */}
+        {/* ── Disclaimer footer — collapsed to one line, full text on hover ── */}
         <footer style={{
           borderTop: '1px solid var(--border)',
-          padding: '10px 24px',
+          padding: '5px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 16,
           flexShrink: 0,
           background: 'var(--bg-1)',
+          position: 'relative',
         }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, position: 'relative' }}>
+            {/* Hover trigger */}
+            <div className="disclaimer-trigger" style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'default' }}>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                ⚠ Not legal, compliance, or regulatory advice.
+              </span>
+              <span style={{
+                fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)',
+                border: '1px solid var(--border)', borderRadius: '50%',
+                width: 13, height: 13, display: 'inline-flex', alignItems: 'center',
+                justifyContent: 'center', cursor: 'help', flexShrink: 0,
+              }}>?</span>
+            </div>
+            {/* Full text tooltip */}
+            <div className="disclaimer-tooltip" style={{
+              display: 'none', position: 'absolute', bottom: '100%', left: 0,
+              marginBottom: 8, background: 'var(--bg-3)', border: '1px solid var(--border)',
+              borderRadius: 6, padding: '10px 14px', width: 480, zIndex: 200,
+              fontSize: 11, color: 'var(--text-3)', lineHeight: 1.6,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            }}>
+              <strong style={{ color: 'var(--text-2)' }}>Not legal, compliance, or regulatory advice.</strong>
+              {' '}ARIS is an informational research tool only. Nothing in this system — including
+              summaries, gap analyses, jurisdiction comparisons, or any other output — constitutes
+              legal, compliance, or regulatory advice, and should not be relied upon as such.
+              Regulatory requirements vary by jurisdiction, industry, organisation type, and the
+              specific facts of your situation. Always consult qualified legal counsel before making
+              compliance or regulatory decisions.
+            </div>
+          </div>
           <p style={{
-            margin: 0,
-            fontSize: 10,
-            color: 'var(--text-3)',
-            lineHeight: 1.5,
-            maxWidth: 820,
-          }}>
-            <strong style={{ color: 'var(--text-2)', fontWeight: 500 }}>Not legal, compliance, or regulatory advice.</strong>
-            {' '}ARIS is an informational research tool only. Nothing in this system — including
-            summaries, gap analyses, jurisdiction comparisons, or any other output — constitutes
-            legal, compliance, or regulatory advice, and should not be relied upon as such.
-            Regulatory requirements vary by jurisdiction, industry, organisation type, and the
-            specific facts of your situation. Always consult qualified legal counsel before making
-            compliance or regulatory decisions.
-          </p>
-          <p style={{
-            margin: 0,
-            fontSize: 10,
-            color: 'var(--text-3)',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            textAlign: 'right',
-            lineHeight: 1.6,
+            margin: 0, fontSize: 10, color: 'var(--text-3)',
+            whiteSpace: 'nowrap', flexShrink: 0, textAlign: 'right',
           }}>
             © {new Date().getFullYear()} Mitch Kwiatkowski
             {' '}·{' '}<a
               href="https://www.elastic.co/licensing/elastic-license"
-              target="_blank"
-              rel="noopener noreferrer"
+              target="_blank" rel="noopener noreferrer"
               style={{ color: 'var(--text-3)', textDecoration: 'underline', textDecorationColor: 'var(--border)' }}
             >Elastic License 2.0</a>
-            {' '}·{' '}Non-commercial use only
+            {' '}· Non-commercial use only
           </p>
         </footer>
       </main>

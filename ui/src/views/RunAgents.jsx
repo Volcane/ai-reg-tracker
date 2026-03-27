@@ -7,26 +7,43 @@ import { Spinner, SectionHeader } from '../components.jsx'
 
 const SOURCE_FEDERAL = { id: 'federal', label: 'US Federal', sub: 'Federal Register · Regulations.gov · Congress.gov' }
 
-const SOURCES_STATES = [
-  { id: 'PA', label: 'Pennsylvania', sub: 'PA ZIP + LegiScan' },
-  { id: 'CA', label: 'California',   sub: 'CA API + LegiScan' },
-  { id: 'CO', label: 'Colorado',     sub: 'CO API + LegiScan' },
-  { id: 'IL', label: 'Illinois',     sub: 'ILGA + LegiScan'   },
-  { id: 'TX', label: 'Texas',        sub: 'TLO + LegiScan'    },
-  { id: 'WA', label: 'Washington',   sub: 'WSL + LegiScan'    },
-  { id: 'NY', label: 'New York',     sub: 'NY Senate + LegiScan' },
-  { id: 'FL', label: 'Florida',      sub: 'FL Senate + LegiScan' },
-  { id: 'MN', label: 'Minnesota',    sub: 'MN RSS + LegiScan' },
-  { id: 'CT', label: 'Connecticut',  sub: 'LegiScan' },
-  { id: 'VA', label: 'Virginia',     sub: 'LegiScan' },
-  { id: 'NJ', label: 'New Jersey',   sub: 'LegiScan' },
-  { id: 'MA', label: 'Massachusetts',sub: 'LegiScan' },
-  { id: 'OR', label: 'Oregon',       sub: 'LegiScan' },
-  { id: 'MD', label: 'Maryland',     sub: 'LegiScan' },
-  { id: 'GA', label: 'Georgia',      sub: 'LegiScan' },
-  { id: 'AZ', label: 'Arizona',      sub: 'LegiScan' },
-  { id: 'NC', label: 'North Carolina', sub: 'LegiScan' },
+// All 50 US states grouped by region for compact display
+const STATE_REGIONS = [
+  { label: 'Northeast', states: [
+    { id:'CT', label:'CT' }, { id:'DE', label:'DE' }, { id:'MA', label:'MA' },
+    { id:'ME', label:'ME' }, { id:'NH', label:'NH' }, { id:'NJ', label:'NJ' },
+    { id:'NY', label:'NY', native:true }, { id:'PA', label:'PA', native:true },
+    { id:'RI', label:'RI' }, { id:'VT', label:'VT' },
+  ]},
+  { label: 'South', states: [
+    { id:'AL', label:'AL' }, { id:'AR', label:'AR' },
+    { id:'FL', label:'FL', native:true }, { id:'GA', label:'GA' },
+    { id:'KY', label:'KY' }, { id:'LA', label:'LA' }, { id:'MD', label:'MD' },
+    { id:'MS', label:'MS' }, { id:'NC', label:'NC' }, { id:'OK', label:'OK' },
+    { id:'SC', label:'SC' }, { id:'TN', label:'TN' }, { id:'TX', label:'TX', native:true },
+    { id:'VA', label:'VA' }, { id:'WV', label:'WV' },
+  ]},
+  { label: 'Midwest', states: [
+    { id:'IA', label:'IA' }, { id:'IL', label:'IL', native:true },
+    { id:'IN', label:'IN' }, { id:'KS', label:'KS' }, { id:'MI', label:'MI' },
+    { id:'MN', label:'MN', native:true }, { id:'MO', label:'MO' },
+    { id:'ND', label:'ND' }, { id:'NE', label:'NE' }, { id:'OH', label:'OH' },
+    { id:'SD', label:'SD' }, { id:'WI', label:'WI' },
+  ]},
+  { label: 'West', states: [
+    { id:'AK', label:'AK' }, { id:'AZ', label:'AZ' }, { id:'CA', label:'CA', native:true },
+    { id:'CO', label:'CO', native:true }, { id:'HI', label:'HI' },
+    { id:'ID', label:'ID' }, { id:'MT', label:'MT' }, { id:'NM', label:'NM' },
+    { id:'NV', label:'NV' }, { id:'OR', label:'OR' }, { id:'UT', label:'UT' },
+    { id:'WA', label:'WA', native:true }, { id:'WY', label:'WY' },
+  ]},
 ]
+
+// Flat list for "all states" toggle and validation
+const ALL_STATE_IDS = [...new Set(STATE_REGIONS.flatMap(r => r.states.map(s => s.id)))]
+
+// Legacy flat list kept for ALL_SOURCES
+const SOURCES_STATES = ALL_STATE_IDS.map(id => ({ id, label: id }))
 
 const SOURCES_INTL = [
   { id: 'EU',     label: 'EU',           sub: 'EUR-Lex · AI Office' },
@@ -42,7 +59,7 @@ const SOURCES_INTL = [
 
 const ALL_SOURCES = [
   SOURCE_FEDERAL,
-  { id: 'states', label: 'US States', sub: 'All 18 enabled states' },
+  { id: 'states', label: 'US States', sub: 'All 50 states' },
   ...SOURCES_STATES,
   { id: 'international', label: 'International', sub: 'EU · UK · Canada · SG · IN · BR · JP · KR · AU' },
   ...SOURCES_INTL,
@@ -75,6 +92,114 @@ function SourceChip({ src, selected, onToggle }) {
         <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{src.sub}</div>
       </div>
     </label>
+  )
+}
+
+// ── State grid — compact regional layout for 50 states ──────────────────────
+
+function StateGrid({ selectedSources, toggleSource }) {
+  const [stateSearch, setStateSearch] = useState('')
+  const query = stateSearch.toLowerCase()
+
+  const allSelected  = ALL_STATE_IDS.every(id => selectedSources.includes(id))
+  const someSelected = ALL_STATE_IDS.some(id => selectedSources.includes(id))
+
+  const toggleAll = () => {
+    if (allSelected) {
+      // deselect all states
+      ALL_STATE_IDS.forEach(id => {
+        if (selectedSources.includes(id)) toggleSource(id)
+      })
+    } else {
+      // select all states
+      ALL_STATE_IDS.forEach(id => {
+        if (!selectedSources.includes(id)) toggleSource(id)
+      })
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+          padding: '5px 8px',
+          background: someSelected ? 'var(--bg-4)' : 'var(--bg-3)',
+          border: `1px solid ${someSelected ? 'var(--accent-dim)' : 'var(--border)'}`,
+          borderRadius: 'var(--radius)', flex: 1,
+        }}>
+          <input type="checkbox" checked={allSelected} ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+            onChange={toggleAll} style={{ width: 'auto', accentColor: 'var(--accent)', flexShrink: 0 }} />
+          <div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>US States</span>
+            <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>
+              {someSelected ? `${ALL_STATE_IDS.filter(id => selectedSources.includes(id)).length} of 50 selected` : 'All 50 states · LegiScan'}
+            </span>
+          </div>
+        </label>
+        {/* Search filter */}
+        <input
+          value={stateSearch}
+          onChange={e => setStateSearch(e.target.value)}
+          placeholder="Filter…"
+          style={{ width: 80, fontSize: 11, padding: '4px 7px', background: 'var(--bg-3)',
+            border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text)' }}
+        />
+      </div>
+
+      {/* Regional grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {STATE_REGIONS.map(region => {
+          const filtered = query
+            ? region.states.filter(s => s.id.toLowerCase().includes(query) || s.label.toLowerCase().includes(query))
+            : region.states
+          if (filtered.length === 0) return null
+          const regionAll = filtered.every(s => selectedSources.includes(s.id))
+          const toggleRegion = () => filtered.forEach(s => {
+            if (regionAll ? selectedSources.includes(s.id) : !selectedSources.includes(s.id))
+              toggleSource(s.id)
+          })
+          return (
+            <div key={region.label}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                <button onClick={toggleRegion} style={{
+                  fontSize: 9, fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
+                  letterSpacing: '0.05em', color: 'var(--text-3)', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                }}>
+                  {region.label}
+                </button>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {filtered.map(s => {
+                  const sel = selectedSources.includes(s.id)
+                  return (
+                    <button key={s.id} onClick={() => toggleSource(s.id)} title={s.id} style={{
+                      fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                      padding: '3px 6px', borderRadius: 3, cursor: 'pointer',
+                      border: `1px solid ${sel ? 'var(--accent)' : 'var(--border)'}`,
+                      background: sel ? 'var(--accent-dim)' : 'var(--bg-3)',
+                      color: sel ? 'var(--accent)' : s.native ? 'var(--text)' : 'var(--text-3)',
+                      transition: 'all 0.1s',
+                    }}>
+                      {s.id}
+                      {s.native && <span style={{ fontSize: 7, marginLeft: 2, verticalAlign: 'super' }}>●</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {!query && (
+        <div style={{ fontSize: 9, color: 'var(--text-3)', marginTop: 5, fontFamily: 'var(--font-mono)' }}>
+          ● native feed &nbsp;|&nbsp; click region name to toggle all in region
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -220,25 +345,8 @@ export default function RunAgents({ onJobStart }) {
             />
           </div>
 
-          {/* US States */}
-          <div style={{ marginBottom: 14 }}>
-            <GroupHeader
-              label="US States"
-              sub="All 18 enabled states"
-              selected={isSelected('states')}
-              onToggle={() => toggleSource('states')}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
-              {SOURCES_STATES.map(src => (
-                <SourceChip
-                  key={src.id}
-                  src={src}
-                  selected={isSelected(src.id)}
-                  onToggle={() => toggleSource(src.id)}
-                />
-              ))}
-            </div>
-          </div>
+          {/* US States — compact regional grid */}
+          <StateGrid selectedSources={selectedSources} toggleSource={toggleSource} />
 
           {/* International */}
           <div>

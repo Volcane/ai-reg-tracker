@@ -266,9 +266,25 @@ export default function AskAris() {
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
 
-  // Load index status on mount
+  // Load index status on mount; auto-rebuild if stale
   useEffect(() => {
-    api.indexStatus().then(setIndexStatus).catch(() => {})
+    api.indexStatus().then(s => {
+      setIndexStatus(s)
+      // Auto-kick a rebuild if index is empty or stale — silently in background
+      if (s && !s.ready && s.passage_count === 0) {
+        setTimeout(() => {
+          api.rebuildIndex().catch(() => {})
+          // Poll until ready
+          const poll = setInterval(() => {
+            api.indexStatus().then(st => {
+              setIndexStatus(st)
+              if (st?.ready) clearInterval(poll)
+            }).catch(() => {})
+          }, 3000)
+          setTimeout(() => clearInterval(poll), 120000) // give up after 2 min
+        }, 1500)
+      }
+    }).catch(() => {})
   }, [])
 
   // Scroll to bottom when conversation grows
@@ -379,8 +395,8 @@ export default function AskAris() {
               marginTop: 4, marginBottom: 4,
               display: 'flex', gap: 16, flexWrap: 'wrap',
             }}>
-              <span style={{ color: indexStatus.ready ? 'var(--green)' : 'var(--yellow)' }}>
-                 -  {indexStatus.ready ? 'Index ready' : 'Index not ready - click Rebuild'}
+              <span style={{ color: indexStatus.ready ? 'var(--green)' : 'var(--text-3)' }}>
+                ● {indexStatus.ready ? 'Index ready' : indexStatus.passage_count > 0 ? 'Index may be stale — Rebuild to refresh' : 'Building index…'}
               </span>
               {indexStatus.passage_count > 0 && (
                 <span>{indexStatus.passage_count} passages</span>
@@ -430,7 +446,7 @@ export default function AskAris() {
                   Ask about AI regulation
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}>
-                  Every answer is grounded in your corpus - 19 baseline regulations plus
+                  Every answer is grounded in your corpus — 19 baseline regulations plus
                   all summarised documents. Sources are cited inline so you can verify
                   every claim.
                 </div>
@@ -504,7 +520,7 @@ export default function AskAris() {
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
               Answers draw from {indexStatus?.passage_count || '…'} passages across baselines and documents.
-              {!indexStatus?.ready && ' Index needs rebuild before answering.'}
+              {indexStatus && !indexStatus.ready && indexStatus.passage_count === 0 && ' Building index…'}
             </div>
           </div>
         </div>

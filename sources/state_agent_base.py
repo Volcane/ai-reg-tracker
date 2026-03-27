@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Elastic-2.0
 # Copyright (c) 2026 Mitch Kwiatkowski
-# ARIS � Automated Regulatory Intelligence System
+# ARIS — Automated Regulatory Intelligence System
 # Licensed under the Elastic License 2.0. See LICENSE in the project root.
 """
 ARIS — State Agent Base Class
@@ -30,6 +31,11 @@ from utils.search import is_privacy_relevant, detect_domain
 log = get_logger("aris.state")
 
 
+class LegiScanAPIError(Exception):
+    """Raised when LegiScan returns an API-level error (quota, auth, etc.)."""
+    pass
+
+
 class StateAgentBase(ABC):
     """
     Abstract base for state-level legislation monitoring.
@@ -51,7 +57,11 @@ class StateAgentBase(ABC):
     # ── LegiScan ──────────────────────────────────────────────────────────────
 
     def _legiscan_call(self, op: str, extra_params: Optional[Dict] = None) -> Any:
-        """Make a single LegiScan API call."""
+        """
+        Make a single LegiScan API call.
+        Raises LegiScanError on API-level errors (quota exceeded, bad key, etc.)
+        so callers can distinguish "no data" from "API unavailable".
+        """
         if not LEGISCAN_KEY:
             log.warning(
                 "LEGISCAN_KEY not set — state source disabled. "
@@ -59,85 +69,137 @@ class StateAgentBase(ABC):
             )
             return {}
         params = {"key": LEGISCAN_KEY, "op": op, **(extra_params or {})}
-        return http_get(LEGISCAN_BASE, params=params)
+        # Never cache LegiScan calls — quota errors would be cached and
+        # silently returned on every subsequent call within the TTL window.
+        data = http_get(LEGISCAN_BASE, params=params, use_cache=False)
+        # Detect API-level errors (quota, auth, invalid request)
+        if isinstance(data, dict) and data.get("status") == "ERROR":
+            msg = data.get("alert", {}).get("message", "Unknown LegiScan error")
+            raise LegiScanAPIError(f"LegiScan API error ({op}): {msg}")
+        return data
 
     def search_legiscan(self, lookback_days: int = LOOKBACK_DAYS) -> List[Dict[str, Any]]:
         """
-        Search LegiScan for AI-related bills in this state.
-        Returns normalised document dicts.
+        Fetch AI/privacy-relevant bills from LegiScan for this state.
+
+        Strategy: getMasterList (one call) returns all bills in the current
+        session. We filter locally for AI/privacy relevance. This uses 1 API
+        call per state instead of 11 keyword searches, preserving quota.
+
+        Falls back to getSearch if getMasterList returns nothing.
         """
         if not LEGISCAN_KEY:
             return []
 
-        results    = []
+        domain = getattr(self, '_domain', 'both')
+        results: List[Dict[str, Any]] = []
+
+        # ── Primary: getMasterList (1 call per state) ─────────────────────────
+        try:
+            data  = self._legiscan_call("getMasterList", {"state": self.legiscan_state})
+            bills = data.get("masterlist", {})
+
+            # Count raw bills before filtering so we can distinguish
+            # "API returned data but nothing relevant" from "API returned nothing"
+            raw_count = sum(1 for k, v in bills.items()
+                            if k not in ("session", "0") and isinstance(v, dict))
+            if raw_count == 0:
+                log.warning("LegiScan getMasterList (%s): 0 bills returned — "
+                            "may indicate quota exhaustion or invalid session",
+                            self.state_code)
+
+            cutoff = datetime.utcnow() - timedelta(days=lookback_days) if lookback_days else None
+            seen: set = set()
+            for key, item in bills.items():
+                if key in ("session", "0") or not isinstance(item, dict):
+                    continue
+                bill_id = str(item.get("bill_id", ""))
+                if not bill_id or bill_id in seen:
+                    continue
+                title = item.get("title", "")
+                if not title:
+                    continue
+                # Apply lookback filter using last_action_date
+                if cutoff:
+                    last_action = item.get("last_action_date", "")
+                    if last_action:
+                        try:
+                            if datetime.strptime(last_action[:10], "%Y-%m-%d") < cutoff:
+                                continue
+                        except ValueError:
+                            pass  # keep bill if date unparseable
+                # Filter by domain relevance on title only
+                if domain == 'privacy' and not is_privacy_relevant(title):
+                    continue
+                elif domain == 'ai' and not is_ai_relevant(title):
+                    continue
+                elif domain == 'both' and not (is_ai_relevant(title) or is_privacy_relevant(title)):
+                    continue
+                seen.add(bill_id)
+                doc = self._normalise_legiscan(item)
+                doc['domain'] = detect_domain(title)
+                results.append(doc)
+
+            log.info("LegiScan getMasterList (%s): %d AI/privacy bills "
+                     "(of %d total in session, lookback=%dd)",
+                     self.state_code, len(results), raw_count, lookback_days)
+
+        except LegiScanAPIError as e:
+            # Quota or auth error — log prominently, skip fallback
+            # (keyword searches would burn more quota on the same error)
+            log.error("LEGISCAN API ERROR (%s): %s", self.state_code, e)
+            return []
+        except Exception as e:
+            log.warning("LegiScan getMasterList (%s) failed: %s — falling back to getSearch",
+                        self.state_code, e)
+            # ── Fallback: targeted getSearch queries ──────────────────────────
+            results = self._search_legiscan_keywords(domain)
+
+        return results
+
+    def _search_legiscan_keywords(self, domain: str) -> List[Dict[str, Any]]:
+        """Keyword search fallback — used when getMasterList fails."""
         _ai_kws = [
-            "artificial intelligence",
-            "machine learning",
-            "algorithmic",
-            "deepfake",
-            "automated decision",
+            "artificial intelligence", "machine learning",
+            "algorithmic", "deepfake", "automated decision",
         ]
         _priv_kws = [
-            "personal data",
-            "consumer privacy",
-            "data protection",
-            "data privacy",
-            "privacy act",
-            "data broker",
+            "personal data", "consumer privacy", "data protection",
+            "data privacy", "privacy act", "data broker",
         ]
-        # Build search keywords based on domain
-        domain = getattr(self, '_domain', 'both')
-        if domain == 'privacy':
-            search_kws = _priv_kws
-        elif domain == 'both':
-            search_kws = _ai_kws + _priv_kws
-        else:
-            search_kws = _ai_kws
-
-        session_id = self._get_current_session_id()
-        if not session_id:
-            log.warning("Could not determine current LegiScan session for %s", self.state_code)
-            return []
-
-        seen = set()
+        search_kws = (
+            _priv_kws if domain == 'privacy' else
+            _ai_kws   if domain == 'ai'      else
+            _ai_kws + _priv_kws
+        )
+        results: List[Dict[str, Any]] = []
+        seen: set = set()
         for kw in search_kws:
             try:
                 data = self._legiscan_call("getSearch", {
                     "state": self.legiscan_state,
                     "query": kw,
                 })
-                search_result = data.get("searchresult", {})
-                for key, item in search_result.items():
-                    if key == "summary":
-                        continue
-                    if not isinstance(item, dict):
+                for key, item in data.get("searchresult", {}).items():
+                    if key == "summary" or not isinstance(item, dict):
                         continue
                     bill_id = str(item.get("bill_id", ""))
-                    if bill_id in seen:
+                    if not bill_id or bill_id in seen:
                         continue
                     title = item.get("title", "")
-                    # IMPORTANT: validate against title only, NOT title+keyword.
-                    # Concatenating the search keyword into the blob causes every
-                    # bill LegiScan returns for "algorithmic" to pass is_ai_relevant,
-                    # even bills about NAIC insurance or A1 highways that happen
-                    # to be in the result set due to full-text matches in their body.
-                    title_only = title
-                    _dom = getattr(self, '_domain', 'both')
-                    if _dom == 'privacy' and not is_privacy_relevant(title_only):
+                    if domain == 'privacy' and not is_privacy_relevant(title):
                         continue
-                    elif _dom == 'ai' and not is_ai_relevant(title_only):
+                    elif domain == 'ai' and not is_ai_relevant(title):
                         continue
-                    elif _dom == 'both' and not (is_ai_relevant(title_only) or is_privacy_relevant(title_only)):
+                    elif domain == 'both' and not (is_ai_relevant(title) or is_privacy_relevant(title)):
                         continue
                     seen.add(bill_id)
-                    doc_domain = detect_domain(title_only)
                     doc = self._normalise_legiscan(item)
-                    doc['domain'] = doc_domain
+                    doc['domain'] = detect_domain(title)
                     results.append(doc)
             except Exception as e:
-                log.error("LegiScan search '%s' (%s) failed: %s", kw, self.state_code, e)
-
-        log.info("LegiScan (%s): %d AI-relevant bills found", self.state_code, len(results))
+                log.error("LegiScan getSearch '%s' (%s) failed: %s", kw, self.state_code, e)
+        log.info("LegiScan getSearch fallback (%s): %d bills found", self.state_code, len(results))
         return results
 
     def fetch_bill_text(self, bill_id: str) -> Optional[str]:

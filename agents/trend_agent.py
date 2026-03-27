@@ -223,14 +223,26 @@ class TrendAgent:
 
         now = datetime.utcnow()
 
-        # Build windows
+        # Build windows — include current partial month so chart always ends today
         windows: List[Tuple[str, datetime, datetime]] = []
+        # Current partial month: from start of this month to now
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        windows.append((now.strftime("%b %Y"), current_month_start, now))
+        # Previous full months going back LOOKBACK_MONTHS
         for i in range(LOOKBACK_MONTHS):
             end   = now - timedelta(days=i * WINDOW_DAYS)
             start = end - timedelta(days=WINDOW_DAYS)
             label = start.strftime("%b %Y")
             windows.append((label, start, end))
         windows.reverse()   # chronological order
+        # Deduplicate labels (current month may overlap with most recent window)
+        seen_labels: set = set()
+        deduped = []
+        for w in windows:
+            if w[0] not in seen_labels:
+                seen_labels.add(w[0])
+                deduped.append(w)
+        windows = deduped
 
         # Group docs by jurisdiction
         by_jur: Dict[str, List[Dict]] = defaultdict(list)

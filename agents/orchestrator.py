@@ -218,11 +218,19 @@ class Orchestrator:
                         log.info("═══ %s complete: %s ═══", label, result)
                     elif isinstance(result, list):
                         all_docs.extend(result)
-                        log.info("═══ %s complete: %d docs ═══", label, len(result))
+                        if result:
+                            log.info("═══ %s: %d docs ═══", label, len(result))
+                            _log(f"{label}: {len(result)} documents fetched")
+                        else:
+                            log.debug("═══ %s: 0 docs ═══", label)
                     else:
                         log.info("═══ %s complete ═══", label)
                 except Exception as e:
                     log.warning("Track %s failed (continuing): %s", label, e)
+                    # Surface LegiScan quota/auth errors prominently in the run log
+                    err_str = str(e)
+                    if "LEGISCAN" in err_str.upper() or "LegiScan" in err_str:
+                        _log(f"WARNING: LegiScan error for {label}: {err_str[:120]}")
 
         # ── Persist & detect version changes ─────────────────────────────────
         new_count      = 0
