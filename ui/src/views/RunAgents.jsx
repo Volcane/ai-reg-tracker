@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Play, RefreshCw, Check, AlertTriangle, ChevronRight, Info, Zap } from 'lucide-react'
+import { Play, RefreshCw, Check, AlertTriangle, ChevronRight, Info, Zap, Database } from 'lucide-react'
 import { api } from '../api.js'
 import { Spinner, SectionHeader } from '../components.jsx'
 
@@ -248,6 +248,7 @@ export default function RunAgents({ onJobStart }) {
   const [logOffset,       setLogOffset]       = useState(0)
   const [lastResult,      setLastResult]      = useState(null)
   const [isFirstRun,      setIsFirstRun]      = useState(false)
+  const [pendingCount,    setPendingCount]    = useState(0)
   const logRef = useRef(null)
 
   useEffect(() => {
@@ -256,6 +257,7 @@ export default function RunAgents({ onJobStart }) {
       const realSummaries = (stats.total_summaries || 0) - (stats.skipped_summaries || 0)
       const hasDocs = (stats.total_documents || 0) > 0
       setIsFirstRun(hasDocs && realSummaries === 0)
+      setPendingCount(stats.pending_summaries || 0)
     }).catch(() => {})
   }, [])
 
@@ -310,9 +312,43 @@ export default function RunAgents({ onJobStart }) {
     }
   }
 
+  const handleSummarizePending = async () => {
+    setRunning(true)
+    setLogLines([`Processing ${pendingCount} pending documents…`])
+    setLogOffset(0)
+    setLastResult(null)
+    try {
+      await api.summarizePending(200, false)
+      if (onJobStart) onJobStart()
+    } catch (e) {
+      setLogLines([`ERROR: ${e.message}`])
+      setRunning(false)
+    }
+  }
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: 1100 }}>
       <SectionHeader title="Run Agents" subtitle="Fetch and analyse regulatory documents" />
+
+      {/* Pending documents banner */}
+      {pendingCount > 0 && !isFirstRun && (
+        <div style={{ marginBottom: 20, padding: '12px 16px',
+          background: 'rgba(82,168,120,0.07)', border: '1px solid rgba(82,168,120,0.25)',
+          borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Database size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
+          <div style={{ flex: 1, fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--green)' }}>{pendingCount} documents</strong> are fetched but not yet summarized.
+            Process them without fetching new content.
+          </div>
+          <button
+            className="btn-secondary btn-sm"
+            onClick={handleSummarizePending}
+            disabled={running}
+            style={{ flexShrink: 0 }}>
+            {running ? <><Spinner size={11}/> Running…</> : <>Process pending</>}
+          </button>
+        </div>
+      )}
 
       {/* First-run banner */}
       {isFirstRun && (

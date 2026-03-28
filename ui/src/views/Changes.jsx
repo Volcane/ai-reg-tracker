@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CheckCheck, GitCompare, Filter, ChevronDown, ChevronUp, ExternalLink, Search } from 'lucide-react'
 import { api } from '../api.js'
 import { Badge, Spinner, EmptyState, SectionHeader, RequirementList, DomainFilter, ViewHeader } from '../components.jsx'
@@ -21,6 +21,7 @@ export default function Changes() {
   const [unreviewed, setUnreviewed] = useState(false)
   const [days,       setDays]       = useState(30)
   const [search,     setSearch]     = useState('')
+  const [focusedIdx, setFocusedIdx] = useState(0)
 
   const load = async () => {
     setLoading(true)
@@ -37,8 +38,6 @@ export default function Changes() {
     setChanges(prev => prev.map(c => c.id === id ? { ...c, reviewed: true } : c))
   }
 
-  const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
-
   // Client-side keyword search across change summary text
   const filteredChanges = search.trim()
     ? changes.filter(c => {
@@ -50,6 +49,62 @@ export default function Changes() {
       })
     : changes
 
+  const reviewAll = async () => {
+    const unrev = filteredChanges.filter(c => !c.reviewed)
+    await Promise.all(unrev.map(c => api.reviewChange(c.id)))
+    setChanges(prev => prev.map(c => ({ ...c, reviewed: true })))
+  }
+
+  const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }))
+
+  // Keyboard triage: J/K navigate, Space/Enter mark reviewed, E expand, U toggle unreviewed
+  useEffect(() => {
+    const handler = (e) => {
+      // Don't fire if focus is inside an input/textarea
+      if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return
+      const items = filteredChanges
+      if (!items.length) return
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        setFocusedIdx(i => Math.min(i + 1, items.length - 1))
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setFocusedIdx(i => Math.max(i - 1, 0))
+      } else if ((e.key === ' ' || e.key === 'Enter') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        const item = items[focusedIdx]
+        if (item && !item.reviewed) review(item.id)
+      } else if (e.key === 'e' || e.key === 'o') {
+        e.preventDefault()
+        const item = items[focusedIdx]
+        if (item) toggle(item.id)
+      } else if (e.key === 'u') {
+        e.preventDefault()
+        setUnreviewed(v => !v)
+      } else if (e.key === 'r' && !e.metaKey) {
+        e.preventDefault()
+        load()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [filteredChanges, focusedIdx])
+
+  // Keep focusedIdx in bounds when list changes
+  useEffect(() => {
+    setFocusedIdx(0)
+  }, [changes.length, severity, diffType, unreviewed, search])
+
+  // Scroll focused card into view
+  const listRef = useRef(null)
+  useEffect(() => {
+    if (!listRef.current) return
+    const cards = listRef.current.querySelectorAll('[data-change-card]')
+    if (cards[focusedIdx]) {
+      cards[focusedIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [focusedIdx])
+
   const unreviewedCount = changes.filter(c => !c.reviewed).length
 
   return (
@@ -60,7 +115,10 @@ export default function Changes() {
         domain={domain}
         onDomainChange={handleDomainChange}
         action={unreviewedCount > 0 && (
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{unreviewedCount} pending review</span>
+          <button className="btn-secondary btn-sm" onClick={reviewAll}
+            title="Mark all visible changes as reviewed">
+            <CheckCheck size={13}/> Mark all reviewed
+          </button>
         )}
       />
 
@@ -104,6 +162,20 @@ export default function Changes() {
         </label>
       </div>
 
+      {/* Keyboard hint */}
+      {!loading && filteredChanges.length > 0 && (
+        <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12,
+          padding: '6px 12px', background: 'var(--bg-2)', borderRadius: 'var(--radius)',
+          border: '1px solid var(--border)', fontFamily: 'var(--font-mono)',
+          display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <span><kbd style={{background:'var(--bg-3)',padding:'1px 5px',borderRadius:3,border:'1px solid var(--border)'}}>J/K</kbd> navigate</span>
+          <span><kbd style={{background:'var(--bg-3)',padding:'1px 5px',borderRadius:3,border:'1px solid var(--border)'}}>Space</kbd> mark reviewed</span>
+          <span><kbd style={{background:'var(--bg-3)',padding:'1px 5px',borderRadius:3,border:'1px solid var(--border)'}}>E</kbd> expand</span>
+          <span><kbd style={{background:'var(--bg-3)',padding:'1px 5px',borderRadius:3,border:'1px solid var(--border)'}}>U</kbd> unreviewed only</span>
+          <span><kbd style={{background:'var(--bg-3)',padding:'1px 5px',borderRadius:3,border:'1px solid var(--border)'}}>R</kbd> reload</span>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={24} /></div>
       ) : filteredChanges.length === 0 ? (
@@ -116,14 +188,16 @@ export default function Changes() {
           }
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {filteredChanges.map(c => (
+        <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filteredChanges.map((c, idx) => (
             <ChangeCard
               key={c.id}
               change={c}
               expanded={!!expanded[c.id]}
-              onToggle={() => toggle(c.id)}
+              focused={idx === focusedIdx}
+              onToggle={() => { setFocusedIdx(idx); toggle(c.id) }}
               onReview={() => review(c.id)}
+              onClick={() => setFocusedIdx(idx)}
             />
           ))}
         </div>
@@ -132,7 +206,7 @@ export default function Changes() {
   )
 }
 
-function ChangeCard({ change: c, expanded, onToggle, onReview }) {
+function ChangeCard({ change: c, expanded, focused, onToggle, onReview, onClick }) {
   const isVersionUpdate = c.diff_type === 'version_update'
   const borderColor = {
     Critical: 'var(--red)',
@@ -142,16 +216,20 @@ function ChangeCard({ change: c, expanded, onToggle, onReview }) {
   }[c.severity] || 'var(--border)'
 
   return (
-    <div style={{
-      background: 'var(--bg-2)',
-      border: `1px solid ${borderColor}`,
-      borderRadius: 'var(--radius-lg)',
-      overflow: 'hidden',
-      opacity: c.reviewed ? 0.7 : 1,
-      transition: 'box-shadow 0.15s',
-    }}
-    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
-    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+    <div
+      data-change-card="1"
+      onClick={onClick}
+      style={{
+        background: 'var(--bg-2)',
+        border: `1px solid ${borderColor}`,
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        opacity: c.reviewed ? 0.65 : 1,
+        transition: 'box-shadow 0.15s',
+        outline: focused ? '2px solid var(--accent)' : '2px solid transparent',
+        outlineOffset: 2,
+        scrollMarginTop: 12,
+      }}
     >
       {/* Header */}
       <div

@@ -1,7 +1,3 @@
-// SPDX-License-Identifier: Elastic-2.0
-// Copyright (c) 2026 Mitch Kwiatkowski
-// ARIS — Automated Regulatory Intelligence System
-// Licensed under the Elastic License 2.0. See LICENSE in the project root.
 const BASE = '/api'
 
 async function req(path, opts = {}) {
@@ -34,6 +30,7 @@ export const api = {
 
   // Run agents
   runAgents:      (payload)   => req('/run',         { method: 'POST', body: JSON.stringify(payload) }),
+  summarizePending: (limit=100, force=false) => req(`/summarize-pending?limit=${limit}&force=${force}`, { method: 'POST' }),
   runStatus:      ()          => req('/run/status'),
   runLog:         (since)     => req(`/run/log?since=${since}`),
 

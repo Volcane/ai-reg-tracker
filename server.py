@@ -792,6 +792,41 @@ def run_agents(req: RunAgentsRequest, background_tasks: BackgroundTasks):
     return {"status": "started"}
 
 
+@app.post("/api/summarize-pending")
+def summarize_pending_docs(background_tasks: BackgroundTasks,
+                            limit: int = 100,
+                            force: bool = False):
+    """
+    Summarize pending (unsummarized) documents without fetching new ones.
+    Runs in the background. Poll /api/run/status for progress.
+    """
+    if _job_state["running"]:
+        raise HTTPException(status_code=409, detail="A job is already running")
+
+    def _run():
+        _job_state["running"] = True
+        _job_state["log"]     = []
+        _log(f"Summarizing up to {limit} pending documents…")
+        try:
+            from agents.orchestrator import Orchestrator
+            orch = Orchestrator()
+            def _cb(cur, tot): _log(f"  {cur}/{tot} summarized…")
+            result = orch.summarize(limit=limit, progress_callback=_cb, force=force)
+            saved   = result.get("saved", 0)
+            skipped = result.get("skipped", 0)
+            _log(f"Done — {saved} summarized" + (f", {skipped} skipped by pre-filter" if skipped else ""))
+            _job_state["last_result"] = {**result, **get_stats()}
+        except Exception as e:
+            _log(f"ERROR: {e}")
+            log.error("summarize-pending error: %s", e, exc_info=True)
+        finally:
+            _job_state["running"]  = False
+            _job_state["last_run"] = __import__("datetime").datetime.utcnow().isoformat()
+
+    background_tasks.add_task(_run)
+    return {"status": "started"}
+
+
 @app.get("/api/run/status")
 def run_status():
     return {
