@@ -1940,18 +1940,21 @@ def get_knowledge_graph(
 
 
 @app.post("/api/graph/build")
-def build_knowledge_graph(background_tasks: BackgroundTasks,
-                           force: bool = False):
+def build_knowledge_graph(force: bool = True):
     """
     (Re)build the knowledge graph edge table from all baselines and documents.
-    Runs in the background — lightweight, no LLM calls.
+    Runs synchronously — no LLM calls, completes in under a second.
+    force=True by default so the UI Rebuild button always replaces existing data.
+    Returns the edge counts so the UI can reload immediately.
     """
-    def _run():
-        from agents.graph_agent import GraphAgent
+    from agents.graph_agent import GraphAgent
+    try:
         counts = GraphAgent().build(force=force)
         log.info("Knowledge graph built: %s", counts)
-    background_tasks.add_task(_run)
-    return {"status": "building"}
+        return {"status": "ok", "counts": counts}
+    except Exception as e:
+        log.error("Graph build failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Graph build failed — check server log")
 
 
 @app.post("/api/graph/conflicts")
