@@ -168,10 +168,33 @@ REGULATION_LINK_MAP = {
 }
 
 
-def _is_enforcement_relevant(text: str) -> bool:
-    """Check if text is relevant to AI or privacy enforcement/litigation."""
+def _is_enforcement_relevant(text: str, strict: bool = False) -> bool:
+    """Check if text is relevant to AI or privacy enforcement/litigation.
+
+    strict=True applies the same two-signal requirement used for news feeds
+    (domain keyword + enforcement action signal).  Use this for broad sources
+    like the DOJ general news RSS that mix AI/privacy with unrelated crime.
+    """
     lower = text.lower()
-    return any(term in lower for term in _ALL_ENFORCEMENT_TERMS)
+    # 'ico' is a dangerous substring — only match as a standalone word
+    # so "Mexico", "Francisco", "Rico" don't false-fire.
+    # Apply a word-boundary check for short ambiguous terms.
+    _WORD_BOUNDARY_TERMS = {"ico", "fcra", "glba", "appi", "cnil", "anpd"}
+
+    def _matches(term: str) -> bool:
+        if term not in _WORD_BOUNDARY_TERMS:
+            return term in lower
+        import re
+        return bool(re.search(r'\b' + re.escape(term) + r'\b', lower))
+
+    has_domain = any(_matches(t) for t in _ALL_ENFORCEMENT_TERMS)
+    if not has_domain:
+        return False
+    if not strict:
+        return True
+    # Strict mode: also require an enforcement action signal
+    has_action = any(t in lower for t in _ENFORCEMENT_ACTION_SIGNALS)
+    return has_action
 
 
 # Terms that signal an actual enforcement/litigation action rather than
@@ -712,6 +735,26 @@ class EEOCEnforcementSource:
         return FTCEnforcementSource._dedup(results)
 
 
+# Topics that appear frequently in DOJ press releases and share surface-level
+# terms with AI/privacy (e.g. "personal information", "surveillance") but are
+# categorically unrelated to AI or data-privacy enforcement.
+_DOJ_FALSE_POSITIVE_TOPICS = [
+    "illegal alien", "illegal immigrant", "undocumented",
+    "border patrol", "border crossing", "immigration and customs",
+    " ice arrest", "deportation",
+    "drug trafficking", "drug cartel", "drug bust", "narcotics",
+    "fentanyl", "methamphetamine", "cocaine", "heroin",
+    "human trafficking", "sex trafficking",
+    "weapons charge", "firearms charge", "gun charge",
+    "child exploitation", "child pornography", "csam",
+    "organized crime", "crime family", "mob", "gang member",
+    "murder", "homicide", "manslaughter",
+    "robbery", "armed robbery",
+    "weekly immigration", "border crimes report",
+    "la familia", "cartel",
+]
+
+
 class DOJEnforcementSource:
     """
     DOJ Civil Rights Division — AI discrimination in housing, lending,
@@ -732,7 +775,17 @@ class DOJEnforcementSource:
                 items = _parse_rss_feed(raw)
                 for item in items:
                     blob = f"{item['title']} {item['description']}"
-                    if not _is_enforcement_relevant(blob):
+                    # DOJ /news/rss is a general press-release feed covering
+                    # all DOJ activity — immigration, drug trafficking, organised
+                    # crime, etc. Use strict mode (two-signal) to require BOTH
+                    # an AI/privacy domain term AND an enforcement action signal,
+                    # preventing unrelated criminal cases from passing through.
+                    if not _is_enforcement_relevant(blob, strict=True):
+                        continue
+                    # Additional blocklist: topics that share surface terms
+                    # with AI/privacy but are categorically unrelated
+                    lower_blob = blob.lower()
+                    if any(t in lower_blob for t in _DOJ_FALSE_POSITIVE_TOPICS):
                         continue
                     pub = _parse_rss_date(item["date"])
                     if pub and pub < cutoff:
