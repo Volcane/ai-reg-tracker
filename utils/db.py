@@ -1918,8 +1918,18 @@ def get_stats() -> Dict[str, Any]:
         privacy_docs = session.query(Document).filter(
             Document.domain.in_(["privacy", "both"])
         ).count()
+        # How many documents are archived (auto or user-marked not_relevant)?
+        # Review status lives in FeedbackEvent — count distinct docs with
+        # most-recent feedback = not_relevant.
+        archived_docs = session.query(FeedbackEvent.document_id).filter(
+            FeedbackEvent.feedback == "not_relevant"
+        ).distinct().count()
+        active_docs = total_docs - archived_docs
+
         return {
             "total_documents":     total_docs,
+            "active_documents":    active_docs,
+            "archived_documents":  archived_docs,
             "total_summaries":     total_summaries,
             "skipped_summaries":   skipped_summaries,
             "federal_documents":   federal_docs,

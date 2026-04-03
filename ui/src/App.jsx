@@ -376,7 +376,14 @@ function AppInner() {
                   width: 6, height: 6, borderRadius: '50%',
                   background: status ? 'var(--green)' : 'var(--red-dim)', flexShrink: 0,
                 }} />
-                <span>{stats.total_documents ?? '—'} docs · {stats.total_summaries ?? '—'} summarised</span>
+                <span>
+                  {stats.active_documents ?? stats.total_documents ?? '—'} active
+                  {(stats.archived_documents || 0) > 0 && (
+                    <span style={{ color: 'var(--text-3)', marginLeft: 4 }}>
+                      · {stats.archived_documents} archived
+                    </span>
+                  )}
+                </span>
               </div>
             )}
             {status?.job?.last_run && (

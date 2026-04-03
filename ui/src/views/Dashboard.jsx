@@ -1,10 +1,10 @@
 /**
- * ARIS Dashboard - "What needs my attention right now?"
+ * ARIS Dashboard — "What needs my attention right now?"
  *
  * Three zones:
- *   1. Alert rail  - actionable items only (critical changes, upcoming deadlines, skipped docs)
- *   2. Insight grid - regulatory pulse (velocity sparklines) + what's active (impact areas, enforcement, horizon)
- *   3. System health - coverage, freshness, API key readiness
+ *   1. Alert rail  — actionable items only (critical changes, upcoming deadlines, skipped docs)
+ *   2. Insight grid — regulatory pulse (velocity sparklines) + what's active (impact areas, enforcement, horizon)
+ *   3. System health — coverage, freshness, API key readiness
  */
 
 import { useState, useEffect } from 'react'
@@ -214,7 +214,7 @@ function AlertRail({ unreviewedCritical, unreviewedHigh, urgentHorizon, pendingC
       bg: d < 14 ? 'rgba(224,82,82,0.08)' : 'rgba(224,131,74,0.08)',
       border: d < 14 ? 'rgba(224,82,82,0.3)' : 'rgba(224,131,74,0.3)',
       label: `${urgentHorizon.length} deadline${urgentHorizon.length > 1 ? 's' : ''} within 30 days`,
-      sub: `${next.title?.slice(0, 65)} - ${d}d`,
+      sub: `${next.title?.slice(0, 65)} — ${d}d`,
       action: () => navigate('/horizon'),
       cta: 'View →',
     })
@@ -258,10 +258,10 @@ function AlertRail({ unreviewedCritical, unreviewedHigh, urgentHorizon, pendingC
       }}>
         <CheckCircle2 size={14} style={{ color: 'var(--green)', flexShrink: 0 }} />
         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>
-          No critical items - system is up to date
+          No critical items — system is up to date
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-          {(stats?.total_documents || 0)} docs · {(stats?.total_summaries || 0)} summarised
+          {(stats?.active_documents ?? stats?.total_documents ?? 0)} active · {(stats?.archived_documents || 0)} archived
         </span>
       </div>
     )
@@ -377,13 +377,13 @@ function PulsePanel({ trends, stats, navigate }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: 80, flexShrink: 0, justifyContent: 'flex-end' }}>
                     <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-                      {v.total_documents}
+                      {v.active_documents ?? v.total_documents}
                     </span>
                     <span style={{
                       fontSize: 9, fontFamily: 'var(--font-mono)', padding: '1px 5px',
                       borderRadius: 3, background: trendColor + '18', color: trendColor,
                     }}>
-                      {trend === 'accelerating' ? '↑' : trend === 'decelerating' ? '↓' : '-'}
+                      {trend === 'accelerating' ? '↑' : trend === 'decelerating' ? '↓' : '—'}
                     </span>
                   </div>
                 </div>
@@ -724,7 +724,10 @@ function HorizonWidget({ items, stats, navigate }) {
 // ── Zone 3: System Health ─────────────────────────────────────────────────────
 
 function SystemHealth({ stats, apiKeys, status, job, navigate }) {
-  const coverage = Math.round(((stats.total_summaries || 0) / Math.max(stats.total_documents || 1, 1)) * 100)
+  // Coverage = real (non-skipped) summaries vs active (non-archived) documents
+  const activeDocs   = stats.active_documents ?? stats.total_documents ?? 1
+  const realSummaries = Math.max(0, (stats.total_summaries || 0) - (stats.skipped_summaries || 0))
+  const coverage = Math.round((realSummaries / Math.max(activeDocs, 1)) * 100)
   const baselines = 31 // known constant
 
   const keyItems = [
@@ -750,7 +753,7 @@ function SystemHealth({ stats, apiKeys, status, job, navigate }) {
           {coverage}%
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
-          {stats.total_summaries ?? 0} / {stats.total_documents ?? 0} summarised
+          {realSummaries} active · {stats.archived_documents ?? 0} archived
         </div>
         <div style={{ marginTop: 6, height: 3, background: 'var(--bg-4)', borderRadius: 2, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${coverage}%`, background: coverage > 80 ? 'var(--green)' : coverage > 50 ? 'var(--yellow)' : 'var(--orange)', borderRadius: 2 }} />
@@ -878,7 +881,7 @@ function PendingSummariesPrompt({ stats, navigate }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
         <Database size={17} style={{ color: 'var(--accent)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>{stats.total_documents} documents fetched</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{stats.active_documents ?? stats.total_documents} documents fetched</div>
           <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 1 }}>{stats.pending_summaries || stats.total_documents} pending AI interpretation</div>
         </div>
         <button className="btn-primary btn-sm" onClick={() => navigate('/run')}><Zap size={12} /> Summarise now</button>
