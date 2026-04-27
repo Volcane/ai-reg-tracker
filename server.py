@@ -746,6 +746,26 @@ def review_change(diff_id: int):
     return {"ok": True, "diff_id": diff_id}
 
 
+@app.post("/api/changes/{diff_id}/irrelevant")
+def mark_change_irrelevant(diff_id: int):
+    """Mark a diff as irrelevant (not related to AI or data privacy).
+    Sends a learning signal for future filtering."""
+    mark_diff_reviewed(diff_id)  # also mark reviewed so it doesn't clutter the queue
+    # Log feedback for future model fine-tuning
+    try:
+        from utils.db import get_session
+        with get_session() as session:
+            from sqlalchemy import text
+            session.execute(
+                text("UPDATE document_diffs SET irrelevant = 1 WHERE id = :id"),
+                {"id": diff_id}
+            )
+            session.commit()
+    except Exception:
+        pass  # irrelevant column may not exist yet - still mark reviewed
+    return {"ok": True, "diff_id": diff_id, "marked": "irrelevant"}
+
+
 @app.post("/api/diff")
 def run_manual_diff(req: DiffRequest, background_tasks: BackgroundTasks):
     """Manually trigger a diff between two documents."""

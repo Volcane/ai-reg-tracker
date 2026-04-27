@@ -45,6 +45,31 @@ export default function Baselines() {
   const [loading,    setLoading]    = useState(true)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [jurFilter,  setJurFilter]  = useState('')
+  const [rebuilding, setRebuilding] = useState(false)
+  const [rebuildMsg, setRebuildMsg] = useState('')
+
+  const rebuildIndex = async () => {
+    setRebuilding(true)
+    setRebuildMsg('Rebuilding RAG index…')
+    try {
+      await baselineApi.rebuildQA()
+      // Poll until complete
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 1000))
+        try {
+          const s = await baselineApi.qaStatus()
+          if (!s?.running) {
+            setRebuildMsg(`Index rebuilt · ${s?.passage_count || ''} passages`)
+            break
+          }
+        } catch {}
+      }
+    } catch (e) {
+      setRebuildMsg('Rebuild failed — check server log')
+    } finally {
+      setRebuilding(false)
+    }
+  }
 
   const load = async () => {
     setLoading(true)
@@ -85,7 +110,21 @@ export default function Baselines() {
       <div style={{ width: 300, flexShrink: 0, borderRight: '1px solid var(--border)', overflow: 'auto', padding: '20px 16px' }}>
         {/* Header */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 2 }}>Regulatory Baselines</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+            <div style={{ fontWeight: 500, fontSize: 14 }}>Regulatory Baselines</div>
+            <button
+              onClick={rebuildIndex}
+              disabled={rebuilding}
+              className="btn-ghost btn-sm"
+              style={{ fontSize: 10 }}
+              title="Rebuild the Q&amp;A passage index from all baselines and documents"
+            >
+              {rebuilding ? '↻ Rebuilding…' : '↻ Rebuild index'}
+            </button>
+          </div>
+          {rebuildMsg && (
+            <div style={{ fontSize: 10, color: 'var(--accent)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>{rebuildMsg}</div>
+          )}
           <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10 }}>
             {summaries.length} regulations loaded · no API calls required
             {coverage && ` · reviewed ${coverage.last_reviewed}`}

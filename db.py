@@ -609,17 +609,28 @@ def _diff_to_dict(d: DocumentDiff, doc_title: Optional[str] = None) -> Dict[str,
 
 
 def _enrich_diffs_with_titles(session, rows: list) -> List[Dict[str, Any]]:
-    """Look up base document titles in one query and attach to diff dicts."""
+    """Look up base document titles, jurisdiction, and date in one query."""
     base_ids = [r.base_document_id for r in rows if r.base_document_id]
-    title_map: Dict[str, str] = {}
+    doc_map: Dict[str, dict] = {}
     if base_ids:
         docs = (
-            session.query(Document.id, Document.title)
+            session.query(Document.id, Document.title, Document.jurisdiction, Document.published_date)
             .filter(Document.id.in_(base_ids))
             .all()
         )
-        title_map = {d.id: d.title for d in docs}
-    return [_diff_to_dict(r, title_map.get(r.base_document_id)) for r in rows]
+        doc_map = {d.id: {
+            "title": d.title,
+            "jurisdiction": d.jurisdiction,
+            "published_date": d.published_date.isoformat()[:10] if d.published_date else None,
+        } for d in docs}
+    result = []
+    for r in rows:
+        d = _diff_to_dict(r, doc_map.get(r.base_document_id, {}).get("title"))
+        meta = doc_map.get(r.base_document_id, {})
+        d["base_jurisdiction"] = meta.get("jurisdiction")
+        d["base_published_date"] = meta.get("published_date")
+        result.append(d)
+    return result
 
 
 # ── DocumentLink CRUD ─────────────────────────────────────────────────────────

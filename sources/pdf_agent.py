@@ -76,6 +76,12 @@ def extract_text_from_pdf(path: Path) -> Tuple[str, str, int]:
         if len(text_b.strip()) > len(text.strip()):
             text, method, pages = text_b, method_b, pages_b
 
+    # Final fallback: PyMuPDF (fitz)
+    if len(text.strip()) < 100:
+        text_c, method_c, pages_c = _extract_fitz(path)
+        if len(text_c.strip()) > len(text.strip()):
+            text, method, pages = text_c, method_c, pages_c
+
     text = _clean_extracted_text(text)
     log.info(
         "Extracted %d chars from %s (%d pages, method=%s)",
@@ -121,6 +127,26 @@ def _extract_pypdf(path: Path) -> Tuple[str, str, int]:
     except Exception as e:
         log.debug("pypdf failed for %s: %s", path.name, e)
         return "", "pypdf_failed", 0
+
+
+
+def _extract_fitz(path: Path) -> Tuple[str, str, int]:
+    """PyMuPDF fallback — often pre-installed in data science environments."""
+    try:
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(str(path))
+        pages_text = []
+        page_count = len(doc)
+        for page in doc:
+            t = page.get_text()
+            if t:
+                pages_text.append(t)
+        doc.close()
+        return "\n\n".join(pages_text), "pymupdf", page_count
+    except Exception as e:
+        log.debug("pymupdf failed for %s: %s", path.name, e)
+        return "", "pymupdf_failed", 0
 
 
 def _clean_extracted_text(text: str) -> str:
@@ -371,6 +397,8 @@ class PDFAutoDownloader:
                         "pdf_url": pdf_url,
                         "has_text": bool(doc.get("full_text")),
                         "text_length": len(doc.get("full_text") or ""),
+                        "domain": doc.get("domain", "ai"),
+                        "urgency": doc.get("urgency"),
                     }
                 )
         return candidates

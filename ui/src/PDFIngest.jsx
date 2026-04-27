@@ -149,8 +149,9 @@ function AutoDownloadTab({ onComplete }) {
   }, [running, logOffset])
 
   const toggleAll = () => {
-    if (selected.size === candidates.length) setSelected(new Set())
-    else setSelected(new Set(candidates.map(c => c.id)))
+    const visibleCands = relevantOnly ? candidates.filter(c => c.domain === 'ai' || c.domain === 'privacy') : candidates
+    if (selected.size === visibleCands.length) setSelected(new Set())
+    else setSelected(new Set(visibleCands.map(c => c.id)))
   }
 
   const downloadSelected = async () => {
@@ -186,6 +187,18 @@ function AutoDownloadTab({ onComplete }) {
             <Download size={13} /> Download Selected ({selected.size})
           </button>
         )}
+        {/* Relevance filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={relevantOnly} onChange={e => setRelevantOnly(e.target.checked)}
+              style={{ width: 'auto', accentColor: 'var(--accent)' }} />
+            AI & privacy only
+          </label>
+          <span style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic' }}>
+            ({(relevantOnly ? candidates.filter(c => c.domain === 'ai' || c.domain === 'privacy') : candidates).length} shown)
+          </span>
+        </div>
+
         {candidates.length > 0 && (
           <button className="btn-secondary btn-sm" onClick={downloadAll} disabled={running}>
             <Play size={13} /> Download All ({candidates.length})
@@ -210,7 +223,7 @@ function AutoDownloadTab({ onComplete }) {
           message="All eligible documents have already been PDF-extracted, or no PDF URLs are available for documents in this jurisdiction." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {candidates.map(c => (
+          {(relevantOnly ? candidates.filter(c => c.domain === 'ai' || c.domain === 'privacy') : candidates).map(c => (
             <div key={c.id}
               className="card"
               style={{ padding: '10px 14px', borderColor: selected.has(c.id) ? 'var(--accent-dim)' : 'var(--border)', background: selected.has(c.id) ? 'var(--bg-3)' : 'var(--bg-2)', cursor: 'pointer' }}
@@ -376,6 +389,7 @@ function InboxTab({ onComplete }) {
   const [ingesting, setIngesting] = useState(false)
   const [result,    setResult]    = useState(null)
   const [error,     setError]     = useState('')
+  const [relevantOnly, setRelevantOnly] = useState(true)
 
   const load = async () => {
     setLoading(true)
